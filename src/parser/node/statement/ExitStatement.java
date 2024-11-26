@@ -18,4 +18,9 @@ public class ExitStatement implements NodeStatement {
 
         return expression.toString();
     }
+
+    @Override
+    public String typeString() {
+        return "exit";
+    }
 }

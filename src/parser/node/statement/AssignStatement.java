@@ -11,4 +11,9 @@ public class AssignStatement implements NodeStatement {
     public String asString() {
         return "";
     }
+
+    @Override
+    public String typeString() {
+        return "assignment";
+    }
 }

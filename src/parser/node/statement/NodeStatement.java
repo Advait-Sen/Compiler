@@ -8,4 +8,9 @@ public interface NodeStatement extends ASTNode {
     default boolean isRoot() {
         return false;
     }
+
+    /**
+     * String indicating type of statement
+     */
+    String typeString();
 }

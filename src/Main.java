@@ -8,11 +8,15 @@ import tokeniser.Tokeniser;
 public class Main {
     public static void main(String[] args) {
         System.out.println("Initialising Tokeniser");
-        String input = "exit (45) exit ((3.45))";
+        String input = "exit (45) ; exit ((3.45)) ;";
+
+        System.out.println("input.charAt(6) = " + input.charAt(6));
+        System.out.println("input.charAt(9) = " + input.charAt(9));
+
         Tokeniser tokeniser = new Tokeniser(input);
 
         System.out.println("Code:\n");
-        System.out.println(input+"\n\n");
+        System.out.println(input+"\n\nEnd Code");
 
         try {
             tokeniser.tokenise();
@@ -32,7 +36,10 @@ public class Main {
 
         NodeProgram program = parser.parse();
 
-        System.out.println("program.asString() = \n" + program.asString());
+        System.out.println("\nprogram.asString() =");
+        for (NodeStatement statement : program.statements) {
+            System.out.println(statement.typeString() + " : " + statement.asString());
+        }
 
 
         System.exit(0);
