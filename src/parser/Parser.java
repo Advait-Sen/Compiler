@@ -80,6 +80,10 @@ public class Parser {
                 throw new ExpressionError("Unknown statement", t);
             }
 
+            if(peek().type!=SEMICOLON){
+                throw new ExpressionError("Must have ';' after statement", peek());
+            }
+
             program.statements.add(statement);
         }
 
