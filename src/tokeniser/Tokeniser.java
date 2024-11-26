@@ -61,7 +61,8 @@ public class Tokeniser {
                 } else {
                     colpos++;
                 }
-                c = consume();
+                pos++;
+                c = peek();
             }
 
             token.pos = this.pos;
