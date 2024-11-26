@@ -10,9 +10,6 @@ public class Main {
         System.out.println("Initialising Tokeniser");
         String input = "exit (45) ; exit ((3.45)) ;";
 
-        System.out.println("input.charAt(6) = " + input.charAt(6));
-        System.out.println("input.charAt(9) = " + input.charAt(9));
-
         Tokeniser tokeniser = new Tokeniser(input);
 
         System.out.println("Code:\n");
