@@ -5,28 +5,54 @@ import parser.node.statement.NodeStatement;
 import tokeniser.Token;
 import tokeniser.Tokeniser;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
 public class Main {
     public static void main(String[] args) {
+
+        final String fileName = args[0];
+
+        System.out.println("Reading from file: " + fileName);
+
+        StringBuilder fileInput = new StringBuilder();
+
+        try {
+            BufferedReader bfr = new BufferedReader(new FileReader(fileName));
+
+            for (String line = bfr.readLine(); line != null; line = bfr.readLine()) {
+                fileInput.append(line).append('\n');
+            }
+
+            bfr.close();
+
+        } catch (IOException e) {
+            System.out.println("Could not read from file " + fileName);
+            System.exit(-1);
+            return;
+        }
+
+        String input = fileInput.toString();
+
+        System.out.println(fileName + ":");
+        System.out.println(input + "\nEnd of File\n");
+
         System.out.println("Initialising Tokeniser");
-        String input = "exit (45) ; exit ((3.45)) ;";
-
         Tokeniser tokeniser = new Tokeniser(input);
-
-        System.out.println("Code:\n");
-        System.out.println(input+"\n\nEnd Code");
 
         try {
             tokeniser.tokenise();
-        } catch (ExpressionError expressionError){
+        } catch (ExpressionError expressionError) {
             System.out.println("Error in tokenisation:");
             System.out.println(expressionError.getMessage());
             System.exit(-1);
             return;
         }
 
-        System.out.println("Tokens:");
+        System.out.println("Tokens (" + tokeniser.tokens().size() + "):");
         for (Token token : tokeniser.tokens()) {
-            System.out.println("type = " + token.type.toString() + " value = "+token.value + " colpos = " + token.colpos);
+            System.out.println(token.type.toString() + ":= " + token.value);
         }
 
         Parser parser = new Parser(tokeniser);
