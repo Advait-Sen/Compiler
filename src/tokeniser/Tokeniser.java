@@ -159,19 +159,19 @@ public class Tokeniser {
             } else if (c == ')') {
                 token.type = CLOSE_PAREN;
                 token.append(c);
-                if (parens.pop() != '(') {
+                if (parens.empty()|| parens.pop() != '(') {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == ']') {
                 token.type = SQ_CLOSE_PAREN;
                 token.append(c);
-                if (parens.pop() != '[') {
+                if (parens.empty()|| parens.pop() != '[') {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == '}') {
                 token.type = C_CLOSE_PAREN;
                 token.append(c);
-                if (parens.pop() != '{') {
+                if (parens.empty()|| parens.pop() != '{') {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             }
