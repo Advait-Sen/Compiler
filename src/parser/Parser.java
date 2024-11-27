@@ -57,7 +57,7 @@ public class Parser {
             case OPEN_PAREN -> {
                 consume(); //consume the open parenthesis
                 expr = parseExpr();
-                if(peek().type!= CLOSE_PAREN) //this should not happen
+                if (peek().type != CLOSE_PAREN) //this should not happen
                     throw new ExpressionError("Misplaced parentheses after tokenisation?", peek());
             }
         }
@@ -66,21 +66,20 @@ public class Parser {
         return expr;
     }
 
-    public NodeProgram parse(){
+    public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
-        for(pos = 0; pos < tokens.size(); pos++){
+        for (pos = 0; pos < tokens.size(); pos++) {
             Token t = peek();
             NodeStatement statement;
-            if(t.type == EXIT){
+            if (t.type == EXIT) {
                 consume();
                 statement = new ExitStatement(parseExpr());
-            }
-            else {
+            } else {
                 throw new ExpressionError("Unknown statement", t);
             }
 
-            if(peek().type!=SEMICOLON){
+            if (peek().type != SEMICOLON) { // Must end all statements with semicolon
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
@@ -88,15 +87,6 @@ public class Parser {
         }
 
         return program;
-    }
-
-    //todo for generating all the tokens that the expr needs to evaluate, until the semicolon
-    static boolean isExprToken(TokenType type){
-        return switch (type){
-            case BOOL_LITERAL, INT_LITERAL, HEX_LITERAL, FLOAT_LITERAL, CHAR_LITERAL, STR_LITERAL -> true;
-
-            default -> false;
-        };
     }
 
     boolean hasNext() {
