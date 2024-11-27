@@ -141,6 +141,24 @@ public class Tokeniser {
                 colpos--;
 
                 token.type = tokeniserKeywords.getOrDefault(token.value, IDENTIFIER);
+            } else if (c == '/') { //Checking for comments (not division)
+                c = consume();
+                if (c == '/') { //Line comment, consume until end of line
+                    while (c != '\n') {
+                        c = consume(); //todo add newlines to linepos and colpos for proper error messages when scanning comments and strings
+                    }
+                } else if (c == '*') { //Block comment, consume until '*/'
+                    do {
+                        c = consume();
+                    } while (hasNext(1) && !(c == '*' && peek(1) == '/'));
+
+                    if(!hasNext(1)){ //Reached end of file without seeing '*/'
+                        throw new ExpressionError("Unclosed block comment", token);
+                    }
+                }
+
+                //Else the '/' is probably for division, so we'll handle it with the other operators below
+
             } else if (c == ';') {
                 token.type = SEMICOLON;
                 token.append(c);
@@ -159,34 +177,35 @@ public class Tokeniser {
             } else if (c == ')') {
                 token.type = CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty()|| parens.pop() != '(') {
+                if (parens.empty() || parens.pop() != '(') {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == ']') {
                 token.type = SQ_CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty()|| parens.pop() != '[') {
+                if (parens.empty() || parens.pop() != '[') {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == '}') {
                 token.type = C_CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty()|| parens.pop() != '{') {
+                if (parens.empty() || parens.pop() != '{') {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             }
 
             colpos++; //to make sure column number advances correctly
 
-            if (token.type != null) //Skipping over final whitespaces in file
+            if (token.type != null) //Skipping over final whitespaces and comments in file
                 tokens.add(token);
         }
     }
 
     /**
-     * Additional optimisations to tokenisation once we have a listof valid tokens
+     * Additional optimisations to tokenisation once we have a list of valid tokens
+     * TODO postProcess
      */
-    private void postProcessTokens(){
+    private void postProcessTokens() {
 
     }
 
@@ -209,10 +228,16 @@ public class Tokeniser {
         return input.charAt(pos + offset);
     }
 
+    /**
+     * Returns currently looked at character
+     */
     char peek() {
         return peek(0);
     }
 
+    /**
+     * Increments position counter and looks at next character in input
+     */
     char consume() {
         pos++;
         colpos++;
