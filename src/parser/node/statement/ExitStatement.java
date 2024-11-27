@@ -1,10 +1,13 @@
 package parser.node.statement;
 
 import parser.node.NodeExpr;
+import parser.node.primitives.BoolPrimitive;
+import parser.node.primitives.CharPrimitive;
+import parser.node.primitives.FloatPrimitive;
 import parser.node.primitives.IntPrimitive;
 
 public class ExitStatement implements NodeStatement {
-    public ExitStatement(NodeExpr expr){
+    public ExitStatement(NodeExpr expr) {
         this.expression = expr;
     }
 
@@ -12,11 +15,7 @@ public class ExitStatement implements NodeStatement {
 
     @Override
     public String asString() {
-        if(expression instanceof IntPrimitive intp){
-            return "exit " + intp.getValue();
-        }
-
-        return expression.toString();
+        return "exit " + expression.asString();
     }
 
     @Override
