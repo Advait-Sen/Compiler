@@ -136,10 +136,10 @@ public class Tokeniser {
 
                     c = consume();
                 }
-                pos--;
+                pos--; //Because the last consume() overshoots by one
                 colpos--;
 
-                token.type = tokeniserKeywords.getOrDefault(token.value, IDENTIFIER);
+                token.type = IDENTIFIER;
 
             } else if (c == '/') { //Checking for comments (not division)
                 c = consume();
@@ -208,14 +208,27 @@ public class Tokeniser {
             if (token.type != null) //Skipping over final whitespaces and comments in file
                 tokens.add(token);
         }
+
+        postProcessTokens();
     }
 
     /**
      * Additional optimisations to tokenisation once we have a list of valid tokens
-     * TODO postProcess
      */
     private void postProcessTokens() {
+        for (int i = 0; i < tokens.size(); i++) {
+            Token token = tokens.get(i);
 
+            if(token.type == IDENTIFIER) {
+
+                if(tokeniserKeywords.containsKey(token.value)) {
+                    token.type = tokeniserKeywords.get(token.value);
+                } else if (tokens.get(i-1).type == LET) {
+                    //Actually should check for existing functions and variables first
+                    //todo funcs and vars
+                }
+            }
+        }
     }
 
 
