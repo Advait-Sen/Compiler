@@ -48,7 +48,6 @@ public class Tokeniser {
 
         Stack<Character> parens = new Stack<>();
 
-        codefor:
         for (pos = 0; hasNext(); pos++) {
             char c = peek();
             Token token = new Token();
@@ -141,6 +140,7 @@ public class Tokeniser {
                 colpos--;
 
                 token.type = tokeniserKeywords.getOrDefault(token.value, IDENTIFIER);
+
             } else if (c == '/') { //Checking for comments (not division)
                 c = consume();
                 if (c == '/') { //Line comment, consume until end of line
@@ -161,6 +161,9 @@ public class Tokeniser {
 
             } else if (c == ';') {
                 token.type = SEMICOLON;
+                token.append(c);
+            } else if (c == ',') {
+                token.type = COMMA;
                 token.append(c);
             } else if (c == '(') {
                 token.type = OPEN_PAREN;
@@ -191,6 +194,12 @@ public class Tokeniser {
                 token.append(c);
                 if (parens.empty() || parens.pop() != '{') {
                     throw new ExpressionError("Mismatched parentheses", token);
+                }
+            } else { //Grabbing operators and maybe syntactic sugar later on
+                while (hasNext() && !( c == '(' ||  c == ')' || c == ',' || Character.isWhitespace(c)) ) {
+                    //Just grab everything until the next parenthesis, comma or whitespace
+                    c = consume();
+                    token.append(c);
                 }
             }
 
