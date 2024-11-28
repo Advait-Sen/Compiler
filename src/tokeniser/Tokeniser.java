@@ -152,7 +152,7 @@ public class Tokeniser {
                         c = consume();
                     } while (hasNext(1) && !(c == '*' && peek(1) == '/'));
 
-                    if(!hasNext(1)){ //Reached end of file without seeing '*/'
+                    if (!hasNext(1)) { //Reached end of file without seeing '*/'
                         throw new ExpressionError("Unclosed block comment", token);
                     }
                 }
@@ -196,11 +196,15 @@ public class Tokeniser {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
-                while (hasNext() && !( c == '(' ||  c == ')' || c == ',' || Character.isWhitespace(c)) ) {
+                while (hasNext() && !(Character.isWhitespace(c) || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
                     //Just grab everything until the next parenthesis, comma or whitespace
-                    c = consume();
                     token.append(c);
+                    c = consume();
                 }
+                pos--; //Overshooting by one again
+                colpos--;
+
+                token.type = OPERATOR;
             }
 
             colpos++; //to make sure column number advances correctly
@@ -219,11 +223,11 @@ public class Tokeniser {
         for (int i = 0; i < tokens.size(); i++) {
             Token token = tokens.get(i);
 
-            if(token.type == IDENTIFIER) {
+            if (token.type == IDENTIFIER) {
 
-                if(tokeniserKeywords.containsKey(token.value)) {
+                if (tokeniserKeywords.containsKey(token.value)) {
                     token.type = tokeniserKeywords.get(token.value);
-                } else if (tokens.get(i-1).type == LET) {
+                } else if (tokens.get(i - 1).type == LET) {
                     //Actually should check for existing functions and variables first
                     //todo funcs and vars
                 }
