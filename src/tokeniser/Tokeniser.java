@@ -207,7 +207,7 @@ public class Tokeniser {
 
                 if(operatorTokens.containsKey(token.value)) {
                     token.type = operatorTokens.get(token.value);
-                } else {
+                } else if (!token.value.isEmpty()){
                     throw new ExpressionError("Unknown symbol", token);
                 }
             }
