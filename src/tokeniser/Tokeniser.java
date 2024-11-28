@@ -139,7 +139,7 @@ public class Tokeniser {
                 pos--; //Because the last consume() overshoots by one
                 colpos--;
 
-                token.type = IDENTIFIER;
+                token.type = tokeniserKeywords.getOrDefault(token.value, IDENTIFIER);
 
             } else if (c == '/') { //Checking for comments (not division)
                 c = consume();
@@ -225,11 +225,9 @@ public class Tokeniser {
 
             if (token.type == IDENTIFIER) {
 
-                if (tokeniserKeywords.containsKey(token.value)) {
-                    token.type = tokeniserKeywords.get(token.value);
-                } else if (tokens.get(i - 1).type == LET) {
-                    //Actually should check for existing functions and variables first
-                    //todo funcs and vars
+                if (tokens.get(i - 1).type == LET) {
+                    //Should check for existing functions and variables first
+                    //todo separate postprocesses, for running through and updating lists of funcs, then vars afterwards, etc.
                 }
             }
         }
