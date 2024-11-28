@@ -62,6 +62,7 @@ public class Parser {
                 if (peek().type != CLOSE_PAREN) //this should not happen
                     throw new ExpressionError("Misplaced parentheses after tokenisation?", peek());
             }
+            default -> throw new ExpressionError("Unexpected token in expression", t);
         }
         consume();
 
