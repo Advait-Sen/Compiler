@@ -46,7 +46,7 @@ public class Tokeniser {
     public void tokenise() {
         if (!tokens.isEmpty()) return;
 
-        Stack<Character> parens = new Stack<>();
+        Stack<Token> parens = new Stack<>();
 
         for (pos = 0; hasNext(); pos++) {
             char c = peek();
@@ -168,31 +168,31 @@ public class Tokeniser {
             } else if (c == '(') {
                 token.type = OPEN_PAREN;
                 token.append(c);
-                parens.push(c);
+                parens.push(token);
             } else if (c == '[') {
                 token.type = SQ_OPEN_PAREN;
                 token.append(c);
-                parens.push(c);
+                parens.push(token);
             } else if (c == '{') {
                 token.type = C_OPEN_PAREN;
                 token.append(c);
-                parens.push(c);
+                parens.push(token);
             } else if (c == ')') {
                 token.type = CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty() || parens.pop() != '(') {
+                if (parens.empty() || !parens.pop().value.equals("(")) {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == ']') {
                 token.type = SQ_CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty() || parens.pop() != '[') {
+                if (parens.empty() || !parens.pop().value.equals("[")) {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == '}') {
                 token.type = C_CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty() || parens.pop() != '{') {
+                if (parens.empty() || !parens.pop().value.equals("{")) {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
@@ -213,6 +213,9 @@ public class Tokeniser {
             if (token.type != null) //Skipping over final whitespaces and comments in file
                 tokens.add(token);
         }
+
+        if(!parens.empty())
+            throw new ExpressionError("Mismatched parentheses", parens.getFirst());
 
         postProcessTokens();
     }
