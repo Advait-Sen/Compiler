@@ -5,11 +5,18 @@ import tokeniser.Token;
 
 public class AssignStatement implements NodeStatement {
     Token identifier;
+    Token assigner;
     NodeExpr expression;
+
+    public AssignStatement(Token identifier, Token assigner, NodeExpr expr){
+        this.identifier = identifier;
+        this.assigner = assigner;
+        this.expression = expr;
+    }
 
     @Override
     public String asString() {
-        return "";
+        return identifier.value + " " + assigner.value + " " + expression.asString();
     }
 
     @Override

@@ -4,10 +4,13 @@ import error.ExpressionError;
 import parser.node.NodeExpr;
 import parser.node.NodeProgram;
 import parser.node.identifier.NodeIdentifier;
+import parser.node.operator.Operator;
+import parser.node.operator.OperatorType;
 import parser.node.primitives.BoolPrimitive;
 import parser.node.primitives.CharPrimitive;
 import parser.node.primitives.FloatPrimitive;
 import parser.node.primitives.IntPrimitive;
+import parser.node.statement.AssignStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
 import tokeniser.Token;
@@ -47,7 +50,7 @@ public class Parser {
      */
     NodeExpr parseExpr() {
         Token t = peek();
-        NodeExpr expr = null;
+        NodeExpr expr;
 
         switch (t.type) {
             case INT_LITERAL, HEX_LITERAL -> expr = new IntPrimitive(t);
@@ -69,6 +72,14 @@ public class Parser {
         return expr;
     }
 
+    Operator parseOperator() {
+        Token t = peek();
+        Operator op = null;
+
+
+        return op;
+    }
+
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
@@ -78,6 +89,22 @@ public class Parser {
             if (t.type == EXIT) {
                 consume();
                 statement = new ExitStatement(parseExpr());
+            } else if (t.type == LET) {
+                consume();
+                if (!hasNext() || peek().type != IDENTIFIER)
+                    throw new ExpressionError("Must have an identifier after 'let'", hasNext() ? peek() : t);
+
+                Token identifier = peek();
+                consume();
+
+                if (!hasNext() || peek().type != ASSIGNMENT_OPERATOR)
+                    throw new ExpressionError("Expected an assignment after " + identifier.value, hasNext() ? peek() : identifier);
+
+                Token assigner = peek();
+                consume();
+
+                statement = new AssignStatement(identifier, assigner, parseExpr());
+
             } else {
                 throw new ExpressionError("Unknown statement", t);
             }
