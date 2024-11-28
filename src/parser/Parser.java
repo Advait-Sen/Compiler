@@ -79,7 +79,7 @@ public class Parser {
                 throw new ExpressionError("Unknown statement", t);
             }
 
-            if (peek().type != SEMICOLON) { // Must end all statements with semicolon
+            if (!hasNext() || peek().type != SEMICOLON) { // Must end all statements with semicolon
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
