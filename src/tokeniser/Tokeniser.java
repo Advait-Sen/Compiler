@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import static tokeniser.Keywords.operatorTokens;
 import static tokeniser.TokenType.*;
 import static tokeniser.Keywords.tokeniserKeywords;
 
@@ -204,7 +205,11 @@ public class Tokeniser {
                 pos--; //Overshooting by one again
                 colpos--;
 
-                token.type = Keywords.operatorTokens.get(token.value);
+                if(operatorTokens.containsKey(token.value)) {
+                    token.type = operatorTokens.get(token.value);
+                } else {
+                    throw new ExpressionError("Unknown symbol", token);
+                }
             }
 
             colpos++; //to make sure column number advances correctly
