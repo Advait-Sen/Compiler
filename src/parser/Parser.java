@@ -3,6 +3,7 @@ package parser;
 import error.ExpressionError;
 import parser.node.NodeExpr;
 import parser.node.NodeProgram;
+import parser.node.identifier.NodeIdentifier;
 import parser.node.primitives.BoolPrimitive;
 import parser.node.primitives.CharPrimitive;
 import parser.node.primitives.FloatPrimitive;
@@ -54,6 +55,7 @@ public class Parser {
             case FLOAT_LITERAL -> expr = new FloatPrimitive(t);
             case BOOL_LITERAL -> expr = new BoolPrimitive(t);
             //case STR_LITERAL -> expr = new String Object Type; todo classes here as well lol
+            case IDENTIFIER -> expr = new NodeIdentifier(t);
             case OPEN_PAREN -> {
                 consume(); //consume the open parenthesis
                 expr = parseExpr();
