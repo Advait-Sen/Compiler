@@ -55,4 +55,6 @@ public enum OperatorType {
 
     }
 
+    public static void noop(){}
+
 }

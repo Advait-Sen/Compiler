@@ -1,5 +1,7 @@
 package tokeniser;
 
+import parser.node.operator.OperatorType;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,4 +33,7 @@ public class Keywords {
 
     public static Map<String, TokenType> operatorTokens = new HashMap<>();
 
+    static {
+        OperatorType.noop();
+    }
 }
