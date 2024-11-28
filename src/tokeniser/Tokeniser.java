@@ -204,8 +204,7 @@ public class Tokeniser {
                 pos--; //Overshooting by one again
                 colpos--;
 
-                if(!token.value.isEmpty())
-                    token.type = OPERATOR;
+                token.type = Keywords.operatorTokens.get(token.value);
             }
 
             colpos++; //to make sure column number advances correctly
