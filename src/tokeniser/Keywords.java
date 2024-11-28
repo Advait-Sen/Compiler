@@ -28,4 +28,7 @@ public class Keywords {
         put("if", IF);
         put("else", ELSE);
     }};
+
+    public static Map<String, TokenType> operatorTokens = new HashMap<>();
+
 }
