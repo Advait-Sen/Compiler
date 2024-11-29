@@ -6,7 +6,7 @@ import tokeniser.Token;
 import tokeniser.TokenType;
 
 public class NodeIdentifier implements NodeExpr {
-    Token token;
+    public final Token token;
     String name;
 
     public NodeIdentifier(Token token) {

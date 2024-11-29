@@ -9,6 +9,10 @@ public class ExitStatement implements NodeStatement {
 
     NodeExpr expression;
 
+    public NodeExpr expr() {
+        return expression;
+    }
+
     @Override
     public String asString() {
         return "exit " + expression.asString();
