@@ -103,7 +103,7 @@ public class Parser {
                 Token assigner = peek();
                 consume();
 
-                statement = new AssignStatement(identifier, assigner, parseExpr());
+                statement = new AssignStatement(new NodeIdentifier(identifier), assigner, parseExpr());
 
             } else {
                 throw new ExpressionError("Unknown statement", t);
