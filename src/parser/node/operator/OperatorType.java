@@ -3,9 +3,6 @@ package parser.node.operator;
 import tokeniser.Keywords;
 import tokeniser.TokenType;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import static parser.node.operator.Operator.operatorType;
 
 public enum OperatorType {
