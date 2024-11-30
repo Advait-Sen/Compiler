@@ -47,6 +47,7 @@ public abstract class Generator {
     public void generateProgramCode() {
         code = new StringBuilder();
 
+        appendBlock(boilerplate());
         appendBlock(startMain());
 
         variables = new HashSet<>();
@@ -82,7 +83,7 @@ public abstract class Generator {
     }
 
     /**
-     * Appends a block of code generated as a {@code String[]}
+     * Appends a block of code generated as a {@code String[]}, adding in newlines but not indentation
      */
     protected void appendBlock(String[] block) {
         for (String s : block) {
@@ -90,12 +91,12 @@ public abstract class Generator {
         }
     }
 
+    //Assembly generating code
 
     abstract void assignVariable(String variableName);
 
     abstract void generateExpr(NodeExpr expr, Context context);
 
-    //Assembly generating code
 
     /**
      * This method will mark the beginning of the main program.
@@ -111,9 +112,17 @@ public abstract class Generator {
     abstract String[] startMain();
 
 
+
+    /**
+     * This method will generate the eventual boilerplate code required by each assembly language
+     * The {@code String[]} array contains each individual assembly statement
+     */
+    abstract String[] boilerplate();
+
+
     /**
      * This method will be overwritten by each implementor class to fit in their own ways of running syscalls
-     * Takes a {@link Context} in order to
+     * Takes a {@link Context} in order to determine the type of syscall to make
      */
     abstract String[] syscall(Context context, long... params);
 }
