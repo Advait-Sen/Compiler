@@ -32,21 +32,17 @@ public class Interpreter {
         this.program = program;
     }
 
-    public long run() throws ExpressionError {
+    public NodePrimitive run() throws ExpressionError {
 
         for (int i = 0; i < program.statements.size(); i++) {
             NodeStatement statement = program.statements.get(i);
 
             if (statement instanceof ExitStatement exit) {
-                NodePrimitive exitValue = evaluateExpr(exit.expr());
-                if (!(exitValue instanceof IntPrimitive intVal))
-                    throw new ExpressionError("Must have ", exit.token);
-
-                return intVal.getValue();
+                return evaluateExpr(exit.expr());
             }
         }
 
-        return 0;
+        return IntPrimitive.of(0);
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {

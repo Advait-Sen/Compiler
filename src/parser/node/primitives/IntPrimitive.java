@@ -13,10 +13,14 @@ public class IntPrimitive extends NodePrimitive {
 
     public IntPrimitive(Token token) {
         super(token);
-        if(token.type== TokenType.INT_LITERAL)
+        if (token.type == TokenType.INT_LITERAL)
             this.value = Long.parseLong(token.value);
         else //Else it's hexadecimal
             this.value = Long.parseLong(token.value.substring(2), 16);
+    }
+
+    public static IntPrimitive of(long value) {
+        return new IntPrimitive(value);
     }
 
     public void setValue(long newValue) {

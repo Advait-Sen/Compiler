@@ -1,7 +1,10 @@
 import error.ExpressionError;
 import parser.Parser;
 import parser.node.NodeProgram;
+import parser.node.primitives.IntPrimitive;
+import parser.node.primitives.NodePrimitive;
 import parser.node.statement.NodeStatement;
+import runtime.interpreter.Interpreter;
 import tokeniser.Token;
 import tokeniser.Tokeniser;
 
@@ -25,6 +28,14 @@ public class Main {
      * Flag for verbose messages
      */
     private static boolean VERBOSE;
+    /**
+     * Flag to interpret
+     */
+    private static boolean INTERPRET;
+    /**
+     * Flag to compile
+     */
+    private static boolean COMPILE;
 
     public static void main(String[] args) {
 
@@ -39,6 +50,11 @@ public class Main {
 
         DO_PARSE = !(compilerArgs.contains("-noparse") || compilerArgs.contains("-np"));
         VERBOSE = compilerArgs.contains("-verbose") || compilerArgs.contains("-v");
+        INTERPRET = compilerArgs.contains("-interpret") || compilerArgs.contains("-i");
+        COMPILE = compilerArgs.contains("-compile") || compilerArgs.contains("-c");
+
+        if (INTERPRET && COMPILE)
+            throw throwError("Invalid flags, cannot compile and interpret at the same time");
 
         System.out.println("Reading from file: " + fileName);
 
@@ -105,6 +121,22 @@ public class Main {
                     System.out.println(statement.typeString() + " : " + statement.asString());
                 }
             }
+
+            //Run interpreter
+            if (INTERPRET) {
+                Interpreter interpreter = new Interpreter(program);
+                NodePrimitive exitValue;
+
+                try {
+                    exitValue = interpreter.run();
+                } catch (ExpressionError error) {
+                    System.out.println(error.getMessage());
+                    exitValue = IntPrimitive.of(-1);
+                }
+
+                System.out.println("\nProcess finished with exit value " + exitValue.asString());
+            }
+
         }
 
         System.exit(0);
