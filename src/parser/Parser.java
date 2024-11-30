@@ -13,6 +13,7 @@ import parser.node.primitives.IntPrimitive;
 import parser.node.statement.AssignStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
+import parser.node.statement.StaticAssignStatement;
 import tokeniser.Token;
 import tokeniser.TokenType;
 import tokeniser.Tokeniser;
@@ -89,6 +90,22 @@ public class Parser {
             if (t.type == EXIT) {
                 consume();
                 statement = new ExitStatement(parseExpr());
+            } else if (t.type == PRIMITIVE_TYPE) {
+                consume();
+                if (!hasNext() || peek().type != IDENTIFIER)
+                    throw new ExpressionError("Must have an identifier after '" + t.value + "'", hasNext() ? peek() : t);
+
+                Token identifier = peek();
+                consume();
+
+                if (!hasNext() || peek().type != ASSIGNMENT_OPERATOR)
+                    throw new ExpressionError("Expected an assignment after " + identifier.value, hasNext() ? peek() : identifier);
+
+                Token assigner = peek();
+                consume();
+
+                statement = new StaticAssignStatement(t, new NodeIdentifier(identifier), assigner, parseExpr());
+
             } else if (t.type == LET) {
                 consume();
                 if (!hasNext() || peek().type != IDENTIFIER)

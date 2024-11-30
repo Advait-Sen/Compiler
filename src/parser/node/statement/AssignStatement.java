@@ -25,7 +25,7 @@ public class AssignStatement implements NodeStatement {
 
     @Override
     public String asString() {
-        return identifier.asString() + " " + assigner.value + " " + expression.asString();
+        return String.join(" ", identifier.asString(), assigner.value, expression.asString());
     }
 
     @Override
