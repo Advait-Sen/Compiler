@@ -1,20 +1,18 @@
-package generator;
+package runtime.generator;
 
 import error.ExpressionError;
 import parser.node.NodeExpr;
 import parser.node.NodeProgram;
-import parser.node.primitives.NodePrimitive;
 import parser.node.statement.AssignStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
+import runtime.Context;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import static generator.Context.*;
+import static runtime.Context.*;
 
 /**
  * Classes which generate assembly from code will inherit from this class.
