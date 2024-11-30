@@ -89,7 +89,7 @@ public class Parser {
             NodeStatement statement;
             if (t.type == EXIT) {
                 consume();
-                statement = new ExitStatement(parseExpr());
+                statement = new ExitStatement(t, parseExpr());
             } else if (t.type == PRIMITIVE_TYPE) {
                 consume();
                 if (!hasNext() || peek().type != IDENTIFIER)

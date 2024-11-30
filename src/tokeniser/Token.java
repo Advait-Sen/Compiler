@@ -16,4 +16,18 @@ public class Token {
         value += c;
     }
 
+    /**
+     * Empty constructor used when tokenising
+     */
+    public Token() {}
+
+    /**
+     * Constructor used for interpreter
+     */
+    public Token(String value, TokenType type) {
+        this.value = value;
+        this.type = type;
+        this.colpos = -1;
+        this.linepos = -1;
+    }
 }

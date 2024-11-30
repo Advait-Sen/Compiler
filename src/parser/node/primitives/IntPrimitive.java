@@ -6,6 +6,11 @@ import tokeniser.TokenType;
 public class IntPrimitive extends NodePrimitive {
     private long value;
 
+    public IntPrimitive(long value) {
+        super(new Token(String.valueOf(value), TokenType.INT_LITERAL));
+        this.value = value;
+    }
+
     public IntPrimitive(Token token) {
         super(token);
         if(token.type== TokenType.INT_LITERAL)

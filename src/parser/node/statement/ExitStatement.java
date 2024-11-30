@@ -1,9 +1,13 @@
 package parser.node.statement;
 
 import parser.node.NodeExpr;
+import tokeniser.Token;
 
 public class ExitStatement implements NodeStatement {
-    public ExitStatement(NodeExpr expr) {
+    public final Token token;
+
+    public ExitStatement(Token exit, NodeExpr expr) {
+        this.token = exit;
         this.expression = expr;
     }
 
