@@ -45,7 +45,7 @@ public enum OperatorType {
     final String value;
     final int precedence;
     final boolean isLeftAssoc;
-    final int args;
+    final int args; //todo make this a TokenType instead
 
 
     static {

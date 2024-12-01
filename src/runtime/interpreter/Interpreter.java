@@ -6,9 +6,12 @@ import parser.node.NodeProgram;
 import parser.node.identifier.NodeIdentifier;
 import parser.node.primitives.IntPrimitive;
 import parser.node.primitives.NodePrimitive;
+import parser.node.statement.AssignStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
+import parser.node.statement.StaticAssignStatement;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,19 +29,29 @@ public class Interpreter {
     /**
      * Map used to keep track of variables
      */
-    private Map<String, NodePrimitive> variables;
+    Map<String, NodePrimitive> variables;
 
     public Interpreter(NodeProgram program) {
         this.program = program;
     }
 
     public NodePrimitive run() throws ExpressionError {
+        variables = new HashMap<>();
 
         for (int i = 0; i < program.statements.size(); i++) {
             NodeStatement statement = program.statements.get(i);
 
             if (statement instanceof ExitStatement exit) {
                 return evaluateExpr(exit.expr());
+            } else if (statement instanceof StaticAssignStatement staticAssign) {
+                //todo this
+                //todo rename assign and static assign to declare and static declare
+            } else if (statement instanceof AssignStatement assign) {
+                if (variables.containsKey(assign.identifier().asString())) {
+                    //Copy of Java error message
+                    throw new ExpressionError("Variable '" + assign.identifier().asString() + "' is already defined in the scope", assign.identifier().token);
+                }
+                variables.put(assign.identifier().asString(), evaluateExpr(assign.expr()));
             }
         }
 
@@ -46,6 +59,10 @@ public class Interpreter {
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {
+        if (expr instanceof IntPrimitive intP) { //So that hex literals get printed in base 10. Might change once I add proper expression evaluation
+            return IntPrimitive.of(intP.getValue());
+        }
+
         if (expr instanceof NodePrimitive) {
             return (NodePrimitive) expr;
         }
@@ -60,4 +77,8 @@ public class Interpreter {
         return new IntPrimitive(0);
     }
 
+
+    public Map<String, NodePrimitive> variables() {
+        return variables;
+    }
 }

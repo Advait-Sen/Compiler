@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 
 @SuppressWarnings({"FieldCanBeLocal", "SpellCheckingInspection"})
@@ -132,6 +133,11 @@ public class Main {
                 } catch (ExpressionError error) {
                     System.out.println(error.getMessage());
                     exitValue = IntPrimitive.of(-1);
+                }
+
+                if(VERBOSE) {
+                    System.out.println("\nProgram variables:");
+                    interpreter.variables().forEach((s, np)-> System.out.println(s + ": " + np.asString()));
                 }
 
                 System.out.println("\nProcess finished with exit value " + exitValue.asString());
