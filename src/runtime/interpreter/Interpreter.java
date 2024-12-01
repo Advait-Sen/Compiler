@@ -10,9 +10,10 @@ import parser.node.statement.DeclareStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
 import parser.node.statement.StaticDeclareStatement;
+import runtime.Scope;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling
@@ -26,17 +27,24 @@ public class Interpreter {
      */
     public final NodeProgram program;
 
+
     /**
-     * Map used to keep track of variables
+     * Stack used to keep track of scopes
      */
-    Map<String, NodePrimitive> variables;
+    public Stack<Scope> scopeStack;
+
+    public Scope currentScope;
 
     public Interpreter(NodeProgram program) {
         this.program = program;
     }
 
     public NodePrimitive run() throws ExpressionError {
-        variables = new HashMap<>();
+        scopeStack = new Stack<>();
+
+        currentScope = Scope.empty("main"); //this is gonna change when I implement main function
+
+        scopeStack.push(currentScope);
 
         for (int i = 0; i < program.statements.size(); i++) {
             NodeStatement statement = program.statements.get(i);
@@ -45,7 +53,7 @@ public class Interpreter {
                 return evaluateExpr(exit.expr());
             } else if (statement instanceof DeclareStatement declare) {
 
-                if (variables.containsKey(declare.identifier().asString())) {
+                if (currentScope.hasVariable(declare.identifier().asString())) {
                     //Copy of Java error message
                     throw new ExpressionError("Variable '" + declare.identifier().asString() + "' is already defined in the scope", declare.identifier().token);
                 }
@@ -61,7 +69,7 @@ public class Interpreter {
                     }
                 }
 
-                variables.put(declare.identifier().asString(), value);
+                currentScope.setVariable(declare.identifier().asString(), value);
             }
         }
 
@@ -78,17 +86,20 @@ public class Interpreter {
         }
 
         if (expr instanceof NodeIdentifier ident) {
-            if (!variables.containsKey(ident.asString()))
+            if (!currentScope.hasVariable(ident.asString()))
                 throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
 
-            return variables.get(ident.asString());
+            return currentScope.getVariable(ident.asString());
         }
 
         return IntPrimitive.of(0);
     }
 
 
+    /**
+     * Currently only used for verbose messages, but might in future be more useful.
+     */
     public Map<String, NodePrimitive> variables() {
-        return variables;
+        return currentScope.getVariables();
     }
 }
