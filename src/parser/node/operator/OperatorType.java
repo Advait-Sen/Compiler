@@ -29,10 +29,10 @@ public enum OperatorType {
         this.type = type;
     }
 
-    final String value;
-    final int precedence;
-    final boolean isLeftAssoc;
-    final TokenType type;
+    public final String value;
+    public final int precedence;
+    public final boolean isLeftAssoc;
+    public final TokenType type;
 
 
     static {

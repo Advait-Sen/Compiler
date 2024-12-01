@@ -13,5 +13,7 @@ public interface Operator extends NodeExpr {
         return false;
     }
 
+    int precedence();
+
     Map<String, OperatorType> operatorType = new HashMap<>();
 }

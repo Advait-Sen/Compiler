@@ -4,6 +4,9 @@ import error.ExpressionError;
 import parser.node.NodeExpr;
 import parser.node.NodeProgram;
 import parser.node.identifier.NodeIdentifier;
+import parser.node.operator.BinaryOperator;
+import parser.node.operator.Operator;
+import parser.node.operator.OperatorType;
 import parser.node.primitives.BoolPrimitive;
 import parser.node.primitives.CharPrimitive;
 import parser.node.primitives.FloatPrimitive;
@@ -20,6 +23,7 @@ import tokeniser.Tokeniser;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Stack;
 
 import static tokeniser.TokenType.*;
 
@@ -78,7 +82,62 @@ public class Parser {
             };
         }
 
-        expr = IntPrimitive.of(0);
+        //Adapted from this StackOverflow thread
+        //https://stackoverflow.com/questions/21356772/abstract-syntax-tree-using-the-shunting-yard-algorithm
+        List<NodeExpr> postfix = new ArrayList<>();
+        Stack<OperatorType> operatorStack = new Stack<>();
+        Stack<NodeExpr> astStack = new Stack<>();
+
+        for (Token exprToken : exprTokens) {
+            NodeExpr temp = switch (exprToken.type){
+                case INT_LITERAL, HEX_LITERAL -> new IntPrimitive(exprToken);
+                case CHAR_LITERAL -> new CharPrimitive(exprToken);
+                case FLOAT_LITERAL -> new FloatPrimitive(exprToken);
+                case BOOL_LITERAL -> new BoolPrimitive(exprToken);
+                case IDENTIFIER -> new NodeIdentifier(exprToken);
+                default -> null;
+            };
+
+            if(temp != null){
+                postfix.add(temp);
+                astStack.push(temp);
+            } else if (exprToken.type == BINARY_OPERATOR) {
+                OperatorType opType = Operator.operatorType.get(exprToken.value);
+
+                //todo handle leftAssoc
+                while(!operatorStack.isEmpty() && operatorStack.peek().precedence >= opType.precedence){
+                    NodeExpr rightArg = astStack.pop();
+                    NodeExpr leftArg = astStack.pop();
+
+                    Operator lastOp =  new BinaryOperator(leftArg, operatorStack.pop(), rightArg);
+
+                    postfix.add(lastOp);
+                    astStack.push(lastOp);
+                }
+
+                operatorStack.push(opType);
+            }
+        }
+        while (!operatorStack.isEmpty()) {
+            NodeExpr rightArg = astStack.pop();
+            NodeExpr leftArg = astStack.pop();
+
+            Operator lastOp =  new BinaryOperator(leftArg, operatorStack.pop(), rightArg);
+
+            postfix.add(lastOp);
+            astStack.push(lastOp);
+        }
+
+        //todo make Main accessible from here
+
+        System.out.println("Postfix:");
+        for (NodeExpr nodeExpr : postfix) {
+            System.out.print(nodeExpr.asString());
+            System.out.print(' ');
+        }
+        System.out.println("\n");
+
+        expr = astStack.firstElement();
 
         return expr;
     }
