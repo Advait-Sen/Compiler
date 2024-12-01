@@ -2,7 +2,7 @@ package parser.node.primitives;
 
 import tokeniser.Token;
 
-public class CharPrimitive extends NodePrimitive {
+public final class CharPrimitive extends NodePrimitive {
     public static final String TYPE_STRING = "char";
 
     private char value;

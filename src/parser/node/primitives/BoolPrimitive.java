@@ -2,7 +2,7 @@ package parser.node.primitives;
 
 import tokeniser.Token;
 
-public class BoolPrimitive extends NodePrimitive {
+public final class BoolPrimitive extends NodePrimitive {
     public static final String TYPE_STRING = "bool";
 
     private boolean value;

@@ -2,7 +2,7 @@ package parser.node.primitives;
 
 import tokeniser.Token;
 
-public class FloatPrimitive extends NodePrimitive {
+public final class FloatPrimitive extends NodePrimitive {
     public static final String TYPE_STRING = "float";
 
     private double value;

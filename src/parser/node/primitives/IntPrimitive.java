@@ -3,7 +3,7 @@ package parser.node.primitives;
 import tokeniser.Token;
 import tokeniser.TokenType;
 
-public class IntPrimitive extends NodePrimitive {
+public final class IntPrimitive extends NodePrimitive {
     public static final String TYPE_STRING = "int";
 
     private long value;

@@ -3,7 +3,7 @@ package parser.node.primitives;
 import parser.node.NodeExpr;
 import tokeniser.Token;
 
-public abstract class NodePrimitive implements NodeExpr {
+public abstract sealed class NodePrimitive implements NodeExpr permits IntPrimitive, CharPrimitive, FloatPrimitive, BoolPrimitive {
     final Token token;
 
     public NodePrimitive(Token token){
