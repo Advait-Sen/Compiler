@@ -87,10 +87,10 @@ public class Parser {
         //Adapted from this StackOverflow thread
         //https://stackoverflow.com/questions/21356772/abstract-syntax-tree-using-the-shunting-yard-algorithm
         List<NodeExpr> postfix = new ArrayList<>();
-        Stack<OperatorType> operatorStack = new Stack<>();
+        Stack<OperatorType> operatorStack = new Stack<>(); //todo store Token here as well for better error messages
         Stack<NodeExpr> astStack = new Stack<>();
 
-        Runnable processOperator = ()->{
+        Runnable processOperator = () -> {
             Operator lastOp;
             OperatorType opType = operatorStack.pop();
 
@@ -128,23 +128,7 @@ public class Parser {
 
                 //todo handle leftAssoc
                 while (!operatorStack.isEmpty() && operatorStack.peek().precedence >= opType.precedence) {
-                    Operator lastOp;
-                    OperatorType opTopType = operatorStack.pop();
-
-                    if (opTopType.type == UNARY_OPERATOR) {
-                        NodeExpr arg = astStack.pop();
-                        lastOp = new UnaryOperator(opTopType, arg);
-                    } else if (opTopType.type == BINARY_OPERATOR) {
-
-                        NodeExpr rightArg = astStack.pop();
-                        NodeExpr leftArg = astStack.pop();
-
-                        lastOp = new BinaryOperator(leftArg, opTopType, rightArg);
-                    } else
-                        throw new ExpressionError("Don't know how we got here, found unknown operator type", new Token(opTopType.value, opTopType.type));
-
-                    postfix.add(lastOp);
-                    astStack.push(lastOp);
+                    processOperator.run();
                 }
 
                 operatorStack.push(opType);
@@ -152,23 +136,7 @@ public class Parser {
         }
 
         while (!operatorStack.isEmpty()) {
-            Operator lastOp;
-            OperatorType opType = operatorStack.pop();
-
-            if (opType.type == UNARY_OPERATOR) {
-                NodeExpr arg = astStack.pop();
-                lastOp = new UnaryOperator(opType, arg);
-            } else if (opType.type == BINARY_OPERATOR) {
-
-                NodeExpr rightArg = astStack.pop();
-                NodeExpr leftArg = astStack.pop();
-
-                lastOp = new BinaryOperator(leftArg, opType, rightArg);
-            } else
-                throw new ExpressionError("Don't know how we got here, found unknown operator type", new Token(opType.value, opType.type));
-
-            postfix.add(lastOp);
-            astStack.push(lastOp);
+            processOperator.run();
         }
 
         if (VERBOSE_FLAGS.contains("parser")) {
