@@ -69,7 +69,8 @@ public class Tokeniser {
             token.colpos = colpos;
             token.linepos = linepos;
 
-            //Int literal, Float literal, Hex literal, todo negative literal
+            // Int literal, Float literal (even .456), Hex literal (0xab3c), Negative literal (-34.32)
+            // Don't allow -.34 cos it looks weird, prefer -0.34
             if (isDigit(c) || ((c == '.' || c == '-') && isDigit(peek(1)))) {
 
                 boolean isNegative = c == '-';
@@ -204,7 +205,7 @@ public class Tokeniser {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
-                while (hasNext() && !(Character.isWhitespace(c) || Character.isLetterOrDigit(c) || c == '_' || c == '\'' || c == '"' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
+                while (hasNext() && !(Character.isWhitespace(c) || Character.isLetterOrDigit(c) || c == '_' || c == '\'' || c == '.' || c == '"' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
                     //Just grab everything until the next parenthesis, comma, whitespace, char, number, string, or identifier
                     token.append(c);
                     c = consume();
