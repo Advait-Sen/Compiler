@@ -4,6 +4,8 @@ import tokeniser.Token;
 import tokeniser.TokenType;
 
 public class IntPrimitive extends NodePrimitive {
+    public static final String TYPE_STRING = "int";
+
     private long value;
 
     public IntPrimitive(long value) {
@@ -17,6 +19,11 @@ public class IntPrimitive extends NodePrimitive {
             this.value = Long.parseLong(token.value);
         else //Else it's hexadecimal
             this.value = Long.parseLong(token.value.substring(2), 16);
+    }
+
+    @Override
+    public String getTypeString() {
+        return TYPE_STRING;
     }
 
     public static IntPrimitive of(long value) {

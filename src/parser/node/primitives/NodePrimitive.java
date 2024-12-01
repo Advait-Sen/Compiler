@@ -19,6 +19,8 @@ public abstract class NodePrimitive implements NodeExpr {
         return token;
     }
 
+    public abstract String getTypeString();
+
     @Override
     public final String asString(){
         return token.value;

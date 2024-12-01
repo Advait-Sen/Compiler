@@ -1,6 +1,10 @@
 package tokeniser;
 
 import parser.node.operator.OperatorType;
+import parser.node.primitives.BoolPrimitive;
+import parser.node.primitives.CharPrimitive;
+import parser.node.primitives.FloatPrimitive;
+import parser.node.primitives.IntPrimitive;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,10 +22,10 @@ public class Keywords {
         put("false", BOOL_LITERAL);
 
         //Types
-        put("int", PRIMITIVE_TYPE);
-        put("float", PRIMITIVE_TYPE);
-        put("char", PRIMITIVE_TYPE);
-        put("bool", PRIMITIVE_TYPE);
+        put(IntPrimitive.TYPE_STRING, PRIMITIVE_TYPE);
+        put(FloatPrimitive.TYPE_STRING, PRIMITIVE_TYPE);
+        put(BoolPrimitive.TYPE_STRING, PRIMITIVE_TYPE);
+        put(CharPrimitive.TYPE_STRING, PRIMITIVE_TYPE);
 
 
         //Keywords
