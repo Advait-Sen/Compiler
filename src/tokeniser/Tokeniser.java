@@ -70,7 +70,14 @@ public class Tokeniser {
             token.linepos = linepos;
 
             //Int literal, Float literal, Hex literal, todo negative literal
-            if (isDigit(c) || (c == '.' && isDigit(peek(1)))) {
+            if (isDigit(c) || ((c == '.' || c == '-') && isDigit(peek(1)))) {
+
+                boolean isNegative = c == '-';
+
+                if(isNegative){
+                    token.append(c);
+                    c = consume(); //Consuming negative sign
+                }
 
                 boolean isFloat = false;
                 boolean isHex = c == '0' && hasNext() && peek(1) == 'x';
@@ -197,7 +204,7 @@ public class Tokeniser {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
-                while (hasNext() && !(Character.isWhitespace(c) || Character.isLetterOrDigit(c) || c=='_' || c=='\'' || c=='"' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
+                while (hasNext() && !(Character.isWhitespace(c) || Character.isLetterOrDigit(c) || c == '_' || c == '\'' || c == '"' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
                     //Just grab everything until the next parenthesis, comma, whitespace, char, number, string, or identifier
                     token.append(c);
                     c = consume();
@@ -205,9 +212,9 @@ public class Tokeniser {
                 pos--; //Overshooting by one again
                 colpos--;
 
-                if(operatorTokens.containsKey(token.value)) {
+                if (operatorTokens.containsKey(token.value)) {
                     token.type = operatorTokens.get(token.value);
-                } else if (!token.value.isEmpty()){
+                } else if (!token.value.isEmpty()) {
                     throw new ExpressionError("Unknown symbol", token);
                 }
             }
@@ -218,7 +225,7 @@ public class Tokeniser {
                 tokens.add(token);
         }
 
-        if(!parens.empty())
+        if (!parens.empty())
             throw new ExpressionError("Mismatched parentheses", parens.getFirst());
 
         postProcessTokens();
