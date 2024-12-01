@@ -4,7 +4,6 @@ import error.ExpressionError;
 import parser.node.NodeExpr;
 import parser.node.NodeProgram;
 import parser.node.identifier.NodeIdentifier;
-import parser.node.operator.Operator;
 import parser.node.primitives.BoolPrimitive;
 import parser.node.primitives.CharPrimitive;
 import parser.node.primitives.FloatPrimitive;
@@ -34,10 +33,6 @@ public class Parser {
      * Current position within token list
      */
     private int pos = 0;
-
-    public Parser(List<Token> tokens) {
-        this.tokens = Collections.unmodifiableList(tokens);
-    }
 
     public Parser(Tokeniser tokeniser) {
         tokeniser.tokenise();
@@ -78,37 +73,35 @@ public class Parser {
             Token t = peek();
             NodeStatement statement;
             if (t.type == EXIT) {
-                consume();
+                consume(); //Consume exit token
                 statement = new ExitStatement(t, parseExpr());
             } else if (t.type == PRIMITIVE_TYPE) {
-                consume();
-                if (!hasNext() || peek().type != IDENTIFIER)
-                    throw new ExpressionError("Must have an identifier after '" + t.value + "'", hasNext() ? peek() : t);
+                Token identifier = consume(); //Consuming primitive name
 
-                Token identifier = peek();
-                consume();
+                if (identifier.type != IDENTIFIER)
+                    throw new ExpressionError("Must have an identifier after '" + t.value + "'", identifier);
 
-                if (!hasNext() || peek().type != DECLARATION_OPERATION)
-                    throw new ExpressionError("Expected a declaration after " + identifier.value, hasNext() ? peek() : identifier);
+                Token declarer = consume(); //Consuming identifier
 
-                Token declarer = peek();
-                consume();
+                if (peek().type != DECLARATION_OPERATION)
+                    throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
+
+                consume(); //Consuming declarer operation
 
                 statement = new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
 
             } else if (t.type == LET) {
-                consume();
-                if (!hasNext() || peek().type != IDENTIFIER)
-                    throw new ExpressionError("Must have an identifier after 'let'", hasNext() ? peek() : t);
+                Token identifier = consume(); //Consuming 'let' keyword
 
-                Token identifier = peek();
-                consume();
+                if (identifier.type != IDENTIFIER)
+                    throw new ExpressionError("Must have an identifier after 'let'", identifier);
 
-                if (!hasNext() || peek().type != DECLARATION_OPERATION)
-                    throw new ExpressionError("Expected a declaration after " + identifier.value, hasNext() ? peek() : identifier);
+                Token declarer = consume(); //Consuming identifier
 
-                Token declarer = peek();
-                consume();
+                if (declarer.type != DECLARATION_OPERATION)
+                    throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
+
+                consume(); //Consuming declarer operation
 
                 statement = new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
 
