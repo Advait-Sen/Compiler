@@ -4,63 +4,44 @@ import tokeniser.Keywords;
 import tokeniser.TokenType;
 
 import static parser.node.operator.Operator.operatorType;
+import static tokeniser.TokenType.*;
 
 public enum OperatorType {
-    SUM("+", 10),
-    DIFFERENCE("-", 10),
-    ASSIGN("="),
+    SUM("+", 10, BINARY_OPERATOR),
+    DIFFERENCE("-", 10, BINARY_OPERATOR),
+    ASSIGN("=", DECLARATION_OPERATION),
 
-    NEGATE("!", 15, false, 1),
+    NEGATE("!", 15, UNARY_OPERATOR),
     ;
 
     // Constructor for assignment, since we treat that differently in tokeniser itself
-    OperatorType(String value){
+    OperatorType(String value, TokenType type) {
         this.value = value;
         this.precedence = 0;
         this.isLeftAssoc = false;
-        this.args = -1;
+        this.type = type;
     }
 
-    OperatorType(String value, int precedence) {
+    OperatorType(String value, int precedence, TokenType type) {
         this.value = value;
         this.precedence = precedence;
         this.isLeftAssoc = true;
-        this.args = 2;
-    }
-
-    OperatorType(String value, int precedence, boolean leftAssoc) {
-        this.value = value;
-        this.precedence = precedence;
-        this.isLeftAssoc = leftAssoc;
-        this.args = 2;
-    }
-
-    OperatorType(String value, int precedence, boolean leftAssoc, int args) {
-        this.value = value;
-        this.precedence = precedence;
-        this.isLeftAssoc = leftAssoc;
-        this.args = args;
+        this.type = type;
     }
 
     final String value;
     final int precedence;
     final boolean isLeftAssoc;
-    final int args; //todo make this a TokenType instead
+    final TokenType type;
 
 
     static {
         for (OperatorType op : OperatorType.values()) {
             operatorType.put(op.value, op);
-            Keywords.operatorTokens.put(op.value, switch (op.args){
-                case -1-> TokenType.DECLARATION_OPERATION;
-                case 1-> TokenType.UNARY_OPERATOR;
-                case 2-> TokenType.BINARY_OPERATOR;
-                default -> throw new RuntimeException("How did we get here? Had illegal number of arguments for operator");
-            });
+            Keywords.operatorTokens.put(op.value, op.type);
         }
-
     }
 
-    public static void noop(){}
+    public static void noop() {}
 
 }
