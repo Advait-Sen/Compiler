@@ -7,6 +7,7 @@ import adsen.parser.node.identifier.NodeIdentifier;
 import adsen.parser.node.operator.BinaryOperator;
 import adsen.parser.node.operator.Operator;
 import adsen.parser.node.operator.OperatorType;
+import adsen.parser.node.operator.UnaryOperator;
 import adsen.parser.node.primitives.BoolPrimitive;
 import adsen.parser.node.primitives.CharPrimitive;
 import adsen.parser.node.primitives.FloatPrimitive;
@@ -89,8 +90,28 @@ public class Parser {
         Stack<OperatorType> operatorStack = new Stack<>();
         Stack<NodeExpr> astStack = new Stack<>();
 
+        Runnable processOperator = ()->{
+            Operator lastOp;
+            OperatorType opType = operatorStack.pop();
+
+            if (opType.type == UNARY_OPERATOR) {
+                NodeExpr arg = astStack.pop();
+                lastOp = new UnaryOperator(opType, arg);
+            } else if (opType.type == BINARY_OPERATOR) {
+
+                NodeExpr rightArg = astStack.pop();
+                NodeExpr leftArg = astStack.pop();
+
+                lastOp = new BinaryOperator(leftArg, opType, rightArg);
+            } else
+                throw new ExpressionError("Don't know how we got here, found unknown operator type", new Token(opType.value, opType.type));
+
+            postfix.add(lastOp);
+            astStack.push(lastOp);
+        };
+
         for (Token exprToken : exprTokens) {
-            NodeExpr temp = switch (exprToken.type){
+            NodeExpr temp = switch (exprToken.type) {
                 case INT_LITERAL, HEX_LITERAL -> new IntPrimitive(exprToken);
                 case CHAR_LITERAL -> new CharPrimitive(exprToken);
                 case FLOAT_LITERAL -> new FloatPrimitive(exprToken);
@@ -99,18 +120,28 @@ public class Parser {
                 default -> null;
             };
 
-            if(temp != null){
+            if (temp != null) {
                 postfix.add(temp);
                 astStack.push(temp);
-            } else if (exprToken.type == BINARY_OPERATOR) {
+            } else if (exprToken.type == BINARY_OPERATOR || exprToken.type == UNARY_OPERATOR) {
                 OperatorType opType = Operator.operatorType.get(exprToken.value);
 
                 //todo handle leftAssoc
-                while(!operatorStack.isEmpty() && operatorStack.peek().precedence >= opType.precedence){
-                    NodeExpr rightArg = astStack.pop();
-                    NodeExpr leftArg = astStack.pop();
+                while (!operatorStack.isEmpty() && operatorStack.peek().precedence >= opType.precedence) {
+                    Operator lastOp;
+                    OperatorType opTopType = operatorStack.pop();
 
-                    Operator lastOp =  new BinaryOperator(leftArg, operatorStack.pop(), rightArg);
+                    if (opTopType.type == UNARY_OPERATOR) {
+                        NodeExpr arg = astStack.pop();
+                        lastOp = new UnaryOperator(opTopType, arg);
+                    } else if (opTopType.type == BINARY_OPERATOR) {
+
+                        NodeExpr rightArg = astStack.pop();
+                        NodeExpr leftArg = astStack.pop();
+
+                        lastOp = new BinaryOperator(leftArg, opTopType, rightArg);
+                    } else
+                        throw new ExpressionError("Don't know how we got here, found unknown operator type", new Token(opTopType.value, opTopType.type));
 
                     postfix.add(lastOp);
                     astStack.push(lastOp);
@@ -119,17 +150,28 @@ public class Parser {
                 operatorStack.push(opType);
             }
         }
-        while (!operatorStack.isEmpty()) {
-            NodeExpr rightArg = astStack.pop();
-            NodeExpr leftArg = astStack.pop();
 
-            Operator lastOp =  new BinaryOperator(leftArg, operatorStack.pop(), rightArg);
+        while (!operatorStack.isEmpty()) {
+            Operator lastOp;
+            OperatorType opType = operatorStack.pop();
+
+            if (opType.type == UNARY_OPERATOR) {
+                NodeExpr arg = astStack.pop();
+                lastOp = new UnaryOperator(opType, arg);
+            } else if (opType.type == BINARY_OPERATOR) {
+
+                NodeExpr rightArg = astStack.pop();
+                NodeExpr leftArg = astStack.pop();
+
+                lastOp = new BinaryOperator(leftArg, opType, rightArg);
+            } else
+                throw new ExpressionError("Don't know how we got here, found unknown operator type", new Token(opType.value, opType.type));
 
             postfix.add(lastOp);
             astStack.push(lastOp);
         }
 
-        if(VERBOSE_FLAGS.contains("parser")) {
+        if (VERBOSE_FLAGS.contains("parser")) {
             System.out.println("Postfix:");
             for (NodeExpr nodeExpr : postfix) {
                 System.out.print(nodeExpr.asString());

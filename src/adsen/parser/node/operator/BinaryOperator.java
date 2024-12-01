@@ -31,6 +31,6 @@ public class BinaryOperator implements Operator {
 
     @Override
     public String asString() {
-        return String.join(" ", left.asString(), operation.value, right.asString());
+        return '(' + String.join(" ", left.asString(), operation.value, right.asString()) + ')';
     }
 }
