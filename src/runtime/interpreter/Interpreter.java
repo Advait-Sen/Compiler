@@ -81,7 +81,16 @@ public class Interpreter {
                     throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
                 }
 
-                currentScope.setVariable(variableName, evaluateExpr(assign.expr()));
+                NodePrimitive value = evaluateExpr(assign.expr());
+
+                String requiredType = currentScope.getVariable(variableName).getTypeString();
+                String providedType = value.getTypeString();
+
+                if (!requiredType.equals(providedType)) {
+                    throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
+                }
+
+                currentScope.setVariable(variableName, value);
             }
         }
 
