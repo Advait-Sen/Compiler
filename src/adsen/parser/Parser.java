@@ -87,13 +87,15 @@ public class Parser {
         //Adapted from this StackOverflow thread
         //https://stackoverflow.com/questions/21356772/abstract-syntax-tree-using-the-shunting-yard-algorithm
         List<NodeExpr> postfix = new ArrayList<>();
-        Stack<OperatorType> operatorStack = new Stack<>(); //todo store Token here as well for better error messages
+        Stack<Token> operatorStack = new Stack<>();
         Stack<NodeExpr> astStack = new Stack<>();
 
         Runnable processOperator = () -> {
             Operator lastOp;
-            OperatorType opType = operatorStack.pop();
+            Token opTok = operatorStack.pop();
+            OperatorType opType = Operator.operatorType.get(opTok.value);
 
+            //todo handle leftAssoc
             if (opType.type == UNARY_OPERATOR) {
                 NodeExpr arg = astStack.pop();
                 lastOp = new UnaryOperator(opType, arg);
@@ -104,7 +106,7 @@ public class Parser {
 
                 lastOp = new BinaryOperator(leftArg, opType, rightArg);
             } else
-                throw new ExpressionError("Don't know how we got here, found unknown operator type", new Token(opType.value, opType.type));
+                throw new ExpressionError("Don't know how we got here, found unknown operator type", opTok);
 
             postfix.add(lastOp);
             astStack.push(lastOp);
@@ -126,12 +128,11 @@ public class Parser {
             } else if (exprToken.type == BINARY_OPERATOR || exprToken.type == UNARY_OPERATOR) {
                 OperatorType opType = Operator.operatorType.get(exprToken.value);
 
-                //todo handle leftAssoc
-                while (!operatorStack.isEmpty() && operatorStack.peek().precedence >= opType.precedence) {
+                while (!operatorStack.isEmpty() && Operator.operatorType.get(operatorStack.peek().value).precedence >= opType.precedence) {
                     processOperator.run();
                 }
 
-                operatorStack.push(opType);
+                operatorStack.push(exprToken);
             }
         }
 
