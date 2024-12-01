@@ -14,8 +14,10 @@ import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
 import parser.node.statement.StaticDeclareStatement;
 import tokeniser.Token;
+import tokeniser.TokenType;
 import tokeniser.Tokeniser;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -44,25 +46,39 @@ public class Parser {
      * Tries to read an expression from token list. Currently only gets primitives
      */
     NodeExpr parseExpr() {
-        Token t = peek();
+        Token t;
+
+        List<Token> exprTokens = new ArrayList<>();
+
+        for (t = peek(); isValidExprToken(peek().type); t = consume()) {
+            exprTokens.add(t);
+        }
+
+        if (t.type != SEMICOLON)
+            throw new ExpressionError("Expected ';' after expression", t);
+
         NodeExpr expr;
 
-        switch (t.type) {
-            case INT_LITERAL, HEX_LITERAL -> expr = new IntPrimitive(t);
-            case CHAR_LITERAL -> expr = new CharPrimitive(t);
-            case FLOAT_LITERAL -> expr = new FloatPrimitive(t);
-            case BOOL_LITERAL -> expr = new BoolPrimitive(t);
-            //case STR_LITERAL -> expr = new String Object Type; gonna implement this as built-in complex type
-            case IDENTIFIER -> expr = new NodeIdentifier(t);
-            case OPEN_PAREN -> {
-                consume(); //consume the open parenthesis
-                expr = parseExpr();
-                if (peek().type != CLOSE_PAREN) //this should not happen
-                    throw new ExpressionError("Misplaced parentheses after tokenisation?", peek());
-            }
-            default -> throw new ExpressionError("Unexpected token in expression", t);
+        if (exprTokens.size() == 1) { //Shortcut for single expression
+            t = exprTokens.getFirst();
+            return switch (t.type) {
+                case INT_LITERAL, HEX_LITERAL -> new IntPrimitive(t);
+                case CHAR_LITERAL -> new CharPrimitive(t);
+                case FLOAT_LITERAL -> new FloatPrimitive(t);
+                case BOOL_LITERAL -> new BoolPrimitive(t);
+                //case STR_LITERAL -> new String Object Type; gonna implement this as built-in complex type
+                case IDENTIFIER -> new NodeIdentifier(t);
+//            case OPEN_PAREN -> { Gonna re-implement parentheses after I do proper expression parsing
+//                consume(); //consume the open parenthesis
+//                expr = parseExpr();
+//                if (peek().type != CLOSE_PAREN) //this should not happen
+//                    throw new ExpressionError("Misplaced parentheses after tokenisation?", peek());
+//            }
+                default -> throw new ExpressionError("Unexpected token in expression", t);
+            };
         }
-        consume();
+
+        expr = IntPrimitive.of(0);
 
         return expr;
     }
@@ -129,6 +145,15 @@ public class Parser {
         }
 
         return program;
+    }
+
+
+    //Preparing for shunting yard
+    static boolean isValidExprToken(TokenType type) {
+        return switch (type) {
+            case LET, EXIT, IF, ELSE, SEMICOLON -> false; //Simpler to go by exclusion, it seems
+            default -> true;
+        };
     }
 
     boolean hasNext() {
