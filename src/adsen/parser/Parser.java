@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 
+import static adsen.Main.VERBOSE_FLAGS;
 import static adsen.tokeniser.TokenType.*;
 
 /**
@@ -128,14 +129,14 @@ public class Parser {
             astStack.push(lastOp);
         }
 
-        //todo make Main accessible from here
-
-        System.out.println("Postfix:");
-        for (NodeExpr nodeExpr : postfix) {
-            System.out.print(nodeExpr.asString());
-            System.out.print(' ');
+        if(VERBOSE_FLAGS.contains("parser")) {
+            System.out.println("Postfix:");
+            for (NodeExpr nodeExpr : postfix) {
+                System.out.print(nodeExpr.asString());
+                System.out.print(' ');
+            }
+            System.out.println("\n");
         }
-        System.out.println("\n");
 
         expr = astStack.firstElement();
 

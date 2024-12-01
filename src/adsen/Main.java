@@ -40,7 +40,7 @@ public class Main {
     /**
      * Flags for verbose messages
      */
-    private static Set<String> VERBOSE_FLAGS;
+    public static Set<String> VERBOSE_FLAGS;
 
     public static void main(String[] args) {
 
