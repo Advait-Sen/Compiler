@@ -5,19 +5,19 @@ import parser.node.identifier.NodeIdentifier;
 import tokeniser.Token;
 
 /**
- * Here the expression must evaluate to the type indicated by {@link StaticDeclareStatement#type}
+ * Here the expression must evaluate to the type indicated by {@link StaticDeclareStatement#valueType}
  */
 public class StaticDeclareStatement extends DeclareStatement {
-    public final Token type;
+    public final Token valueType;
 
     public StaticDeclareStatement(Token type, NodeIdentifier identifier, Token declarer, NodeExpr expr) {
         super(identifier, declarer, expr);
-        this.type = type;
+        this.valueType = type;
     }
 
     @Override
     public String asString() {
-        return String.join(" ", type.value, identifier.asString(), declarer.value, expression.asString());
+        return String.join(" ", valueType.value, identifier.asString(), declarer.value, expression.asString());
     }
 
     @Override

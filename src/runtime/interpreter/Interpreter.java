@@ -43,14 +43,25 @@ public class Interpreter {
 
             if (statement instanceof ExitStatement exit) {
                 return evaluateExpr(exit.expr());
-            } else if (statement instanceof StaticDeclareStatement staticAssign) {
-                //todo this
             } else if (statement instanceof DeclareStatement declare) {
+
                 if (variables.containsKey(declare.identifier().asString())) {
                     //Copy of Java error message
                     throw new ExpressionError("Variable '" + declare.identifier().asString() + "' is already defined in the scope", declare.identifier().token);
                 }
-                variables.put(declare.identifier().asString(), evaluateExpr(declare.expr()));
+
+                NodePrimitive value = evaluateExpr(declare.expr());
+
+                if (declare instanceof StaticDeclareStatement staticDeclare) {
+                    String requiredType = staticDeclare.valueType.value;
+                    String providedType = value.getTypeString();
+
+                    if (!requiredType.equals(providedType)) {
+                        throw new ExpressionError("Required '" + requiredType + "', provided '" + providedType + "'", staticDeclare.identifier().token);
+                    }
+                }
+
+                variables.put(declare.identifier().asString(), value);
             }
         }
 
@@ -73,7 +84,7 @@ public class Interpreter {
             return variables.get(ident.asString());
         }
 
-        return new IntPrimitive(0);
+        return IntPrimitive.of(0);
     }
 
 
