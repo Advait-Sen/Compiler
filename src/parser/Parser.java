@@ -5,17 +5,15 @@ import parser.node.NodeExpr;
 import parser.node.NodeProgram;
 import parser.node.identifier.NodeIdentifier;
 import parser.node.operator.Operator;
-import parser.node.operator.OperatorType;
 import parser.node.primitives.BoolPrimitive;
 import parser.node.primitives.CharPrimitive;
 import parser.node.primitives.FloatPrimitive;
 import parser.node.primitives.IntPrimitive;
-import parser.node.statement.AssignStatement;
+import parser.node.statement.DeclareStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
-import parser.node.statement.StaticAssignStatement;
+import parser.node.statement.StaticDeclareStatement;
 import tokeniser.Token;
-import tokeniser.TokenType;
 import tokeniser.Tokeniser;
 
 import java.util.Collections;
@@ -73,14 +71,6 @@ public class Parser {
         return expr;
     }
 
-    Operator parseOperator() {
-        Token t = peek();
-        Operator op = null;
-
-
-        return op;
-    }
-
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
@@ -98,13 +88,13 @@ public class Parser {
                 Token identifier = peek();
                 consume();
 
-                if (!hasNext() || peek().type != ASSIGNMENT_OPERATOR)
-                    throw new ExpressionError("Expected an assignment after " + identifier.value, hasNext() ? peek() : identifier);
+                if (!hasNext() || peek().type != DECLARATION_OPERATION)
+                    throw new ExpressionError("Expected a declaration after " + identifier.value, hasNext() ? peek() : identifier);
 
-                Token assigner = peek();
+                Token declarer = peek();
                 consume();
 
-                statement = new StaticAssignStatement(t, new NodeIdentifier(identifier), assigner, parseExpr());
+                statement = new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
 
             } else if (t.type == LET) {
                 consume();
@@ -114,13 +104,13 @@ public class Parser {
                 Token identifier = peek();
                 consume();
 
-                if (!hasNext() || peek().type != ASSIGNMENT_OPERATOR)
-                    throw new ExpressionError("Expected an assignment after " + identifier.value, hasNext() ? peek() : identifier);
+                if (!hasNext() || peek().type != DECLARATION_OPERATION)
+                    throw new ExpressionError("Expected a declaration after " + identifier.value, hasNext() ? peek() : identifier);
 
-                Token assigner = peek();
+                Token declarer = peek();
                 consume();
 
-                statement = new AssignStatement(new NodeIdentifier(identifier), assigner, parseExpr());
+                statement = new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
 
             } else {
                 throw new ExpressionError("Unknown statement", t);

@@ -3,7 +3,7 @@ package runtime.generator;
 import error.ExpressionError;
 import parser.node.NodeExpr;
 import parser.node.NodeProgram;
-import parser.node.statement.AssignStatement;
+import parser.node.statement.DeclareStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
 import runtime.Context;
@@ -63,7 +63,7 @@ public abstract class Generator {
         if (statement instanceof ExitStatement exit) {
             generateExpr(exit.expr(), EXIT);
             syscall(EXIT);
-        } else if (statement instanceof AssignStatement assign) {
+        } else if (statement instanceof DeclareStatement assign) {
             //todo distinguish when adding +=, -=, etc.
             String variableName = assign.identifier().asString();
             if (variables.contains(variableName)) {

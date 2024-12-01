@@ -27,7 +27,7 @@ public enum TokenType {
     CLASS_TYPE,
 
     //Specific operator types
-    ASSIGNMENT_OPERATOR, BINARY_OPERATOR, UNARY_OPERATOR,
+    DECLARATION_OPERATION, BINARY_OPERATOR, UNARY_OPERATOR,
 
     //keywords
     LET, EXIT, IF, ELSE,

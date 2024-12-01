@@ -6,10 +6,10 @@ import parser.node.NodeProgram;
 import parser.node.identifier.NodeIdentifier;
 import parser.node.primitives.IntPrimitive;
 import parser.node.primitives.NodePrimitive;
-import parser.node.statement.AssignStatement;
+import parser.node.statement.DeclareStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
-import parser.node.statement.StaticAssignStatement;
+import parser.node.statement.StaticDeclareStatement;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,15 +43,14 @@ public class Interpreter {
 
             if (statement instanceof ExitStatement exit) {
                 return evaluateExpr(exit.expr());
-            } else if (statement instanceof StaticAssignStatement staticAssign) {
+            } else if (statement instanceof StaticDeclareStatement staticAssign) {
                 //todo this
-                //todo rename assign and static assign to declare and static declare
-            } else if (statement instanceof AssignStatement assign) {
-                if (variables.containsKey(assign.identifier().asString())) {
+            } else if (statement instanceof DeclareStatement declare) {
+                if (variables.containsKey(declare.identifier().asString())) {
                     //Copy of Java error message
-                    throw new ExpressionError("Variable '" + assign.identifier().asString() + "' is already defined in the scope", assign.identifier().token);
+                    throw new ExpressionError("Variable '" + declare.identifier().asString() + "' is already defined in the scope", declare.identifier().token);
                 }
-                variables.put(assign.identifier().asString(), evaluateExpr(assign.expr()));
+                variables.put(declare.identifier().asString(), evaluateExpr(declare.expr()));
             }
         }
 

@@ -52,7 +52,7 @@ public enum OperatorType {
         for (OperatorType op : OperatorType.values()) {
             operatorType.put(op.value, op);
             Keywords.operatorTokens.put(op.value, switch (op.args){
-                case -1-> TokenType.ASSIGNMENT_OPERATOR;
+                case -1-> TokenType.DECLARATION_OPERATION;
                 case 1-> TokenType.UNARY_OPERATOR;
                 case 2-> TokenType.BINARY_OPERATOR;
                 default -> throw new RuntimeException("How did we get here? Had illegal number of arguments for operator");
