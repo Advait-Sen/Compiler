@@ -128,11 +128,21 @@ public class Parser {
             } else if (exprToken.type == BINARY_OPERATOR || exprToken.type == UNARY_OPERATOR) {
                 OperatorType opType = Operator.operatorType.get(exprToken.value);
 
-                while (!operatorStack.isEmpty() && Operator.operatorType.get(operatorStack.peek().value).precedence >= opType.precedence) {
+                //Gotta check if this hackfix with OPEN_PAREN is gonna work or not
+                while (!operatorStack.isEmpty() && operatorStack.peek().type != OPEN_PAREN && Operator.operatorType.get(operatorStack.peek().value).precedence >= opType.precedence) {
                     processOperator.run();
                 }
 
                 operatorStack.push(exprToken);
+            } else if (exprToken.type == OPEN_PAREN) {
+                operatorStack.push(exprToken);
+            } else if (exprToken.type == CLOSE_PAREN) {
+                if (operatorStack.empty()) throw new ExpressionError("Mismatched parentheses, but how?", exprToken);
+
+                while (operatorStack.peek().type != OPEN_PAREN) {
+                    processOperator.run();
+                }
+                operatorStack.pop(); //Popping the last '('
             }
         }
 
