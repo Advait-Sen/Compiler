@@ -6,6 +6,7 @@ import parser.node.NodeProgram;
 import parser.node.identifier.NodeIdentifier;
 import parser.node.primitives.IntPrimitive;
 import parser.node.primitives.NodePrimitive;
+import parser.node.statement.AssignStatement;
 import parser.node.statement.DeclareStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
@@ -53,9 +54,11 @@ public class Interpreter {
                 return evaluateExpr(exit.expr());
             } else if (statement instanceof DeclareStatement declare) {
 
-                if (currentScope.hasVariable(declare.identifier().asString())) {
+                NodeIdentifier identifier = declare.identifier();
+
+                if (currentScope.hasVariable(identifier.asString())) {
                     //Copy of Java error message
-                    throw new ExpressionError("Variable '" + declare.identifier().asString() + "' is already defined in the scope", declare.identifier().token);
+                    throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
                 }
 
                 NodePrimitive value = evaluateExpr(declare.expr());
@@ -65,11 +68,20 @@ public class Interpreter {
                     String providedType = value.getTypeString();
 
                     if (!requiredType.equals(providedType)) {
-                        throw new ExpressionError("Required '" + requiredType + "', provided '" + providedType + "'", staticDeclare.identifier().token);
+                        throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", identifier.token);
                     }
                 }
 
-                currentScope.setVariable(declare.identifier().asString(), value);
+                currentScope.setVariable(identifier.asString(), value);
+
+            } else if (statement instanceof AssignStatement assign) {
+                String variableName = assign.identifier().asString();
+
+                if (!currentScope.hasVariable(variableName)) {
+                    throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
+                }
+
+                currentScope.setVariable(variableName, evaluateExpr(assign.expr()));
             }
         }
 

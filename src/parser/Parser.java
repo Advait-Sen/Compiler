@@ -8,6 +8,7 @@ import parser.node.primitives.BoolPrimitive;
 import parser.node.primitives.CharPrimitive;
 import parser.node.primitives.FloatPrimitive;
 import parser.node.primitives.IntPrimitive;
+import parser.node.statement.AssignStatement;
 import parser.node.statement.DeclareStatement;
 import parser.node.statement.ExitStatement;
 import parser.node.statement.NodeStatement;
@@ -51,7 +52,7 @@ public class Parser {
             case CHAR_LITERAL -> expr = new CharPrimitive(t);
             case FLOAT_LITERAL -> expr = new FloatPrimitive(t);
             case BOOL_LITERAL -> expr = new BoolPrimitive(t);
-            //case STR_LITERAL -> expr = new String Object Type; todo classes here as well lol
+            //case STR_LITERAL -> expr = new String Object Type; gonna implement this as built-in complex type
             case IDENTIFIER -> expr = new NodeIdentifier(t);
             case OPEN_PAREN -> {
                 consume(); //consume the open parenthesis
@@ -72,10 +73,10 @@ public class Parser {
         for (pos = 0; pos < tokens.size(); pos++) {
             Token t = peek();
             NodeStatement statement;
-            if (t.type == EXIT) {
+            if (t.type == EXIT) { //Exit statement
                 consume(); //Consume exit token
                 statement = new ExitStatement(t, parseExpr());
-            } else if (t.type == PRIMITIVE_TYPE) {
+            } else if (t.type == PRIMITIVE_TYPE) { //Static declaration
                 Token identifier = consume(); //Consuming primitive name
 
                 if (identifier.type != IDENTIFIER)
@@ -90,7 +91,7 @@ public class Parser {
 
                 statement = new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
 
-            } else if (t.type == LET) {
+            } else if (t.type == LET) { // Normal declaration
                 Token identifier = consume(); //Consuming 'let' keyword
 
                 if (identifier.type != IDENTIFIER)
@@ -104,6 +105,17 @@ public class Parser {
                 consume(); //Consuming declarer operation
 
                 statement = new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
+
+            } else if (t.type == IDENTIFIER) { // Variable assignment
+
+                Token declarer = consume(); //Consuming identifier
+
+                if (declarer.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
+                    throw new ExpressionError("Expected an assignment after " + t.value, declarer);
+
+                consume(); //Consuming assigner operation
+
+                statement = new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
 
             } else {
                 throw new ExpressionError("Unknown statement", t);
