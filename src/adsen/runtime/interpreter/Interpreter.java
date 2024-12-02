@@ -21,6 +21,9 @@ import adsen.tokeniser.Token;
 
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.BiFunction;
+import java.util.function.DoubleBinaryOperator;
+import java.util.function.LongBinaryOperator;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling
@@ -135,58 +138,34 @@ public class Interpreter {
             NodePrimitive left = evaluateExpr(binOp.left());
             NodePrimitive right = evaluateExpr(binOp.right());
 
+            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
+                //Placeholder made up token until I figure out better error messages
+                Token errorTok = new Token(binOp.asString(), binOp.type().type);
+
+                //todo implicit casting later on
+
+                if (left instanceof FloatPrimitive leftF && right instanceof FloatPrimitive rightF) {
+
+                    return FloatPrimitive.of(dbop.applyAsDouble(leftF.getValue(), rightF.getValue()));
+
+                } else if (left instanceof IntPrimitive leftI && right instanceof IntPrimitive rightI) {
+
+                    return IntPrimitive.of(lbop.applyAsLong(leftI.getValue(), rightI.getValue()));
+
+                } else if (left instanceof CharPrimitive leftC && right instanceof CharPrimitive rightC) {
+
+                    return CharPrimitive.of((char) lbop.applyAsLong(leftC.getValue(), rightC.getValue()));
+                }
+
+                throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+            };
+
             switch (binOp.type()) {
                 case SUM -> {
-                    //Placeholder made up token until I figure out better error messages
-                    Token errorTok = new Token(binOp.asString(), binOp.type().type);
-
-                    if (left instanceof BoolPrimitive || right instanceof BoolPrimitive)
-                        throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                    if (left instanceof FloatPrimitive leftF) {
-                        if (!(right instanceof FloatPrimitive rightF))
-                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                        return FloatPrimitive.of(leftF.getValue() + rightF.getValue());
-
-                    } else if (left instanceof IntPrimitive leftI) {
-                        if (!(right instanceof IntPrimitive rightI))
-                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                        return IntPrimitive.of(leftI.getValue() + rightI.getValue());
-
-                    } else if (left instanceof CharPrimitive leftC) {
-                        if (!(right instanceof CharPrimitive rightC))
-                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                        return CharPrimitive.of((char) (leftC.getValue() + rightC.getValue()));
-                    }
+                    return mathematicalBinOp.apply(Double::sum, Long::sum);
                 }
                 case DIFFERENCE -> {
-                    //Placeholder made up token until I figure out better error messages
-                    Token errorTok = new Token(binOp.asString(), binOp.type().type);
-
-                    if (left instanceof BoolPrimitive || right instanceof BoolPrimitive)
-                        throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                    if (left instanceof FloatPrimitive leftF) {
-                        if (!(right instanceof FloatPrimitive rightF))
-                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                        return FloatPrimitive.of(leftF.getValue() - rightF.getValue());
-
-                    } else if (left instanceof IntPrimitive leftI) {
-                        if (!(right instanceof IntPrimitive rightI))
-                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                        return IntPrimitive.of(leftI.getValue() - rightI.getValue());
-
-                    } else if (left instanceof CharPrimitive leftC) {
-                        if (!(right instanceof CharPrimitive rightC))
-                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-
-                        return CharPrimitive.of((char) (leftC.getValue() - rightC.getValue()));
-                    }
+                    return mathematicalBinOp.apply((d1, d2) -> d1 - d2, (l1, l2) -> l1 - l2);
                 }
             }
         }
