@@ -10,11 +10,6 @@ public abstract sealed class NodePrimitive implements NodeExpr permits IntPrimit
         this.token = token;
     }
 
-    @Override
-    public boolean isRoot(){
-        return false;
-    }
-
     public Token getToken(){
         return token;
     }

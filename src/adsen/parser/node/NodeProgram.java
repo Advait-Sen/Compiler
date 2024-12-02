@@ -16,9 +16,4 @@ public class NodeProgram implements ASTNode{
 
         return stream.reduce("", (s1, s2)->s1+'\n'+s2);
     }
-
-    @Override
-    public boolean isRoot() {
-        return true;
-    }
 }

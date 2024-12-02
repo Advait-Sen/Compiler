@@ -21,9 +21,4 @@ public class NodeIdentifier implements NodeExpr {
     public String asString() {
         return name;
     }
-
-    @Override
-    public boolean isRoot() {
-        return false;
-    }
 }

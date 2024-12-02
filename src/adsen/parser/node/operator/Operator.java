@@ -8,11 +8,6 @@ import java.util.Map;
 public interface Operator extends NodeExpr {
     OperatorType type();
 
-    @Override
-    default boolean isRoot() {
-        return false;
-    }
-
     int precedence();
 
     Map<String, OperatorType> operatorType = new HashMap<>();
