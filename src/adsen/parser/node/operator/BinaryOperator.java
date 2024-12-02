@@ -19,6 +19,14 @@ public class BinaryOperator implements Operator {
         this(left, Operator.operatorType.get(operator.value), right);
     }
 
+    public NodeExpr left() {
+        return left;
+    }
+
+    public NodeExpr right() {
+        return right;
+    }
+
     @Override
     public OperatorType type() {
         return operation;

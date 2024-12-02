@@ -86,7 +86,7 @@ public class Parser {
 
         //Adapted from this StackOverflow thread
         //https://stackoverflow.com/questions/21356772/abstract-syntax-tree-using-the-shunting-yard-algorithm
-        List<NodeExpr> postfix = new ArrayList<>();
+        List<NodeExpr> postfix = new ArrayList<>(); //Might not be necessary, but keeping it anyways in case bugs occur
         Stack<Token> operatorStack = new Stack<>();
         Stack<NodeExpr> astStack = new Stack<>();
 

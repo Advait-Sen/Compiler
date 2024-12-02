@@ -4,6 +4,8 @@ import adsen.error.ExpressionError;
 import adsen.parser.node.NodeExpr;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.identifier.NodeIdentifier;
+import adsen.parser.node.operator.UnaryOperator;
+import adsen.parser.node.primitives.BoolPrimitive;
 import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.primitives.NodePrimitive;
 import adsen.parser.node.statement.AssignStatement;
@@ -111,6 +113,18 @@ public class Interpreter {
                 throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
 
             return currentScope.getVariable(ident.asString());
+        }
+
+        if(expr instanceof UnaryOperator unOp) {
+            NodePrimitive operand = evaluateExpr(unOp.operand());
+            switch(unOp.type()){
+                case NEGATE -> {
+                    if(!(operand instanceof BoolPrimitive bool)) //Exact copy of Java error message
+                        throw new ExpressionError("Operator '!' cannot be applied to '"+operand.getTypeString()+"'", operand.getToken());
+                    bool.setValue(!bool.getValue());
+                    return bool;
+                }
+            }
         }
 
         return IntPrimitive.of(0);

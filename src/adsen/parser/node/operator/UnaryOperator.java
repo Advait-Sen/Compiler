@@ -17,6 +17,10 @@ public class UnaryOperator implements Operator {
         this(Operator.operatorType.get(operator.value), operand);
     }
 
+    public NodeExpr operand() {
+        return operand;
+    }
+
     @Override
     public OperatorType type() {
         return operation;
