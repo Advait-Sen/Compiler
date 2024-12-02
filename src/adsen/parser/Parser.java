@@ -49,7 +49,7 @@ public class Parser {
     }
 
     /**
-     * Tries to read an expression from token list. Currently only gets primitives
+     * Tries to read an expression from token list.
      */
     NodeExpr parseExpr() {
         Token t;
@@ -74,12 +74,7 @@ public class Parser {
                 case BOOL_LITERAL -> new BoolPrimitive(t);
                 //case STR_LITERAL -> new String Object Type; gonna implement this as built-in complex type
                 case IDENTIFIER -> new NodeIdentifier(t);
-//            case OPEN_PAREN -> { Gonna re-implement parentheses after I do proper expression parsing
-//                consume(); //consume the open parenthesis
-//                expr = parseExpr();
-//                if (peek().type != CLOSE_PAREN) //this should not happen
-//                    throw new ExpressionError("Misplaced parentheses after tokenisation?", peek());
-//            }
+
                 default -> throw new ExpressionError("Unexpected token in expression", t);
             };
         }
