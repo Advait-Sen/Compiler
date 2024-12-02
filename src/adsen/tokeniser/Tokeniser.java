@@ -69,17 +69,8 @@ public class Tokeniser {
             token.colpos = colpos;
             token.linepos = linepos;
 
-            // Int literal, Float literal (even .456), Hex literal (0xab3c), Negative literal (-34.32)
-            // Don't allow -.34 cos it looks weird, prefer -0.34
-            if (isDigit(c) || ((c == '.' || c == '-') && isDigit(peek(1)))) {
-
-                boolean isNegative = c == '-';
-
-                if(isNegative){
-                    token.append(c);
-                    c = consume(); //Consuming negative sign
-                }
-
+            // Int literal, Float literal (even .456), Hex literal (0xab3c)
+            if (isDigit(c) || (c == '.') && isDigit(peek(1))) {
                 boolean isFloat = false;
                 boolean isHex = c == '0' && hasNext() && peek(1) == 'x';
 

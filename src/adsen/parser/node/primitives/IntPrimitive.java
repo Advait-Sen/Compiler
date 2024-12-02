@@ -18,11 +18,7 @@ public final class IntPrimitive extends NodePrimitive {
         if (token.type == TokenType.INT_LITERAL)
             this.value = Long.parseLong(token.value);
         else {//Else it's hexadecimal
-
-            if (token.value.charAt(0) == '-') //Checking for negative hex literal, since parseLong can't do that
-                this.value = -Long.parseLong(token.value.substring(3), 16);
-            else
-                this.value = Long.parseLong(token.value.substring(2), 16);
+            this.value = Long.parseLong(token.value.substring(2), 16);
         }
     }
 
