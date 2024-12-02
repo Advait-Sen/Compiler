@@ -6,14 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class NodeProgram implements ASTNode{
+public class NodeProgram {
 
     public List<NodeStatement> statements = new ArrayList<>();
 
-    @Override
     public String asString() {
-        Stream<String> stream = statements.stream().map(ASTNode::asString);
+        Stream<String> stream = statements.stream().map(NodeStatement::asString);
 
-        return stream.reduce("", (s1, s2)->s1+'\n'+s2);
+        return stream.reduce("", (s1, s2) -> s1 + '\n' + s2);
     }
 }

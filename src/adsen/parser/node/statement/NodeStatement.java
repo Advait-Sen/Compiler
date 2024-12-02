@@ -1,8 +1,7 @@
 package adsen.parser.node.statement;
 
-import adsen.parser.node.ASTNode;
-
-public interface NodeStatement extends ASTNode {
+public interface NodeStatement {
+    String asString();
     /**
      * String indicating type of statement
      */

@@ -1,5 +1,5 @@
 package adsen.parser.node;
 
-public interface NodeExpr extends ASTNode {
-
+public interface NodeExpr {
+    String asString();
 }
