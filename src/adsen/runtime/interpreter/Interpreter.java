@@ -4,8 +4,11 @@ import adsen.error.ExpressionError;
 import adsen.parser.node.NodeExpr;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.identifier.NodeIdentifier;
+import adsen.parser.node.operator.BinaryOperator;
 import adsen.parser.node.operator.UnaryOperator;
 import adsen.parser.node.primitives.BoolPrimitive;
+import adsen.parser.node.primitives.CharPrimitive;
+import adsen.parser.node.primitives.FloatPrimitive;
 import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.primitives.NodePrimitive;
 import adsen.parser.node.statement.AssignStatement;
@@ -14,6 +17,7 @@ import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.runtime.Scope;
+import adsen.tokeniser.Token;
 
 import java.util.Map;
 import java.util.Stack;
@@ -115,14 +119,74 @@ public class Interpreter {
             return currentScope.getVariable(ident.asString());
         }
 
-        if(expr instanceof UnaryOperator unOp) {
+        if (expr instanceof UnaryOperator unOp) {
             NodePrimitive operand = evaluateExpr(unOp.operand());
-            switch(unOp.type()){
+            switch (unOp.type()) {
                 case NEGATE -> {
-                    if(!(operand instanceof BoolPrimitive bool)) //Exact copy of Java error message
-                        throw new ExpressionError("Operator '!' cannot be applied to '"+operand.getTypeString()+"'", operand.getToken());
-                    bool.setValue(!bool.getValue());
+                    if (!(operand instanceof BoolPrimitive bool)) //Exact copy of Java error message
+                        throw new ExpressionError("Operator '!' cannot be applied to '" + operand.getTypeString() + "'", operand.getToken());
+                    bool.setValue(!bool.getValue()); //This might source of problems down the line, would want to make new BoolPrimitive instead
                     return bool;
+                }
+            }
+        }
+
+        if (expr instanceof BinaryOperator binOp) {
+            NodePrimitive left = evaluateExpr(binOp.left());
+            NodePrimitive right = evaluateExpr(binOp.right());
+
+            switch (binOp.type()) {
+                case SUM -> {
+                    //Placeholder made up token until I figure out better error messages
+                    Token errorTok = new Token(binOp.asString(), binOp.type().type);
+
+                    if (left instanceof BoolPrimitive || right instanceof BoolPrimitive)
+                        throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                    if (left instanceof FloatPrimitive leftF) {
+                        if (!(right instanceof FloatPrimitive rightF))
+                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                        return FloatPrimitive.of(leftF.getValue() + rightF.getValue());
+
+                    } else if (left instanceof IntPrimitive leftI) {
+                        if (!(right instanceof IntPrimitive rightI))
+                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                        return IntPrimitive.of(leftI.getValue() + rightI.getValue());
+
+                    } else if (left instanceof CharPrimitive leftC) {
+                        if (!(right instanceof CharPrimitive rightC))
+                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                        return CharPrimitive.of((char) (leftC.getValue() + rightC.getValue()));
+                    }
+                }
+                case DIFFERENCE -> {
+                    //Placeholder made up token until I figure out better error messages
+                    Token errorTok = new Token(binOp.asString(), binOp.type().type);
+
+                    if (left instanceof BoolPrimitive || right instanceof BoolPrimitive)
+                        throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                    if (left instanceof FloatPrimitive leftF) {
+                        if (!(right instanceof FloatPrimitive rightF))
+                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                        return FloatPrimitive.of(leftF.getValue() - rightF.getValue());
+
+                    } else if (left instanceof IntPrimitive leftI) {
+                        if (!(right instanceof IntPrimitive rightI))
+                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                        return IntPrimitive.of(leftI.getValue() - rightI.getValue());
+
+                    } else if (left instanceof CharPrimitive leftC) {
+                        if (!(right instanceof CharPrimitive rightC))
+                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                        return CharPrimitive.of((char) (leftC.getValue() - rightC.getValue()));
+                    }
                 }
             }
         }
