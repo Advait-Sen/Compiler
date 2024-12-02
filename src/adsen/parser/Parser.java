@@ -90,7 +90,7 @@ public class Parser {
             Token opTok = operatorStack.pop();
             OperatorType opType = Operator.operatorType.get(opTok.value);
 
-            //todo handle leftAssoc
+            //todo handle not leftToRight operators
             if (opType.type == UNARY_OPERATOR) {
                 NodeExpr arg = astStack.pop();
                 lastOp = new UnaryOperator(opType, arg);
@@ -137,7 +137,7 @@ public class Parser {
                 while (operatorStack.peek().type != OPEN_PAREN) {
                     processOperator.run();
                 }
-                operatorStack.pop(); //Popping the last '('
+                operatorStack.pop(); //Popping the corresponding '('
             }
         }
 

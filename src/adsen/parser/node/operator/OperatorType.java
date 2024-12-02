@@ -7,31 +7,45 @@ import static adsen.parser.node.operator.Operator.operatorType;
 import static adsen.tokeniser.TokenType.*;
 
 public enum OperatorType {
+    // Maths operators
     SUM("+", 10, BINARY_OPERATOR),
     DIFFERENCE("-", 10, BINARY_OPERATOR),
+    PRODUCT("*", 11, BINARY_OPERATOR),
+    QUOTIENT("/", 11, BINARY_OPERATOR),
+    REMAINDER("%", 11, BINARY_OPERATOR),
+
+    // Assignment operators
     ASSIGN("=", DECLARATION_OPERATION),
 
-    NEGATE("!", 15, UNARY_OPERATOR),
+    // Boolean operators
+    NEGATE("!", 15, UNARY_OPERATOR, false),
     ;
 
     // Constructor for assignment, since we treat that differently in tokeniser itself
     OperatorType(String value, TokenType type) {
         this.value = value;
         this.precedence = 0;
-        this.isLeftAssoc = false;
+        this.leftToRight = false;
         this.type = type;
     }
 
     OperatorType(String value, int precedence, TokenType type) {
         this.value = value;
         this.precedence = precedence;
-        this.isLeftAssoc = true;
+        this.leftToRight = true;
+        this.type = type;
+    }
+
+    OperatorType(String value, int precedence, TokenType type, boolean leftToRight) {
+        this.value = value;
+        this.precedence = precedence;
+        this.leftToRight = leftToRight;
         this.type = type;
     }
 
     public final String value;
     public final int precedence;
-    public final boolean isLeftAssoc;
+    public final boolean leftToRight;
     public final TokenType type;
 
 

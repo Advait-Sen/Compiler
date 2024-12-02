@@ -26,9 +26,10 @@ import java.util.function.DoubleBinaryOperator;
 import java.util.function.LongBinaryOperator;
 
 /**
- * A class which will interpret Helium programming language, instead of compiling
- * This is simply because interpreting it is much easier than compiling,
- * and writing an runtime.interpreter is good practice for writing a compiler (I think)
+ * A class which will interpret Helium programming language, instead of compiling.
+ * <p>
+ * This is simply because interpreting is much easier than compiling,
+ * and writing an interpreter is good practice for writing a compiler (I think)
  */
 public class Interpreter {
 
@@ -166,6 +167,15 @@ public class Interpreter {
                 }
                 case DIFFERENCE -> {
                     return mathematicalBinOp.apply((d1, d2) -> d1 - d2, (l1, l2) -> l1 - l2);
+                }
+                case PRODUCT -> {
+                    return mathematicalBinOp.apply((d1, d2) -> d1 * d2, (l1, l2) -> l1 * l2);
+                }
+                case QUOTIENT -> {
+                    return mathematicalBinOp.apply((d1, d2) -> d1 / d2, (l1, l2) -> l1 / l2);
+                }
+                case REMAINDER -> {
+                    return mathematicalBinOp.apply((d1, d2) -> d1 % d2, (l1, l2) -> l1 % l2);
                 }
             }
         }
