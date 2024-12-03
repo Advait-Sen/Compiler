@@ -16,6 +16,7 @@ import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.NodeStatement;
+import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.TokenType;
@@ -48,6 +49,10 @@ public class Parser {
         this.tokens = Collections.unmodifiableList(tokeniser.tokens());
     }
 
+    public Parser(List<Token> tokens) {
+        this.tokens = Collections.unmodifiableList(tokens);
+    }
+
     /**
      * Tries to read an expression from token list.
      */
@@ -56,9 +61,12 @@ public class Parser {
 
         List<Token> exprTokens = new ArrayList<>();
 
-        for (t = peek(); isValidExprToken(peek().type); t = consume()) {
+        for (t = peek(); hasNext() && isValidExprToken(peek().type); t = consume()) {
             exprTokens.add(t);
         }
+
+        if(!hasNext())
+            throw new ExpressionError("Expected ';' after expression", exprTokens.getLast());
 
         if (t.type != SEMICOLON)
             throw new ExpressionError("Expected ';' after expression", t);
@@ -81,7 +89,7 @@ public class Parser {
 
         //Adapted from this StackOverflow thread
         //https://stackoverflow.com/questions/21356772/abstract-syntax-tree-using-the-shunting-yard-algorithm
-        List<NodeExpr> postfix = new ArrayList<>(); //Might not be necessary, but keeping it anyways in case bugs occur
+        List<NodeExpr> postfix = new ArrayList<>(); //Might not be necessary, but keeping it anyway in case bugs occur
         Stack<Token> operatorStack = new Stack<>();
         Stack<NodeExpr> astStack = new Stack<>();
 
@@ -159,12 +167,17 @@ public class Parser {
         return expr;
     }
 
+    /**
+     * Main parse function which returns the {@link NodeProgram} defining the entire program's AST
+     */
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
         for (pos = 0; pos < tokens.size(); pos++) {
             Token t = peek();
             NodeStatement statement;
+            boolean isNewScope = false; //useful for if, else, while etc.
+
             if (t.type == EXIT) { //Exit statement
                 consume(); //Consume exit token
                 statement = new ExitStatement(t, parseExpr());
@@ -209,11 +222,19 @@ public class Parser {
 
                 statement = new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
 
+            } else if (t.type == C_OPEN_PAREN) { //New scope
+                List<Token> scopeTokens = new ArrayList<>();
+                for (t = consume(); t.type != C_CLOSE_PAREN; t = consume()) {
+                    scopeTokens.add(t);
+                }
+                isNewScope = true;
+                statement = new ScopeStatement(new Parser(scopeTokens).parse().statements);
+
             } else {
                 throw new ExpressionError("Unknown statement", t);
             }
 
-            if (!hasNext() || peek().type != SEMICOLON) { // Must end all statements with semicolon
+            if (!isNewScope && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
