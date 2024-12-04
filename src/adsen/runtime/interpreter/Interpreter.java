@@ -190,45 +190,33 @@ public class Interpreter {
             //Placeholder made up token until I figure out better error messages
             Token errorTok = new Token(binOp.asString(), binOp.type().type);
 
-            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
-                //todo implicit casting later on
-
-                if (left instanceof FloatPrimitive leftF && right instanceof FloatPrimitive rightF) {
-
-                    return FloatPrimitive.of(dbop.applyAsDouble(leftF.getValue(), rightF.getValue()));
-
-                } else if (left instanceof IntPrimitive leftI && right instanceof IntPrimitive rightI) {
-
-                    return IntPrimitive.of(lbop.applyAsLong(leftI.getValue(), rightI.getValue()));
-
-                } else if (left instanceof CharPrimitive leftC && right instanceof CharPrimitive rightC) {
-
-                    return CharPrimitive.of((char) lbop.applyAsLong(leftC.getValue(), rightC.getValue()));
-                }
-
-                throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-            };
+            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) ->
+                    //todo implicit casting later on
+                    switch (left) {
+                        case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
+                                FloatPrimitive.of(dbop.applyAsDouble(leftF.getValue(), rightF.getValue()));
+                        case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
+                                IntPrimitive.of(lbop.applyAsLong(leftI.getValue(), rightI.getValue()));
+                        case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
+                                CharPrimitive.of((char) lbop.applyAsLong(leftC.getValue(), rightC.getValue()));
+                        case null, default ->
+                                throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+                    };
 
             Function<IntPredicate, BoolPrimitive> comparisonOp = (intop) -> {
                 //todo implicit casting later on
-                int comparison;
-
-                if (left instanceof FloatPrimitive leftF && right instanceof FloatPrimitive rightF) {
-
-                    comparison = Double.compare(leftF.getValue(), rightF.getValue());
-
-                } else if (left instanceof IntPrimitive leftI && right instanceof IntPrimitive rightI) {
-
-                    comparison = Long.compare(leftI.getValue(), rightI.getValue());
-
-                } else if (left instanceof CharPrimitive leftC && right instanceof CharPrimitive rightC) {
-
-                    comparison = Character.compare(leftC.getValue(), rightC.getValue());
-                } else if (left instanceof BoolPrimitive leftC && right instanceof BoolPrimitive rightC) {
-
-                    comparison = Boolean.compare(leftC.getValue(), rightC.getValue());
-                } else
-                    throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+                int comparison = switch (left) {
+                    case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
+                            Double.compare(leftF.getValue(), rightF.getValue());
+                    case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
+                            Long.compare(leftI.getValue(), rightI.getValue());
+                    case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
+                            Character.compare(leftC.getValue(), rightC.getValue());
+                    case BoolPrimitive leftC when right instanceof BoolPrimitive rightC ->
+                            Boolean.compare(leftC.getValue(), rightC.getValue());
+                    case null, default ->
+                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+                };
 
                 return BoolPrimitive.of(intop.test(comparison));
             };
@@ -240,51 +228,25 @@ public class Interpreter {
                     throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
             };
 
-            switch (binOp.type()) { //todo simplify with return switch() etc...
-                case SUM -> {
-                    return mathematicalBinOp.apply(Double::sum, Long::sum);
-                }
-                case DIFFERENCE -> {
-                    return mathematicalBinOp.apply((d1, d2) -> d1 - d2, (l1, l2) -> l1 - l2);
-                }
-                case PRODUCT -> {
-                    return mathematicalBinOp.apply((d1, d2) -> d1 * d2, (l1, l2) -> l1 * l2);
-                }
-                case QUOTIENT -> {
-                    return mathematicalBinOp.apply((d1, d2) -> d1 / d2, (l1, l2) -> l1 / l2);
-                }
-                case REMAINDER -> {
-                    return mathematicalBinOp.apply((d1, d2) -> d1 % d2, (l1, l2) -> l1 % l2);
-                }
-                case EXPONENT -> {
-                    return mathematicalBinOp.apply(Math::pow, (l1, l2) -> (long) Math.pow(l1, l2));
-                }
-                case EQUAL -> {
-                    return comparisonOp.apply(i -> i == 0);
-                }
-                case DIFFERENT -> {
-                    return comparisonOp.apply(i -> i != 0);
-                }
-                case LESS -> {
-                    return comparisonOp.apply(i -> i < 0);
-                }
-                case GREATER -> {
-                    return comparisonOp.apply(i -> i > 0);
-                }
-                case LESS_EQ -> {
-                    return comparisonOp.apply(i -> i <= 0);
-                }
-                case GREATER_EQ -> {
-                    return comparisonOp.apply(i -> i >= 0);
-                }
-                case AND -> {
-                    return boolBiOp.apply(Boolean::logicalAnd);
-                }
-                case OR -> {
-                    return boolBiOp.apply(Boolean::logicalOr);
-                }
+            return switch (binOp.type()) { //todo simplify with return switch() etc...
+                case SUM -> mathematicalBinOp.apply(Double::sum, Long::sum);
+                case DIFFERENCE -> mathematicalBinOp.apply((d1, d2) -> d1 - d2, (l1, l2) -> l1 - l2);
+                case PRODUCT -> mathematicalBinOp.apply((d1, d2) -> d1 * d2, (l1, l2) -> l1 * l2);
+                case QUOTIENT -> mathematicalBinOp.apply((d1, d2) -> d1 / d2, (l1, l2) -> l1 / l2);
+                case REMAINDER -> mathematicalBinOp.apply((d1, d2) -> d1 % d2, (l1, l2) -> l1 % l2);
+                case EXPONENT -> mathematicalBinOp.apply(Math::pow, (l1, l2) -> (long) Math.pow(l1, l2));
+
+                case EQUAL -> comparisonOp.apply(i -> i == 0);
+                case DIFFERENT -> comparisonOp.apply(i -> i != 0);
+                case LESS -> comparisonOp.apply(i -> i < 0);
+                case GREATER -> comparisonOp.apply(i -> i > 0);
+                case LESS_EQ -> comparisonOp.apply(i -> i <= 0);
+                case GREATER_EQ -> comparisonOp.apply(i -> i >= 0);
+
+                case AND -> boolBiOp.apply(Boolean::logicalAnd);
+                case OR -> boolBiOp.apply(Boolean::logicalOr);
                 default -> throw new ExpressionError("Don't know how we got here", errorTok);
-            }
+            };
         }
 
         return IntPrimitive.of(0);
