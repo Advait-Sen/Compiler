@@ -7,6 +7,8 @@ import static adsen.parser.node.operator.Operator.operatorType;
 import static adsen.tokeniser.TokenType.*;
 
 public enum OperatorType {
+    //Some of the precedences are taken from here: https://pythongeeks.org/python-operator-precedence/
+
     // Maths operators
     EXPONENT("**", 12, BINARY_OPERATOR),
     PRODUCT("*", 11, BINARY_OPERATOR),
@@ -20,6 +22,14 @@ public enum OperatorType {
 
     // Boolean operators
     NEGATE("!", 15, UNARY_OPERATOR, false),
+    EQUAL("==", 4, BINARY_OPERATOR),
+    DIFFERENT("!=", 4, BINARY_OPERATOR),
+    GREATER(">", 4, BINARY_OPERATOR),
+    LESS("<", 4, BINARY_OPERATOR),
+    GREATER_EQ(">=", 4, BINARY_OPERATOR),
+    LESS_EQ("<=", 4, BINARY_OPERATOR),
+    AND("&&", 2, BINARY_OPERATOR),
+    OR("||", 2, BINARY_OPERATOR),
     ;
 
     // Constructor for assignment, since we treat that differently in tokeniser itself

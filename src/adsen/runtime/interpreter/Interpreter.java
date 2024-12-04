@@ -26,6 +26,8 @@ import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.DoubleBinaryOperator;
+import java.util.function.Function;
+import java.util.function.IntPredicate;
 import java.util.function.LongBinaryOperator;
 
 /**
@@ -134,18 +136,18 @@ public class Interpreter {
             // If we modified a variable that was obtained from earlier scope, then remember the update
             // This is possibly not the most efficient way of doing things
             // But this might be the most that can be done with an interpreted language
-            newScope.getVariables().forEach((s, np)->{
-                if(scopeStack.peek().hasVariable(s)){
+            newScope.getVariables().forEach((s, np) -> {
+                if (scopeStack.peek().hasVariable(s)) {
                     scopeStack.peek().setVariable(s, np);
                 }
             });
 
         } else if (statement instanceof IfStatement ifStmt) {
             NodePrimitive shouldRun = evaluateExpr(ifStmt.getCondition());
-            if(!(shouldRun instanceof BoolPrimitive run))
+            if (!(shouldRun instanceof BoolPrimitive run))
                 throw new ExpressionError("Must have boolean condition for if statement", ifStmt.token);
 
-            if(run.getValue()) {
+            if (run.getValue()) {
                 ret = executeStatement(ifStmt.thenStatement());
             }
         }
@@ -185,10 +187,10 @@ public class Interpreter {
             NodePrimitive left = evaluateExpr(binOp.left());
             NodePrimitive right = evaluateExpr(binOp.right());
 
-            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
-                //Placeholder made up token until I figure out better error messages
-                Token errorTok = new Token(binOp.asString(), binOp.type().type);
+            //Placeholder made up token until I figure out better error messages
+            Token errorTok = new Token(binOp.asString(), binOp.type().type);
 
+            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
                 //todo implicit casting later on
 
                 if (left instanceof FloatPrimitive leftF && right instanceof FloatPrimitive rightF) {
@@ -205,6 +207,37 @@ public class Interpreter {
                 }
 
                 throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+            };
+
+            Function<IntPredicate, BoolPrimitive> comparisonOp = (intop) -> {
+                //todo implicit casting later on
+                int comparison;
+
+                if (left instanceof FloatPrimitive leftF && right instanceof FloatPrimitive rightF) {
+
+                    comparison = Double.compare(leftF.getValue(), rightF.getValue());
+
+                } else if (left instanceof IntPrimitive leftI && right instanceof IntPrimitive rightI) {
+
+                    comparison = Long.compare(leftI.getValue(), rightI.getValue());
+
+                } else if (left instanceof CharPrimitive leftC && right instanceof CharPrimitive rightC) {
+
+                    comparison = Character.compare(leftC.getValue(), rightC.getValue());
+                } else if (left instanceof BoolPrimitive leftC && right instanceof BoolPrimitive rightC) {
+
+                    comparison = Boolean.compare(leftC.getValue(), rightC.getValue());
+                } else
+                    throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+
+                return BoolPrimitive.of(intop.test(comparison));
+            };
+
+            Function<java.util.function.BinaryOperator<Boolean>, BoolPrimitive> boolBiOp = (bop) -> {
+                if (left instanceof BoolPrimitive leftB && right instanceof BoolPrimitive rightB) {
+                    return BoolPrimitive.of(bop.apply(leftB.getValue(), rightB.getValue()));
+                } else
+                    throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
             };
 
             switch (binOp.type()) { //todo simplify with return switch() etc...
@@ -226,6 +259,31 @@ public class Interpreter {
                 case EXPONENT -> {
                     return mathematicalBinOp.apply(Math::pow, (l1, l2) -> (long) Math.pow(l1, l2));
                 }
+                case EQUAL -> {
+                    return comparisonOp.apply(i -> i == 0);
+                }
+                case DIFFERENT -> {
+                    return comparisonOp.apply(i -> i != 0);
+                }
+                case LESS -> {
+                    return comparisonOp.apply(i -> i < 0);
+                }
+                case GREATER -> {
+                    return comparisonOp.apply(i -> i > 0);
+                }
+                case LESS_EQ -> {
+                    return comparisonOp.apply(i -> i <= 0);
+                }
+                case GREATER_EQ -> {
+                    return comparisonOp.apply(i -> i >= 0);
+                }
+                case AND -> {
+                    return boolBiOp.apply(Boolean::logicalAnd);
+                }
+                case OR -> {
+                    return boolBiOp.apply(Boolean::logicalOr);
+                }
+                default -> throw new ExpressionError("Don't know how we got here", errorTok);
             }
         }
 
