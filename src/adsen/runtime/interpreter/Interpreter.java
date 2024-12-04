@@ -215,6 +215,9 @@ public class Interpreter {
                 case REMAINDER -> {
                     return mathematicalBinOp.apply((d1, d2) -> d1 % d2, (l1, l2) -> l1 % l2);
                 }
+                case EXPONENT -> {
+                    return mathematicalBinOp.apply(Math::pow, (l1, l2) -> (long) Math.pow(l1, l2));
+                }
             }
         }
 

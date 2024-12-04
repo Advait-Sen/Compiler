@@ -8,11 +8,12 @@ import static adsen.tokeniser.TokenType.*;
 
 public enum OperatorType {
     // Maths operators
-    SUM("+", 10, BINARY_OPERATOR),
-    DIFFERENCE("-", 10, BINARY_OPERATOR),
+    EXPONENT("**", 12, BINARY_OPERATOR),
     PRODUCT("*", 11, BINARY_OPERATOR),
     QUOTIENT("/", 11, BINARY_OPERATOR),
     REMAINDER("%", 11, BINARY_OPERATOR),
+    SUM("+", 10, BINARY_OPERATOR),
+    DIFFERENCE("-", 10, BINARY_OPERATOR),
 
     // Assignment operators
     ASSIGN("=", DECLARATION_OPERATION),
