@@ -78,7 +78,7 @@ public class Parser {
     /**
      * Tries to read an expression from token list.
      */
-    NodeExpr parseExpr(List<Token> exprTokens) {
+    static NodeExpr parseExpr(List<Token> exprTokens) {
         Token t;
         NodeExpr expr;
 
@@ -182,9 +182,17 @@ public class Parser {
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
-        for (pos = 0; pos < tokens.size(); pos++) {
+        program.statements = parse(0);
+
+        return program;
+    }
+
+    public List<NodeStatement> parse(int startPos) {
+        List<NodeStatement> statements = new ArrayList<>();
+
+        for (pos = startPos; pos < tokens.size(); pos++) {
             Token t = peek();
-            NodeStatement statement, lastStatement = pos>0? program.statements.getLast() : null;
+            NodeStatement statement, lastStatement = pos > 0 ? statements.getLast() : null;
             boolean needSemi = true; //useful for if, else, while etc.
 
             if (t.type == EXIT) { //Exit statement
@@ -244,11 +252,10 @@ public class Parser {
                 needSemi = false;
                 statement = new ScopeStatement(new Parser(scopeTokens).parse().statements);
 
-            }
-            else if (t.type == IF) {
+            } else if (t.type == IF) {
                 Token ifT = t;
                 t = consume();
-                if(t.type!=OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
+                if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
                 List<Token> conditionTokens = new ArrayList<>();
                 int bracket_counter = 1; //we have seen one open bracket
 
@@ -258,7 +265,7 @@ public class Parser {
                     conditionTokens.add(t);
                 } //todo add (and test) hasNext() check here
 
-                if(!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
+                if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
 
                 needSemi = false; //don't need semicolon after the expression
                 statement = new IfStatement(ifT, parseExpr(conditionTokens));
@@ -270,16 +277,15 @@ public class Parser {
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
-            if((lastStatement instanceof IfStatement ifStmt) && !ifStmt.isComplete()) {
+            if ((lastStatement instanceof IfStatement ifStmt) && !ifStmt.isComplete()) {
                 ifStmt.setStatement(statement);
             } else {
-                program.statements.add(statement);
+                statements.add(statement);
             }
         }
 
-        return program;
+        return statements;
     }
-
 
     //Preparing for shunting yard
     static boolean isValidExprToken(TokenType type) {
