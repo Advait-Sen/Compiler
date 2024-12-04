@@ -8,41 +8,18 @@ public class IfStatement implements NodeStatement {
     NodeExpr condition;
     NodeStatement thenStatement;
 
-    /**
-     * Parser flag based on whether or not the if statement has got its condition
-     */
-    private boolean complete;
-
-    public IfStatement(Token token, NodeExpr condition) {
-        this.token = token;
-        this.condition = condition;
-        this.complete = false;
-    }
-
     public IfStatement(Token token, NodeExpr condition, NodeStatement statement) {
         this.token = token;
         this.condition = condition;
         this.thenStatement = statement;
-        this.complete = true;
     }
 
-    public void setStatement(NodeStatement statement) {
-        if (!complete) {
-            this.thenStatement = statement;
-            this.complete = true;
-        }
-    }
-
-    public NodeExpr getCondition(){
+    public NodeExpr getCondition() {
         return this.condition;
     }
 
-    public NodeStatement thenStatement(){
+    public NodeStatement thenStatement() {
         return this.thenStatement;
-    }
-
-    public boolean isComplete(){
-        return this.complete;
     }
 
     @Override

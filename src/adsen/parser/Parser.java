@@ -182,17 +182,17 @@ public class Parser {
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
-        program.statements = parse(0);
+        program.statements = parse(0, Integer.MAX_VALUE);
 
         return program;
     }
 
-    public List<NodeStatement> parse(int startPos) {
+    public List<NodeStatement> parse(int startPos, int count) {
         List<NodeStatement> statements = new ArrayList<>();
 
-        for (pos = startPos; pos < tokens.size(); pos++) {
+        for (pos = startPos; pos < tokens.size() && statements.size() < count; pos++) {
             Token t = peek();
-            NodeStatement statement, lastStatement = pos > 0 ? statements.getLast() : null;
+            NodeStatement statement, lastStatement = statements.isEmpty() ? null : statements.getLast();
             boolean needSemi = true; //useful for if, else, while etc.
 
             if (t.type == EXIT) { //Exit statement
@@ -268,7 +268,11 @@ public class Parser {
                 if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
 
                 needSemi = false; //don't need semicolon after the expression
-                statement = new IfStatement(ifT, parseExpr(conditionTokens));
+                //todo add Token.toString() {type + ": " + value;}
+
+                NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
+
+                statement = new IfStatement(ifT, parseExpr(conditionTokens), thenStatement);
             } else {
                 throw new ExpressionError("Unknown statement", t);
             }
@@ -277,12 +281,10 @@ public class Parser {
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
-            if ((lastStatement instanceof IfStatement ifStmt) && !ifStmt.isComplete()) {
-                ifStmt.setStatement(statement);
-            } else {
-                statements.add(statement);
-            }
+            statements.add(statement);
         }
+
+        pos--;  // decrementing down to the last valid token
 
         return statements;
     }
