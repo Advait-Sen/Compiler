@@ -14,6 +14,7 @@ import adsen.parser.node.primitives.NodePrimitive;
 import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
+import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
@@ -66,9 +67,11 @@ public class Interpreter {
 
     Optional<NodePrimitive> executeStatement(NodeStatement statement) {
 
+        Optional<NodePrimitive> ret = Optional.empty();
+
         if (statement instanceof ExitStatement exit) {
 
-            return Optional.ofNullable(evaluateExpr(exit.expr()));
+            ret = Optional.ofNullable(evaluateExpr(exit.expr()));
 
         } else if (statement instanceof DeclareStatement declare) {
 
@@ -114,10 +117,8 @@ public class Interpreter {
             Scope newScope = Scope.filled(scope.name, scopeStack.peek());
             scopeStack.push(newScope);
 
-            Optional<NodePrimitive> scopeRet = Optional.empty();
-
-            for (int j = 0; j < scope.statements.size() && scopeRet.isEmpty(); j++) {
-                scopeRet = executeStatement(scope.statements.get(j));
+            for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
+                ret = executeStatement(scope.statements.get(j));
             }
             /* For printing out scopes as debug feature
             for (Scope stackScope : scopeStack) {
@@ -139,10 +140,17 @@ public class Interpreter {
                 }
             });
 
-            return scopeRet;
+        } else if (statement instanceof IfStatement ifStmt) {
+            NodePrimitive shouldRun = evaluateExpr(ifStmt.getCondition());
+            if(!(shouldRun instanceof BoolPrimitive run))
+                throw new ExpressionError("Must have boolean condition for if statement", ifStmt.token);
+
+            if(run.getValue()) {
+                ret = executeStatement(ifStmt.thenStatement());
+            }
         }
 
-        return Optional.empty();
+        return ret;
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {
@@ -199,7 +207,7 @@ public class Interpreter {
                 throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
             };
 
-            switch (binOp.type()) {
+            switch (binOp.type()) { //todo simplify with return switch() etc...
                 case SUM -> {
                     return mathematicalBinOp.apply(Double::sum, Long::sum);
                 }

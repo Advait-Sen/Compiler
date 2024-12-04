@@ -15,6 +15,7 @@ import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
+import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
@@ -183,8 +184,8 @@ public class Parser {
 
         for (pos = 0; pos < tokens.size(); pos++) {
             Token t = peek();
-            NodeStatement statement;
-            boolean isNewScope = false; //useful for if, else, while etc.
+            NodeStatement statement, lastStatement = pos>0? program.statements.getLast() : null;
+            boolean needSemi = true; //useful for if, else, while etc.
 
             if (t.type == EXIT) { //Exit statement
                 consume(); //Consume exit token
@@ -238,20 +239,42 @@ public class Parser {
                     if (t.type == C_OPEN_PAREN) c_bracket_counter++;
                     if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
                     scopeTokens.add(t);
-                } //todo check if c_bracket_counter isn't 0. Shouldn't happen due to checks for mismatched parentheses though.
+                } //todo add (and test) hasNext() check here
 
-                isNewScope = true;
+                needSemi = false;
                 statement = new ScopeStatement(new Parser(scopeTokens).parse().statements);
 
+            }
+            else if (t.type == IF) {
+                Token ifT = t;
+                t = consume();
+                if(t.type!=OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
+                List<Token> conditionTokens = new ArrayList<>();
+                int bracket_counter = 1; //we have seen one open bracket
+
+                for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t.type); t = consume()) {
+                    if (t.type == OPEN_PAREN) bracket_counter++;
+                    if (peek(1).type == CLOSE_PAREN) bracket_counter--;
+                    conditionTokens.add(t);
+                } //todo add (and test) hasNext() check here
+
+                if(!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
+
+                needSemi = false; //don't need semicolon after the expression
+                statement = new IfStatement(ifT, parseExpr(conditionTokens));
             } else {
                 throw new ExpressionError("Unknown statement", t);
             }
 
-            if (!isNewScope && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
+            if (needSemi && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
-            program.statements.add(statement);
+            if((lastStatement instanceof IfStatement ifStmt) && !ifStmt.isComplete()) {
+                ifStmt.setStatement(statement);
+            } else {
+                program.statements.add(statement);
+            }
         }
 
         return program;
