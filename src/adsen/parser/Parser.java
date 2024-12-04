@@ -182,7 +182,7 @@ public class Parser {
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
-        program.statements = parse(0, Integer.MAX_VALUE);
+        program.statements = parse(0, tokens.size()); //Statement count will always be less than token list size
 
         return program;
     }
@@ -192,90 +192,93 @@ public class Parser {
 
         for (pos = startPos; pos < tokens.size() && statements.size() < count; pos++) {
             Token t = peek();
-            NodeStatement statement, lastStatement = statements.isEmpty() ? null : statements.getLast();
-            boolean needSemi = true; //useful for if, else, while etc.
+            NodeStatement statement;
+            boolean needSemi = true; //used for if, else, while etc.
 
-            if (t.type == EXIT) { //Exit statement
-                consume(); //Consume exit token
-                statement = new ExitStatement(t, parseExpr());
-            } else if (t.type == PRIMITIVE_TYPE) { //Static declaration
-                Token identifier = consume(); //Consuming primitive name
+            statement = switch (t.type) {
+                case EXIT -> { //Exit statement
+                    consume(); //Consume exit token
+                    yield new ExitStatement(t, parseExpr());
+                }
+                case PRIMITIVE_TYPE -> { //Static declaration
+                    Token identifier = consume(); //Consuming primitive name
 
-                if (identifier.type != IDENTIFIER)
-                    throw new ExpressionError("Must have an identifier after '" + t.value + "'", identifier);
+                    if (identifier.type != IDENTIFIER)
+                        throw new ExpressionError("Must have an identifier after '" + t.value + "'", identifier);
 
-                Token declarer = consume(); //Consuming identifier
+                    Token declarer = consume(); //Consuming identifier
 
-                if (peek().type != DECLARATION_OPERATION)
-                    throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
+                    if (peek().type != DECLARATION_OPERATION)
+                        throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
 
-                consume(); //Consuming declarer operation
+                    consume(); //Consuming declarer operation
 
-                statement = new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
+                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
+                }
+                case LET -> { // Normal declaration
+                    Token identifier = consume(); //Consuming 'let' keyword
 
-            } else if (t.type == LET) { // Normal declaration
-                Token identifier = consume(); //Consuming 'let' keyword
+                    if (identifier.type != IDENTIFIER)
+                        throw new ExpressionError("Must have an identifier after 'let'", identifier);
 
-                if (identifier.type != IDENTIFIER)
-                    throw new ExpressionError("Must have an identifier after 'let'", identifier);
+                    Token declarer = consume(); //Consuming identifier
 
-                Token declarer = consume(); //Consuming identifier
+                    if (declarer.type != DECLARATION_OPERATION)
+                        throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
 
-                if (declarer.type != DECLARATION_OPERATION)
-                    throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
+                    consume(); //Consuming declarer operation
 
-                consume(); //Consuming declarer operation
+                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
+                }
+                case IDENTIFIER -> { // Variable assignment
 
-                statement = new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
+                    Token declarer = consume(); //Consuming identifier
 
-            } else if (t.type == IDENTIFIER) { // Variable assignment
+                    if (declarer.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
+                        throw new ExpressionError("Expected an assignment after " + t.value, declarer);
 
-                Token declarer = consume(); //Consuming identifier
+                    consume(); //Consuming assigner operation
 
-                if (declarer.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
-                    throw new ExpressionError("Expected an assignment after " + t.value, declarer);
+                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
+                }
+                case C_OPEN_PAREN -> { //New scope
+                    List<Token> scopeTokens = new ArrayList<>();
+                    int c_bracket_counter = 1; //we have seen one open curly bracket
 
-                consume(); //Consuming assigner operation
+                    for (t = consume(); c_bracket_counter != 0 || t.type != C_CLOSE_PAREN; t = consume()) {
+                        if (t.type == C_OPEN_PAREN) c_bracket_counter++;
+                        if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
+                        scopeTokens.add(t);
+                    } //todo add (and test) hasNext() check here
 
-                statement = new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
+                    needSemi = false; //todo test not setting this
+                    yield new ScopeStatement(new Parser(scopeTokens).parse().statements);
+                }
+                case IF -> {
+                    Token ifT = t;
+                    t = consume();
+                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
+                    List<Token> conditionTokens = new ArrayList<>();
+                    int bracket_counter = 1; //we have seen one open bracket
 
-            } else if (t.type == C_OPEN_PAREN) { //New scope
-                List<Token> scopeTokens = new ArrayList<>();
-                int c_bracket_counter = 1; //we have seen one open curly bracket
+                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t.type); t = consume()) {
+                        if (t.type == OPEN_PAREN) bracket_counter++;
+                        if (peek(1).type == CLOSE_PAREN) bracket_counter--;
+                        conditionTokens.add(t);
+                    } //todo add (and test) hasNext() check here
 
-                for (t = consume(); c_bracket_counter != 0 || t.type != C_CLOSE_PAREN; t = consume()) {
-                    if (t.type == C_OPEN_PAREN) c_bracket_counter++;
-                    if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
-                    scopeTokens.add(t);
-                } //todo add (and test) hasNext() check here
+                    if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
 
-                needSemi = false;
-                statement = new ScopeStatement(new Parser(scopeTokens).parse().statements);
+                    needSemi = false; //don't need semicolon after the expression
+                    //todo add Token.toString() {type + ": " + value;}
 
-            } else if (t.type == IF) {
-                Token ifT = t;
-                t = consume();
-                if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
-                List<Token> conditionTokens = new ArrayList<>();
-                int bracket_counter = 1; //we have seen one open bracket
+                    NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
 
-                for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t.type); t = consume()) {
-                    if (t.type == OPEN_PAREN) bracket_counter++;
-                    if (peek(1).type == CLOSE_PAREN) bracket_counter--;
-                    conditionTokens.add(t);
-                } //todo add (and test) hasNext() check here
+                    yield new IfStatement(ifT, parseExpr(conditionTokens), thenStatement);
+                }
+                default -> throw new ExpressionError("Unknown statement", t);
+            };
 
-                if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
-
-                needSemi = false; //don't need semicolon after the expression
-                //todo add Token.toString() {type + ": " + value;}
-
-                NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
-
-                statement = new IfStatement(ifT, parseExpr(conditionTokens), thenStatement);
-            } else {
-                throw new ExpressionError("Unknown statement", t);
-            }
 
             if (needSemi && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
                 throw new ExpressionError("Must have ';' after statement", peek());
@@ -284,7 +287,7 @@ public class Parser {
             statements.add(statement);
         }
 
-        pos--;  // decrementing down to the last valid token
+        pos--;  // decrementing to the last valid token
 
         return statements;
     }
