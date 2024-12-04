@@ -15,11 +15,13 @@ import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.NodeStatement;
+import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.DoubleBinaryOperator;
@@ -57,54 +59,77 @@ public class Interpreter {
 
         scopeStack.push(currentScope);
 
-        for (int i = 0; i < program.statements.size(); i++) {
-            NodeStatement statement = program.statements.get(i);
+        Optional<NodePrimitive> retVal = Optional.empty();
 
-            if (statement instanceof ExitStatement exit) {
-                return evaluateExpr(exit.expr());
-            } else if (statement instanceof DeclareStatement declare) {
+        for (int i = 0; i < program.statements.size() && retVal.isEmpty(); i++) {
+            retVal = executeStatement(i);
+        }
 
-                NodeIdentifier identifier = declare.identifier();
+        return retVal.orElseGet(() -> IntPrimitive.of(0));
+    }
 
-                if (currentScope.hasVariable(identifier.asString())) {
-                    //Copy of Java error message
-                    throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
-                }
+    Optional<NodePrimitive> executeStatement(int i) {
 
-                NodePrimitive value = evaluateExpr(declare.expr());
+        NodeStatement statement = program.statements.get(i);
 
-                if (declare instanceof StaticDeclareStatement staticDeclare) {
-                    String requiredType = staticDeclare.valueType.value;
-                    String providedType = value.getTypeString();
+        if (statement instanceof ExitStatement exit) {
 
-                    if (!requiredType.equals(providedType)) {
-                        throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", identifier.token);
-                    }
-                }
+            return Optional.ofNullable(evaluateExpr(exit.expr()));
 
-                currentScope.setVariable(identifier.asString(), value);
+        } else if (statement instanceof DeclareStatement declare) {
 
-            } else if (statement instanceof AssignStatement assign) {
-                String variableName = assign.identifier().asString();
+            NodeIdentifier identifier = declare.identifier();
 
-                if (!currentScope.hasVariable(variableName)) {
-                    throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
-                }
+            if (currentScope.hasVariable(identifier.asString())) {
+                //Copy of Java error message
+                throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
+            }
 
-                NodePrimitive value = evaluateExpr(assign.expr());
+            NodePrimitive value = evaluateExpr(declare.expr());
 
-                String requiredType = currentScope.getVariable(variableName).getTypeString();
+            if (declare instanceof StaticDeclareStatement staticDeclare) {
+                String requiredType = staticDeclare.valueType.value;
                 String providedType = value.getTypeString();
 
                 if (!requiredType.equals(providedType)) {
-                    throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
+                    throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", identifier.token);
                 }
+            }
 
-                currentScope.setVariable(variableName, value);
+            currentScope.setVariable(identifier.asString(), value);
+
+        } else if (statement instanceof AssignStatement assign) {
+            String variableName = assign.identifier().asString();
+
+            if (!currentScope.hasVariable(variableName)) {
+                throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
+            }
+
+            NodePrimitive value = evaluateExpr(assign.expr());
+
+            String requiredType = currentScope.getVariable(variableName).getTypeString();
+            String providedType = value.getTypeString();
+
+            if (!requiredType.equals(providedType)) {
+                throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
+            }
+
+            currentScope.setVariable(variableName, value);
+        } else if (statement instanceof ScopeStatement scope) {
+            Scope newScope = Scope.filled(scope.name, currentScope);
+            scopeStack.push(newScope);
+
+
+            for (Scope stackScope : scopeStack) {
+                System.out.println("Printing scope " + stackScope.name);
+                stackScope.getVariables().forEach((s, np) -> {
+                    System.out.println("    " + s + " (" + np.getTypeString() + "): " + np.asString());
+                });
+                System.out.println("End of scope\n");
             }
         }
 
-        return IntPrimitive.of(0);
+        return Optional.empty();
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {

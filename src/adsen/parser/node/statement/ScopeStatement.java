@@ -6,7 +6,7 @@ import java.util.List;
  * A scope will be declared by curly brackets surrounding some statements
  */
 public class ScopeStatement implements NodeStatement {
-    List<NodeStatement> statements;
+    public final List<NodeStatement> statements;
     public final String name; //If applicable
 
     public ScopeStatement(List<NodeStatement> statements) {

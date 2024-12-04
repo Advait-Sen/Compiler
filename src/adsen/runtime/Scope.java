@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Scope {
-    String name;
+    public final String name;
     Map<String, NodePrimitive> variables;
 
     Scope(String name) {
