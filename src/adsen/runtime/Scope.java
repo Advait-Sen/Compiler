@@ -16,7 +16,7 @@ public class Scope {
 
     Scope(String name, Scope existing) {
         this.name = name;
-        this.variables = existing.variables;
+        this.variables = new HashMap<>(existing.variables);
     }
 
     public static Scope empty(String name){

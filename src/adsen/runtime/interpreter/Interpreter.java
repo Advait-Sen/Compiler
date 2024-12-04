@@ -46,8 +46,6 @@ public class Interpreter {
      */
     public Stack<Scope> scopeStack;
 
-    public Scope currentScope;
-
     public Interpreter(NodeProgram program) {
         this.program = program;
     }
@@ -55,22 +53,18 @@ public class Interpreter {
     public NodePrimitive run() throws ExpressionError {
         scopeStack = new Stack<>();
 
-        currentScope = Scope.empty("main"); //this is gonna change when I implement main function
-
-        scopeStack.push(currentScope);
+        scopeStack.push(Scope.empty("main")); //this is gonna change when I implement main function
 
         Optional<NodePrimitive> retVal = Optional.empty();
 
         for (int i = 0; i < program.statements.size() && retVal.isEmpty(); i++) {
-            retVal = executeStatement(i);
+            retVal = executeStatement(program.statements.get(i));
         }
 
         return retVal.orElseGet(() -> IntPrimitive.of(0));
     }
 
-    Optional<NodePrimitive> executeStatement(int i) {
-
-        NodeStatement statement = program.statements.get(i);
+    Optional<NodePrimitive> executeStatement(NodeStatement statement) {
 
         if (statement instanceof ExitStatement exit) {
 
@@ -80,7 +74,7 @@ public class Interpreter {
 
             NodeIdentifier identifier = declare.identifier();
 
-            if (currentScope.hasVariable(identifier.asString())) {
+            if (scopeStack.peek().hasVariable(identifier.asString())) {
                 //Copy of Java error message
                 throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
             }
@@ -96,30 +90,36 @@ public class Interpreter {
                 }
             }
 
-            currentScope.setVariable(identifier.asString(), value);
+            scopeStack.peek().setVariable(identifier.asString(), value);
 
         } else if (statement instanceof AssignStatement assign) {
             String variableName = assign.identifier().asString();
 
-            if (!currentScope.hasVariable(variableName)) {
+            if (!scopeStack.peek().hasVariable(variableName)) {
                 throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
             }
 
             NodePrimitive value = evaluateExpr(assign.expr());
 
-            String requiredType = currentScope.getVariable(variableName).getTypeString();
+            String requiredType = scopeStack.peek().getVariable(variableName).getTypeString();
             String providedType = value.getTypeString();
 
             if (!requiredType.equals(providedType)) {
                 throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
             }
 
-            currentScope.setVariable(variableName, value);
+            scopeStack.peek().setVariable(variableName, value);
+
         } else if (statement instanceof ScopeStatement scope) {
-            Scope newScope = Scope.filled(scope.name, currentScope);
+            Scope newScope = Scope.filled(scope.name, scopeStack.peek());
             scopeStack.push(newScope);
 
+            Optional<NodePrimitive> scopeRet = Optional.empty();
 
+            for (int j = 0; j < scope.statements.size() && scopeRet.isEmpty(); j++) {
+                scopeRet = executeStatement(scope.statements.get(j));
+            }
+            /* For printing out scopes as debug feature
             for (Scope stackScope : scopeStack) {
                 System.out.println("Printing scope " + stackScope.name);
                 stackScope.getVariables().forEach((s, np) -> {
@@ -127,6 +127,9 @@ public class Interpreter {
                 });
                 System.out.println("End of scope\n");
             }
+            */
+            scopeStack.pop();
+            return scopeRet;
         }
 
         return Optional.empty();
@@ -142,10 +145,10 @@ public class Interpreter {
         }
 
         if (expr instanceof NodeIdentifier ident) {
-            if (!currentScope.hasVariable(ident.asString()))
+            if (!scopeStack.peek().hasVariable(ident.asString()))
                 throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
 
-            return currentScope.getVariable(ident.asString());
+            return scopeStack.peek().getVariable(ident.asString());
         }
 
         if (expr instanceof UnaryOperator unOp) {
@@ -213,6 +216,6 @@ public class Interpreter {
      * Currently only used for verbose messages, but might in future be more useful.
      */
     public Map<String, NodePrimitive> variables() {
-        return currentScope.getVariables();
+        return scopeStack.peek().getVariables();
     }
 }
