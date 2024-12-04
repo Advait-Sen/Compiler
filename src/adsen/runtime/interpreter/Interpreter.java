@@ -128,7 +128,17 @@ public class Interpreter {
                 System.out.println("End of scope\n");
             }
             */
-            scopeStack.pop();
+            newScope = scopeStack.pop();
+
+            // If we modified a variable that was obtained from earlier scope, then remember the update
+            // This is possibly not the most efficient way of doing things
+            // But this might be the most that can be done with an interpreted language
+            newScope.getVariables().forEach((s, np)->{
+                if(scopeStack.peek().hasVariable(s)){
+                    scopeStack.peek().setVariable(s, np);
+                }
+            });
+
             return scopeRet;
         }
 
