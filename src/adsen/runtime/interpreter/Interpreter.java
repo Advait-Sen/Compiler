@@ -43,7 +43,6 @@ public class Interpreter {
      */
     public final NodeProgram program;
 
-
     /**
      * Stack used to keep track of scopes
      */
@@ -56,18 +55,32 @@ public class Interpreter {
     public NodePrimitive run() throws ExpressionError {
         scopeStack = new Stack<>();
 
-        scopeStack.push(Scope.empty("main")); //this is gonna change when I implement main function
+        scopeStack.push(Scope.empty("main", program.statements)); //this is gonna change when I implement main function
 
         Optional<NodePrimitive> retVal = Optional.empty();
 
-        for (int i = 0; i < program.statements.size() && retVal.isEmpty(); i++) {
-            retVal = executeStatement(program.statements.get(i));
+        for (int i = 0; i < scopeStack.getFirst().getStatements().size() && retVal.isEmpty(); i++) {
+            retVal = executeStatement(i);
         }
+
+        if (scopeStack.size() > 1)
+            throw new RuntimeException("Did not pop scopes correctly");
 
         return retVal.orElseGet(() -> IntPrimitive.of(0));
     }
 
+    /**
+     * Executes the next statement in the scope
+     */
+    Optional<NodePrimitive> executeStatement(int i) {
+        return executeStatement(scopeStack.peek().getStatement(i));
+    }
+
+    /**
+     * Executes a generic statement without scope context
+     */
     Optional<NodePrimitive> executeStatement(NodeStatement statement) {
+        int pos = scopeStack.peek().getPos();
 
         Optional<NodePrimitive> ret = Optional.empty();
 
@@ -116,11 +129,11 @@ public class Interpreter {
             scopeStack.peek().setVariable(variableName, value);
 
         } else if (statement instanceof ScopeStatement scope) {
-            Scope newScope = Scope.filled(scope.name, scopeStack.peek());
+            Scope newScope = Scope.filled(scope.name, scopeStack.peek(), scope.statements);
             scopeStack.push(newScope);
 
             for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
-                ret = executeStatement(scope.statements.get(j));
+                ret = executeStatement(j);
             }
             /* For printing out scopes as debug feature
             for (Scope stackScope : scopeStack) {
