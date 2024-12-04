@@ -54,7 +54,7 @@ public class Parser {
     }
 
     /**
-     * Tries to read an expression from token list.
+     * Tries to read an expression from {@link Parser#tokens} list
      */
     NodeExpr parseExpr() {
         Token t;
@@ -71,6 +71,14 @@ public class Parser {
         if (t.type != SEMICOLON)
             throw new ExpressionError("Expected ';' after expression", t);
 
+        return parseExpr(exprTokens);
+    }
+
+    /**
+     * Tries to read an expression from token list.
+     */
+    NodeExpr parseExpr(List<Token> exprTokens) {
+        Token t;
         NodeExpr expr;
 
         if (exprTokens.size() == 1) { //Shortcut for single expression
@@ -230,7 +238,8 @@ public class Parser {
                     if (t.type == C_OPEN_PAREN) c_bracket_counter++;
                     if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
                     scopeTokens.add(t);
-                }
+                } //todo check if c_bracket_counter isn't 0. Shouldn't happen due to checks for mismatched parentheses though.
+
                 isNewScope = true;
                 statement = new ScopeStatement(new Parser(scopeTokens).parse().statements);
 
