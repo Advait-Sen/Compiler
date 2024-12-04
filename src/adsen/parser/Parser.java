@@ -14,6 +14,7 @@ import adsen.parser.node.primitives.FloatPrimitive;
 import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
+import adsen.parser.node.statement.ElseStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
@@ -171,6 +172,9 @@ public class Parser {
             System.out.println("\n");
         }
 
+        if (astStack.size() > 1) //todo error messages which allow to get this whole code block
+            throw new ExpressionError("Invalid expression", exprTokens.getFirst());
+
         expr = astStack.firstElement();
 
         return expr;
@@ -257,6 +261,7 @@ public class Parser {
                 case IF -> {
                     Token ifT = t;
                     t = consume();
+                    //todo replace with flag in parseExpr() to remove extra closed bracket instead
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
                     List<Token> conditionTokens = new ArrayList<>();
                     int bracket_counter = 1; //we have seen one open bracket
@@ -275,6 +280,20 @@ public class Parser {
                     NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
 
                     yield new IfStatement(ifT, parseExpr(conditionTokens), thenStatement);
+                }
+                case ELSE -> {
+                    if (statements.isEmpty() || !(statements.getLast() instanceof IfStatement ifStmt)) {
+                        throw new ExpressionError("'else' must follow 'if'", t);
+                    }
+
+                    ifStmt.setElse();
+                    System.out.println("Parsing else then");
+                    NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
+                    System.out.println("Parsed else then");
+
+                    needSemi = false;
+
+                    yield new ElseStatement(t, thenStatement);
                 }
                 default -> throw new ExpressionError("Unknown statement", t);
             };

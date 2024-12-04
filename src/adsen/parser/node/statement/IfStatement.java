@@ -7,6 +7,7 @@ public class IfStatement implements NodeStatement {
     public final Token token;
     NodeExpr condition;
     NodeStatement thenStatement;
+    boolean hasElse = false;
 
     public IfStatement(Token token, NodeExpr condition, NodeStatement statement) {
         this.token = token;
@@ -20,6 +21,14 @@ public class IfStatement implements NodeStatement {
 
     public NodeStatement thenStatement() {
         return this.thenStatement;
+    }
+
+    public boolean hasElse() {
+        return this.hasElse;
+    }
+
+    public void setElse() {
+        hasElse = true;
     }
 
     @Override
