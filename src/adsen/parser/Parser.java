@@ -65,7 +65,7 @@ public class Parser {
             exprTokens.add(t);
         }
 
-        if(!hasNext())
+        if (!hasNext())
             throw new ExpressionError("Expected ';' after expression", exprTokens.getLast());
 
         if (t.type != SEMICOLON)
@@ -224,7 +224,11 @@ public class Parser {
 
             } else if (t.type == C_OPEN_PAREN) { //New scope
                 List<Token> scopeTokens = new ArrayList<>();
-                for (t = consume(); t.type != C_CLOSE_PAREN; t = consume()) {
+                int c_bracket_counter = 1; //we have seen one open curly bracket
+
+                for (t = consume(); c_bracket_counter != 0 || t.type != C_CLOSE_PAREN; t = consume()) {
+                    if (t.type == C_OPEN_PAREN) c_bracket_counter++;
+                    if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
                     scopeTokens.add(t);
                 }
                 isNewScope = true;
