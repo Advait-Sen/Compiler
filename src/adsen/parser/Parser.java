@@ -280,10 +280,10 @@ public class Parser {
 
                     NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
 
-                    t = consume();
+                    t = peek(1); //don't consume unless needed
 
                     if(t.type == ELSE) { //Parsing else statement right here
-                        NodeStatement elseStatement = parse(pos + 1, 1).getFirst();
+                        NodeStatement elseStatement = parse(pos + 2, 1).getFirst();
 
                         yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
                     }

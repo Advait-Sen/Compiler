@@ -162,6 +162,8 @@ public class Interpreter {
 
             if (run.getValue()) {
                 ret = executeStatement(ifStmt.thenStatement());
+            } else if (ifStmt.hasElse()) {
+                ret = executeStatement(ifStmt.elseStatement());
             }
         }
 
