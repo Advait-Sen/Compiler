@@ -29,6 +29,7 @@ import java.util.function.DoubleBinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.LongBinaryOperator;
+import java.util.function.Supplier;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling.
@@ -199,26 +200,34 @@ public class Interpreter {
         }
 
         if (expr instanceof BinaryOperator binOp) {
-            NodePrimitive left = evaluateExpr(binOp.left());
-            NodePrimitive right = evaluateExpr(binOp.right());
 
             //Placeholder made up token until I figure out better error messages
             Token errorTok = new Token(binOp.asString(), binOp.type().type);
 
-            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) ->
-                    //todo implicit casting later on
-                    switch (left) {
-                        case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
-                                FloatPrimitive.of(dbop.applyAsDouble(leftF.getValue(), rightF.getValue()));
-                        case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
-                                IntPrimitive.of(lbop.applyAsLong(leftI.getValue(), rightI.getValue()));
-                        case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
-                                CharPrimitive.of((char) lbop.applyAsLong(leftC.getValue(), rightC.getValue()));
-                        case null, default ->
-                                throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
-                    };
+            //Don't keep the error as a variable since it causes expressions to be evaluated that we might not want evaluated
+            Supplier<ExpressionError> errorCreator = () -> new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, evaluateExpr(binOp.left()).getTypeString(), evaluateExpr(binOp.right()).getTypeString()), errorTok);
+
+
+            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
+                NodePrimitive left = evaluateExpr(binOp.left());
+                NodePrimitive right = evaluateExpr(binOp.right());
+
+                //todo implicit casting later on
+                return switch (left) {
+                    case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
+                            FloatPrimitive.of(dbop.applyAsDouble(leftF.getValue(), rightF.getValue()));
+                    case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
+                            IntPrimitive.of(lbop.applyAsLong(leftI.getValue(), rightI.getValue()));
+                    case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
+                            CharPrimitive.of((char) lbop.applyAsLong(leftC.getValue(), rightC.getValue()));
+                    case null, default -> throw errorCreator.get();
+                };
+            };
 
             Function<IntPredicate, BoolPrimitive> comparisonOp = (intop) -> {
+                NodePrimitive left = evaluateExpr(binOp.left());
+                NodePrimitive right = evaluateExpr(binOp.right());
+
                 //todo implicit casting later on
                 int comparison = switch (left) {
                     case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
@@ -229,18 +238,10 @@ public class Interpreter {
                             Character.compare(leftC.getValue(), rightC.getValue());
                     case BoolPrimitive leftC when right instanceof BoolPrimitive rightC ->
                             Boolean.compare(leftC.getValue(), rightC.getValue());
-                    case null, default ->
-                            throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
+                    case null, default -> throw errorCreator.get();
                 };
 
                 return BoolPrimitive.of(intop.test(comparison));
-            };
-
-            Function<java.util.function.BinaryOperator<Boolean>, BoolPrimitive> boolBiOp = (bop) -> {
-                if (left instanceof BoolPrimitive leftB && right instanceof BoolPrimitive rightB) {
-                    return BoolPrimitive.of(bop.apply(leftB.getValue(), rightB.getValue()));
-                } else
-                    throw new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, left.getTypeString(), right.getTypeString()), errorTok);
             };
 
             return switch (binOp.type()) { //todo simplify with return switch() etc...
@@ -258,8 +259,32 @@ public class Interpreter {
                 case LESS_EQ -> comparisonOp.apply(i -> i <= 0);
                 case GREATER_EQ -> comparisonOp.apply(i -> i >= 0);
 
-                case AND -> boolBiOp.apply(Boolean::logicalAnd);
-                case OR -> boolBiOp.apply(Boolean::logicalOr);
+                case AND -> {
+                    if ((evaluateExpr(binOp.left()) instanceof BoolPrimitive leftB)) {
+                        if (leftB.getValue()) {
+                            if (evaluateExpr(binOp.right()) instanceof BoolPrimitive rightB) {
+                                yield BoolPrimitive.of(rightB.getValue());
+                            }
+                        } else { //If first value is false, don't evaluate second expression
+                            yield BoolPrimitive.of(false);
+                        }
+                    }
+                    throw errorCreator.get();
+                }
+
+                case OR -> {
+                    if ((evaluateExpr(binOp.left()) instanceof BoolPrimitive leftB)) {
+                        if (!leftB.getValue()) {
+                            if (evaluateExpr(binOp.right()) instanceof BoolPrimitive rightB) {
+                                yield BoolPrimitive.of(rightB.getValue());
+                            }
+                        } else { //If first value is true, don't evaluate second expression
+                            yield BoolPrimitive.of(true);
+                        }
+                    }
+                    throw errorCreator.get();
+                }
+                //case OR -> boolBiOp.apply(Boolean::logicalOr);
                 default -> throw new ExpressionError("Don't know how we got here", errorTok);
             };
         }
