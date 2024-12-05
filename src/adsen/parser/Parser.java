@@ -19,6 +19,7 @@ import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
+import adsen.parser.node.statement.WhileStatement;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.TokenType;
 import adsen.tokeniser.Tokeniser;
@@ -28,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 
-import static adsen.Main.VERBOSE_FLAGS;
 import static adsen.tokeniser.TokenType.*;
 
 /**
@@ -251,7 +251,6 @@ public class Parser {
                 case IF -> {
                     Token ifT = t;
                     t = consume();
-                    //todo replace with flag in parseExpr() to remove extra closed bracket instead
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
                     List<Token> conditionTokens = new ArrayList<>();
                     int bracket_counter = 1; //we have seen one open bracket
@@ -280,6 +279,29 @@ public class Parser {
 
                     yield new IfStatement(ifT, ifExpr, thenStatement);
                 }
+                case WHILE -> {
+                    Token whileT = t;
+                    t = consume();
+                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'while'", t);
+                    List<Token> conditionTokens = new ArrayList<>();
+                    int bracket_counter = 1; //we have seen one open bracket
+
+                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t.type); t = consume()) {
+                        if (t.type == OPEN_PAREN) bracket_counter++;
+                        if (peek(1).type == CLOSE_PAREN) bracket_counter--;
+                        conditionTokens.add(t);
+                    }
+
+                    if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
+
+                    NodeExpr ifExpr = parseExpr(conditionTokens);
+
+                    needSemi = false; //don't need semicolon after the expression
+
+                    NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
+
+                    yield new WhileStatement(whileT, ifExpr, thenStatement);
+                }
                 default -> throw new ExpressionError("Unknown statement", t);
             };
 
@@ -299,7 +321,7 @@ public class Parser {
     //Preparing for shunting yard
     static boolean isValidExprToken(TokenType type) {
         return switch (type) {
-            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, CLOSE_PAREN -> false; //Simpler to go by exclusion, it seems
+            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN -> false; //Simpler to go by exclusion, it seems
             default -> true;
         };
     }

@@ -15,6 +15,7 @@ import static adsen.tokeniser.TokenType.EXIT;
 import static adsen.tokeniser.TokenType.IF;
 import static adsen.tokeniser.TokenType.LET;
 import static adsen.tokeniser.TokenType.PRIMITIVE_TYPE;
+import static adsen.tokeniser.TokenType.WHILE;
 
 public class Keywords {
     public static Map<String, TokenType> tokeniserKeywords = new HashMap<>() {{
@@ -33,6 +34,7 @@ public class Keywords {
         put("exit", EXIT);
         put("if", IF);
         put("else", ELSE);
+        put("while", WHILE);
     }};
 
     public static Map<String, TokenType> operatorTokens = new HashMap<>();

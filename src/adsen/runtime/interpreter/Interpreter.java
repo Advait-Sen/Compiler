@@ -18,6 +18,7 @@ import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
+import adsen.parser.node.statement.WhileStatement;
 import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
 
@@ -166,6 +167,17 @@ public class Interpreter {
             } else if (ifStmt.hasElse()) {
                 ret = executeStatement(ifStmt.elseStatement());
             }
+        } else if (statement instanceof WhileStatement whileStmt) {
+            NodeExpr runCondition = whileStmt.condition();
+            NodePrimitive shouldRun;
+
+            while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()){
+                ret = executeStatement(whileStmt.statement());
+            }
+
+            if (!(shouldRun instanceof BoolPrimitive))
+                throw new ExpressionError("Must have boolean condition for while statement", whileStmt.token);
+
         }
 
         return ret;
