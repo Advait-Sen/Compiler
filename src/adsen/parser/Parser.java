@@ -14,7 +14,6 @@ import adsen.parser.node.primitives.FloatPrimitive;
 import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
-import adsen.parser.node.statement.ElseStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
@@ -274,26 +273,22 @@ public class Parser {
 
                     if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
 
+                    NodeExpr ifExpr = parseExpr(conditionTokens);
+
                     needSemi = false; //don't need semicolon after the expression
                     //todo add Token.toString() {type + ": " + value;}
 
                     NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
 
-                    yield new IfStatement(ifT, parseExpr(conditionTokens), thenStatement);
-                }
-                case ELSE -> {
-                    if (statements.isEmpty() || !(statements.getLast() instanceof IfStatement ifStmt)) {
-                        throw new ExpressionError("'else' must follow 'if'", t);
+                    t = consume();
+
+                    if(t.type == ELSE) { //Parsing else statement right here
+                        NodeStatement elseStatement = parse(pos + 1, 1).getFirst();
+
+                        yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
                     }
 
-                    ifStmt.setElse();
-                    System.out.println("Parsing else then");
-                    NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
-                    System.out.println("Parsed else then");
-
-                    needSemi = false;
-
-                    yield new ElseStatement(t, thenStatement);
+                    yield new IfStatement(ifT, ifExpr, thenStatement);
                 }
                 default -> throw new ExpressionError("Unknown statement", t);
             };

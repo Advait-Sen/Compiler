@@ -7,12 +7,25 @@ public class IfStatement implements NodeStatement {
     public final Token token;
     NodeExpr condition;
     NodeStatement thenStatement;
-    boolean hasElse = false;
+
+    public final Token elseToken;
+    NodeStatement elseStatement;
+
 
     public IfStatement(Token token, NodeExpr condition, NodeStatement statement) {
         this.token = token;
         this.condition = condition;
         this.thenStatement = statement;
+        this.elseToken = null;
+        this.elseStatement = null;
+    }
+
+    public IfStatement(Token token, NodeExpr condition, NodeStatement statement, Token elseToken, NodeStatement elseStatement) {
+        this.token = token;
+        this.condition = condition;
+        this.thenStatement = statement;
+        this.elseToken = elseToken;
+        this.elseStatement = elseStatement;
     }
 
     public NodeExpr getCondition() {
@@ -23,17 +36,17 @@ public class IfStatement implements NodeStatement {
         return this.thenStatement;
     }
 
-    public boolean hasElse() {
-        return this.hasElse;
+    public NodeStatement elseStatement() {
+        return this.elseStatement;
     }
 
-    public void setElse() {
-        hasElse = true;
+    public boolean hasElse() {
+        return elseToken != null;
     }
 
     @Override
     public String asString() {
-        return "if (" + condition.asString() + "): " + thenStatement.asString();
+        return "if (" + condition.asString() + "): " + thenStatement.asString() + (hasElse() ? "\nelse: " + elseStatement.asString() : "");
     }
 
     @Override

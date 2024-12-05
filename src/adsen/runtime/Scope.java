@@ -48,6 +48,9 @@ public class Scope {
         return pos;
     }
 
+
+
+
     public void setVariable(String varName, NodePrimitive value){
         variables.put(varName, value);
     }
