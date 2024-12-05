@@ -30,4 +30,8 @@ public class Token {
         this.colpos = -1;
         this.linepos = -1;
     }
+
+    public String toString() {
+        return type + ": " + value;
+    }
 }

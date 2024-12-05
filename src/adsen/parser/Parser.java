@@ -162,16 +162,7 @@ public class Parser {
             processOperator.run();
         }
 
-        if (VERBOSE_FLAGS.contains("parser")) {
-            System.out.println("Postfix:");
-            for (NodeExpr nodeExpr : postfix) {
-                System.out.print(nodeExpr.asString());
-                System.out.print(' ');
-            }
-            System.out.println("\n");
-        }
-
-        if (astStack.size() > 1) //todo error messages which allow to get this whole code block
+        if (astStack.size() > 1) //todo error messages which allow to get the whole expression code block
             throw new ExpressionError("Invalid expression", exprTokens.getFirst());
 
         expr = astStack.firstElement();
@@ -252,9 +243,9 @@ public class Parser {
                         if (t.type == C_OPEN_PAREN) c_bracket_counter++;
                         if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
                         scopeTokens.add(t);
-                    } //todo add (and test) hasNext() check here
+                    }
 
-                    needSemi = false; //todo test not setting this
+                    needSemi = false;
                     yield new ScopeStatement(new Parser(scopeTokens).parse().statements);
                 }
                 case IF -> {
@@ -269,20 +260,19 @@ public class Parser {
                         if (t.type == OPEN_PAREN) bracket_counter++;
                         if (peek(1).type == CLOSE_PAREN) bracket_counter--;
                         conditionTokens.add(t);
-                    } //todo add (and test) hasNext() check here
+                    }
 
                     if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
 
                     NodeExpr ifExpr = parseExpr(conditionTokens);
 
                     needSemi = false; //don't need semicolon after the expression
-                    //todo add Token.toString() {type + ": " + value;}
 
                     NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
 
                     t = peek(1); //don't consume unless needed
 
-                    if(t.type == ELSE) { //Parsing else statement right here
+                    if (t.type == ELSE) { //Parsing else statement right here
                         NodeStatement elseStatement = parse(pos + 2, 1).getFirst();
 
                         yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
@@ -309,7 +299,7 @@ public class Parser {
     //Preparing for shunting yard
     static boolean isValidExprToken(TokenType type) {
         return switch (type) {
-            case LET, EXIT, IF, ELSE, SEMICOLON -> false; //Simpler to go by exclusion, it seems
+            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, CLOSE_PAREN -> false; //Simpler to go by exclusion, it seems
             default -> true;
         };
     }

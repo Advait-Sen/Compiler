@@ -122,7 +122,7 @@ public class Main {
         if (VERBOSE_FLAGS.contains("tokeniser")) {
             System.out.println("Tokens (" + tokeniser.tokens().size() + "):");
             for (Token token : tokeniser.tokens()) {
-                System.out.println(token.type.toString() + ":= " + token.value);
+                System.out.println(token);
             }
         }
 
