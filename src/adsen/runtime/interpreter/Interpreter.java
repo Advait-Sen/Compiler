@@ -14,6 +14,7 @@ import adsen.parser.node.primitives.NodePrimitive;
 import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
+import adsen.parser.node.statement.ForStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
@@ -178,16 +179,30 @@ public class Interpreter {
             if (!(shouldRun instanceof BoolPrimitive))
                 throw new ExpressionError("Must have boolean condition for while statement", whileStmt.token);
 
+        } else if (statement instanceof ForStatement forStmt) {
+            executeStatement(forStmt.getAssigner()); //If the assignment is an exit statement, ignore it
+            //todo if (forStmt.getAssigner() instanceof DeclareStatement)
+            NodeExpr runCondition = forStmt.condition();
+            NodePrimitive shouldRun;
+
+            while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()){
+                ret = executeStatement(forStmt.statement());
+                executeStatement(forStmt.getIncrementer());
+            }
+
+            if (!(shouldRun instanceof BoolPrimitive))
+                throw new ExpressionError("Must have boolean condition for for statement", forStmt.token);
         }
 
         return ret;
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {
-        if (expr instanceof IntPrimitive intP) { //So that hex literals get printed in base 10. Might change once I add proper expression evaluation
+        /* So that hex literals get printed in base 10. Don't rly need it, but maybe it will be useful.
+        if (expr instanceof IntPrimitive intP) {
             return IntPrimitive.of(intP.getValue());
         }
-
+        */
         if (expr instanceof NodePrimitive) {
             return (NodePrimitive) expr;
         }
