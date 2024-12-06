@@ -344,15 +344,13 @@ public class Parser {
                     int bracket_counter = 1; //we have seen one open bracket
 
                     for (closed_bracket_pos = 1; bracket_counter != 0; closed_bracket_pos++) {
-                        System.out.println("parse(closed_bracket_pos) = " + peek(closed_bracket_pos));
                         if (peek(closed_bracket_pos).type == OPEN_PAREN) bracket_counter++;
                         if (peek(closed_bracket_pos + 1).type == CLOSE_PAREN) bracket_counter--;
                         conditionTokens.add(t);
                     }
 
-                    System.out.println("Looking for incrementer");
                     NodeStatement incrementer = parse(pos + 1, 1, closed_bracket_pos, true).getFirst();
-                    System.out.println("don't look for increment anymore");
+
                     needSemi = false; //don't need semicolon after the expression
 
                     NodeStatement executionStatement = parse(pos + 1, 1).getFirst();
