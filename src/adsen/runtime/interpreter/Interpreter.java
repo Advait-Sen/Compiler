@@ -20,6 +20,7 @@ import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.parser.node.statement.WhileStatement;
+import adsen.runtime.Context;
 import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
 
@@ -32,6 +33,8 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.LongBinaryOperator;
 import java.util.function.Supplier;
+
+import static adsen.runtime.Context.*;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling.
@@ -158,7 +161,7 @@ public class Interpreter {
 
             }
             case IfStatement ifStmt -> {
-                NodePrimitive shouldRun = evaluateExpr(ifStmt.getCondition());
+                NodePrimitive shouldRun = evaluateExpr(ifStmt.getCondition(), BOOL);
                 if (!(shouldRun instanceof BoolPrimitive run))
                     throw new ExpressionError("Must have boolean condition for if statement", ifStmt.token);
 
@@ -169,16 +172,9 @@ public class Interpreter {
                 }
             }
             case WhileStatement whileStmt -> {
-                NodeExpr runCondition = whileStmt.condition();
-                NodePrimitive shouldRun;
-
-                while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()) {
+                while (((BoolPrimitive) evaluateExpr(whileStmt.condition(), BOOL)).getValue() && ret.isEmpty()) {
                     ret = executeStatement(whileStmt.statement());
                 }
-
-                if (!(shouldRun instanceof BoolPrimitive))
-                    throw new ExpressionError("Must have boolean condition for while statement", whileStmt.token);
-
             }
             case ForStatement forStmt -> {
                 executeStatement(forStmt.getAssigner()); //If the assignment is an exit statement, ignore it
@@ -189,22 +185,16 @@ public class Interpreter {
                     forLoopVariable = declare.identifier().asString();
                 }
 
-                NodeExpr runCondition = forStmt.condition();
-                NodePrimitive shouldRun;
-
-                while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()) {
+                while (((BoolPrimitive) evaluateExpr(forStmt.condition())).getValue() && ret.isEmpty()) {
                     ret = executeStatement(forStmt.statement());
                     executeStatement(forStmt.getIncrementer());
                 }
 
                 // Technically don't need this, since removing "" won't do anything
                 // But this makes it more legible, and also future-safe
-                if(!forLoopVariable.isEmpty()){
+                if (!forLoopVariable.isEmpty()) {
                     scopeStack.peek().removeVariable(forLoopVariable);
                 }
-
-                if (!(shouldRun instanceof BoolPrimitive))
-                    throw new ExpressionError("Must have boolean condition for for statement", forStmt.token);
             }
             default -> {
             }
@@ -214,32 +204,42 @@ public class Interpreter {
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {
+        return evaluateExpr(expr, NONE);
+    }
+
+    private NodePrimitive evaluateExpr(NodeExpr expr, Context context) {
         /* So that hex literals get printed in base 10. Don't rly need it, but maybe it will be useful.
         if (expr instanceof IntPrimitive intP) {
             return IntPrimitive.of(intP.getValue());
         }
         */
+
+        NodePrimitive retVal = IntPrimitive.of(0);
+
         if (expr instanceof NodePrimitive) {
-            return (NodePrimitive) expr;
+            retVal = (NodePrimitive) expr;
         }
 
         if (expr instanceof NodeIdentifier ident) {
             if (!scopeStack.peek().hasVariable(ident.asString()))
                 throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
 
-            return scopeStack.peek().getVariable(ident.asString());
+            retVal = scopeStack.peek().getVariable(ident.asString());
         }
 
         if (expr instanceof UnaryOperator unOp) {
+            //Placeholder made up token until I figure out better error messages
+            Token errorTok = new Token(unOp.asString(), unOp.type().type);
             NodePrimitive operand = evaluateExpr(unOp.operand());
-            switch (unOp.type()) {
+            retVal = switch (unOp.type()) {
                 case NEGATE -> {
                     if (!(operand instanceof BoolPrimitive bool)) //Exact copy of Java error message
                         throw new ExpressionError("Operator '!' cannot be applied to '" + operand.getTypeString() + "'", operand.getToken());
                     bool.setValue(!bool.getValue()); //This might source of problems down the line, would want to make new BoolPrimitive instead
-                    return bool;
+                    yield bool;
                 }
-            }
+                default -> throw new ExpressionError("Don't know how we got here", errorTok);
+            };
         }
 
         if (expr instanceof BinaryOperator binOp) {
@@ -287,7 +287,7 @@ public class Interpreter {
                 return BoolPrimitive.of(intop.test(comparison));
             };
 
-            return switch (binOp.type()) { //todo simplify with return switch() etc...
+            retVal = switch (binOp.type()) {
                 case SUM -> mathematicalBinOp.apply(Double::sum, Long::sum);
                 case DIFFERENCE -> mathematicalBinOp.apply((d1, d2) -> d1 - d2, (l1, l2) -> l1 - l2);
                 case PRODUCT -> mathematicalBinOp.apply((d1, d2) -> d1 * d2, (l1, l2) -> l1 * l2);
@@ -332,7 +332,33 @@ public class Interpreter {
             };
         }
 
-        return IntPrimitive.of(0);
+        return switch (context) {
+            case NONE -> retVal;
+
+            case BOOL -> {
+                if (retVal instanceof BoolPrimitive) yield retVal;
+
+                throw new ExpressionError("Expected bool value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+            }
+            case INTEGER -> {
+                if (retVal instanceof IntPrimitive) yield retVal;
+
+                throw new ExpressionError("Expected int value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+            }
+            case FLOAT -> {
+                if (retVal instanceof FloatPrimitive) yield retVal;
+
+                throw new ExpressionError("Expected float value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+            }
+            case CHAR -> {
+                if (retVal instanceof CharPrimitive) yield retVal;
+
+                throw new ExpressionError("Expected char value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+            }
+            //noinspection UnnecessaryDefault since it might be necessary in the future
+            default ->
+                    throw new ExpressionError("Don't know how we got here, found unknown evaluation context", retVal.getToken());
+        };
     }
 
 
