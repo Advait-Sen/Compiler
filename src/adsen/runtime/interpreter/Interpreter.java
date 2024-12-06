@@ -87,111 +87,115 @@ public class Interpreter {
 
         Optional<NodePrimitive> ret = Optional.empty();
 
-        if (statement instanceof ExitStatement exit) {
+        switch (statement) {
+            case ExitStatement exit -> ret = Optional.ofNullable(evaluateExpr(exit.expr()));
 
-            ret = Optional.ofNullable(evaluateExpr(exit.expr()));
+            case DeclareStatement declare -> {
+                NodeIdentifier identifier = declare.identifier();
 
-        } else if (statement instanceof DeclareStatement declare) {
+                if (scopeStack.peek().hasVariable(identifier.asString())) {
+                    //Copy of Java error message
+                    throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
+                }
 
-            NodeIdentifier identifier = declare.identifier();
+                NodePrimitive value = evaluateExpr(declare.expr());
 
-            if (scopeStack.peek().hasVariable(identifier.asString())) {
-                //Copy of Java error message
-                throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
+                if (declare instanceof StaticDeclareStatement staticDeclare) {
+                    String requiredType = staticDeclare.valueType.value;
+                    String providedType = value.getTypeString();
+
+                    if (!requiredType.equals(providedType)) {
+                        throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", identifier.token);
+                    }
+                }
+
+                scopeStack.peek().setVariable(identifier.asString(), value);
             }
+            case AssignStatement assign -> {
+                String variableName = assign.identifier().asString();
 
-            NodePrimitive value = evaluateExpr(declare.expr());
+                if (!scopeStack.peek().hasVariable(variableName)) {
+                    throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
+                }
 
-            if (declare instanceof StaticDeclareStatement staticDeclare) {
-                String requiredType = staticDeclare.valueType.value;
+                NodePrimitive value = evaluateExpr(assign.expr());
+
+                String requiredType = scopeStack.peek().getVariable(variableName).getTypeString();
                 String providedType = value.getTypeString();
 
                 if (!requiredType.equals(providedType)) {
-                    throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", identifier.token);
+                    throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
                 }
+
+                scopeStack.peek().setVariable(variableName, value);
             }
+            case ScopeStatement scope -> {
+                Scope newScope = Scope.filled(scope.name, scopeStack.peek(), scope.statements);
+                scopeStack.push(newScope);
 
-            scopeStack.peek().setVariable(identifier.asString(), value);
+                for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
+                    ret = executeStatement(j);
+                }
+                /* For printing out scopes as debug feature
+                for (Scope stackScope : scopeStack) {
+                    System.out.println("Printing scope " + stackScope.name);
+                    stackScope.getVariables().forEach((s, np) -> {
+                        System.out.println("    " + s + " (" + np.getTypeString() + "): " + np.asString());
+                    });
+                    System.out.println("End of scope\n");
+                }
+                */
+                newScope = scopeStack.pop();
 
-        } else if (statement instanceof AssignStatement assign) {
-            String variableName = assign.identifier().asString();
-
-            if (!scopeStack.peek().hasVariable(variableName)) {
-                throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
-            }
-
-            NodePrimitive value = evaluateExpr(assign.expr());
-
-            String requiredType = scopeStack.peek().getVariable(variableName).getTypeString();
-            String providedType = value.getTypeString();
-
-            if (!requiredType.equals(providedType)) {
-                throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
-            }
-
-            scopeStack.peek().setVariable(variableName, value);
-
-        } else if (statement instanceof ScopeStatement scope) {
-            Scope newScope = Scope.filled(scope.name, scopeStack.peek(), scope.statements);
-            scopeStack.push(newScope);
-
-            for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
-                ret = executeStatement(j);
-            }
-            /* For printing out scopes as debug feature
-            for (Scope stackScope : scopeStack) {
-                System.out.println("Printing scope " + stackScope.name);
-                stackScope.getVariables().forEach((s, np) -> {
-                    System.out.println("    " + s + " (" + np.getTypeString() + "): " + np.asString());
+                // If we modified a variable that was obtained from earlier scope, then remember the update
+                // This is possibly not the most efficient way of doing things
+                // But this might be the most that can be done with an interpreted language
+                newScope.getVariables().forEach((s, np) -> {
+                    if (scopeStack.peek().hasVariable(s)) {
+                        scopeStack.peek().setVariable(s, np);
+                    }
                 });
-                System.out.println("End of scope\n");
-            }
-            */
-            newScope = scopeStack.pop();
 
-            // If we modified a variable that was obtained from earlier scope, then remember the update
-            // This is possibly not the most efficient way of doing things
-            // But this might be the most that can be done with an interpreted language
-            newScope.getVariables().forEach((s, np) -> {
-                if (scopeStack.peek().hasVariable(s)) {
-                    scopeStack.peek().setVariable(s, np);
+            }
+            case IfStatement ifStmt -> {
+                NodePrimitive shouldRun = evaluateExpr(ifStmt.getCondition());
+                if (!(shouldRun instanceof BoolPrimitive run))
+                    throw new ExpressionError("Must have boolean condition for if statement", ifStmt.token);
+
+                if (run.getValue()) {
+                    ret = executeStatement(ifStmt.thenStatement());
+                } else if (ifStmt.hasElse()) {
+                    ret = executeStatement(ifStmt.elseStatement());
                 }
-            });
-
-        } else if (statement instanceof IfStatement ifStmt) {
-            NodePrimitive shouldRun = evaluateExpr(ifStmt.getCondition());
-            if (!(shouldRun instanceof BoolPrimitive run))
-                throw new ExpressionError("Must have boolean condition for if statement", ifStmt.token);
-
-            if (run.getValue()) {
-                ret = executeStatement(ifStmt.thenStatement());
-            } else if (ifStmt.hasElse()) {
-                ret = executeStatement(ifStmt.elseStatement());
             }
-        } else if (statement instanceof WhileStatement whileStmt) {
-            NodeExpr runCondition = whileStmt.condition();
-            NodePrimitive shouldRun;
+            case WhileStatement whileStmt -> {
+                NodeExpr runCondition = whileStmt.condition();
+                NodePrimitive shouldRun;
 
-            while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()){
-                ret = executeStatement(whileStmt.statement());
+                while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()) {
+                    ret = executeStatement(whileStmt.statement());
+                }
+
+                if (!(shouldRun instanceof BoolPrimitive))
+                    throw new ExpressionError("Must have boolean condition for while statement", whileStmt.token);
+
             }
+            case ForStatement forStmt -> {
+                executeStatement(forStmt.getAssigner()); //If the assignment is an exit statement, ignore it
+                //todo if (forStmt.getAssigner() instanceof DeclareStatement)
+                NodeExpr runCondition = forStmt.condition();
+                NodePrimitive shouldRun;
 
-            if (!(shouldRun instanceof BoolPrimitive))
-                throw new ExpressionError("Must have boolean condition for while statement", whileStmt.token);
+                while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()) {
+                    ret = executeStatement(forStmt.statement());
+                    executeStatement(forStmt.getIncrementer());
+                }
 
-        } else if (statement instanceof ForStatement forStmt) {
-            executeStatement(forStmt.getAssigner()); //If the assignment is an exit statement, ignore it
-            //todo if (forStmt.getAssigner() instanceof DeclareStatement)
-            NodeExpr runCondition = forStmt.condition();
-            NodePrimitive shouldRun;
-
-            while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()){
-                ret = executeStatement(forStmt.statement());
-                executeStatement(forStmt.getIncrementer());
+                if (!(shouldRun instanceof BoolPrimitive))
+                    throw new ExpressionError("Must have boolean condition for for statement", forStmt.token);
             }
-
-            if (!(shouldRun instanceof BoolPrimitive))
-                throw new ExpressionError("Must have boolean condition for for statement", forStmt.token);
+            default -> {
+            }
         }
 
         return ret;
