@@ -59,6 +59,10 @@ public class Scope {
         return variables.get(varName);
     }
 
+    public NodePrimitive removeVariable(String varName){
+        return variables.remove(varName);
+    }
+
     public Map<String, NodePrimitive> getVariables(){
         return variables;
     }

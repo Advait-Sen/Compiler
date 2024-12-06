@@ -182,13 +182,25 @@ public class Interpreter {
             }
             case ForStatement forStmt -> {
                 executeStatement(forStmt.getAssigner()); //If the assignment is an exit statement, ignore it
-                //todo if (forStmt.getAssigner() instanceof DeclareStatement)
+
+                String forLoopVariable = "";
+                //If we managed to execute it, that means it went successfully
+                if (forStmt.getAssigner() instanceof DeclareStatement declare) {
+                    forLoopVariable = declare.identifier().asString();
+                }
+
                 NodeExpr runCondition = forStmt.condition();
                 NodePrimitive shouldRun;
 
                 while (((shouldRun = evaluateExpr(runCondition)) instanceof BoolPrimitive boolP) && boolP.getValue() && ret.isEmpty()) {
                     ret = executeStatement(forStmt.statement());
                     executeStatement(forStmt.getIncrementer());
+                }
+
+                // Technically don't need this, since removing "" won't do anything
+                // But this makes it more legible, and also future-safe
+                if(!forLoopVariable.isEmpty()){
+                    scopeStack.peek().removeVariable(forLoopVariable);
                 }
 
                 if (!(shouldRun instanceof BoolPrimitive))
