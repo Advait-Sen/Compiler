@@ -10,7 +10,9 @@ public enum OperatorType {
     //Some of the precedences are taken from here: https://pythongeeks.org/python-operator-precedence/
 
     // Maths operators
-    EXPONENT("**", 12, BINARY_OPERATOR),
+    PRE_INCREMENT("++", 15, UNARY_OPERATOR),
+    PRE_DECREMENT("++", 15, UNARY_OPERATOR),
+    EXPONENT("**", 12, BINARY_OPERATOR, false),
     PRODUCT("*", 11, BINARY_OPERATOR),
     QUOTIENT("/", 11, BINARY_OPERATOR),
     REMAINDER("%", 11, BINARY_OPERATOR),
@@ -21,7 +23,7 @@ public enum OperatorType {
     ASSIGN("=", DECLARATION_OPERATION),
 
     // Boolean operators
-    NEGATE("!", 15, UNARY_OPERATOR, false),
+    NEGATE("!", 15, UNARY_OPERATOR),
     EQUAL("==", 4, BINARY_OPERATOR),
     DIFFERENT("!=", 4, BINARY_OPERATOR),
     GREATER(">", 4, BINARY_OPERATOR),
@@ -34,17 +36,11 @@ public enum OperatorType {
 
     // Constructor for assignment, since we treat that differently in tokeniser itself
     OperatorType(String value, TokenType type) {
-        this.value = value;
-        this.precedence = 0;
-        this.leftToRight = false;
-        this.type = type;
+        this(value, 0, type);
     }
 
     OperatorType(String value, int precedence, TokenType type) {
-        this.value = value;
-        this.precedence = precedence;
-        this.leftToRight = true;
-        this.type = type;
+        this(value, precedence, type, precedence != 0 && type == BINARY_OPERATOR);
     }
 
     OperatorType(String value, int precedence, TokenType type, boolean leftToRight) {
@@ -67,6 +63,7 @@ public enum OperatorType {
         }
     }
 
-    public static void noop() {}
+    public static void noop() {
+    }
 
 }

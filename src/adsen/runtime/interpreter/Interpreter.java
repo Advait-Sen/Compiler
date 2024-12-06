@@ -230,15 +230,30 @@ public class Interpreter {
         if (expr instanceof UnaryOperator unOp) {
             //Placeholder made up token until I figure out better error messages
             Token errorTok = new Token(unOp.asString(), unOp.type().type);
-            NodePrimitive operand = evaluateExpr(unOp.operand());
             retVal = switch (unOp.type()) {
                 case NEGATE -> {
-                    if (!(operand instanceof BoolPrimitive bool)) //Exact copy of Java error message
-                        throw new ExpressionError("Operator '!' cannot be applied to '" + operand.getTypeString() + "'", operand.getToken());
-                    bool.setValue(!bool.getValue()); //This might source of problems down the line, would want to make new BoolPrimitive instead
+                    BoolPrimitive bool = (BoolPrimitive) evaluateExpr(unOp.operand(), BOOL);
+
+                    bool.setValue(!bool.getValue()); //This might source of problems down the line, might want to make new BoolPrimitive instead
+
                     yield bool;
                 }
-                default -> throw new ExpressionError("Don't know how we got here", errorTok);
+                case PRE_INCREMENT -> {
+                    IntPrimitive intP = (IntPrimitive) evaluateExpr(unOp.operand(), INTEGER);
+
+                    intP.setValue(intP.getValue() + 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
+
+                    yield intP;
+                }
+
+                case PRE_DECREMENT -> {
+                    IntPrimitive intP = (IntPrimitive) evaluateExpr(unOp.operand(), INTEGER);
+
+                    intP.setValue(intP.getValue() - 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
+
+                    yield intP;
+                }
+                default -> throw new ExpressionError("Don't know how we got here, unknown unary operator", errorTok);
             };
         }
 
@@ -328,7 +343,7 @@ public class Interpreter {
                     throw errorCreator.get();
                 }
                 //case OR -> boolBiOp.apply(Boolean::logicalOr);
-                default -> throw new ExpressionError("Don't know how we got here", errorTok);
+                default -> throw new ExpressionError("Don't know how we got here, unknown binary operator", errorTok);
             };
         }
 
