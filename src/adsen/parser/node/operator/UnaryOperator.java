@@ -27,8 +27,8 @@ public class UnaryOperator implements Operator {
     }
 
     @Override
-    public int precedence() {
-        return operation.precedence;
+    public int operators() {
+        return 1;
     }
 
     @Override

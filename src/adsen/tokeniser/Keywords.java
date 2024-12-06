@@ -12,6 +12,7 @@ import java.util.Map;
 import static adsen.tokeniser.TokenType.BOOL_LITERAL;
 import static adsen.tokeniser.TokenType.ELSE;
 import static adsen.tokeniser.TokenType.EXIT;
+import static adsen.tokeniser.TokenType.FOR;
 import static adsen.tokeniser.TokenType.IF;
 import static adsen.tokeniser.TokenType.LET;
 import static adsen.tokeniser.TokenType.PRIMITIVE_TYPE;
@@ -35,6 +36,7 @@ public class Keywords {
         put("if", IF);
         put("else", ELSE);
         put("while", WHILE);
+        put("for", FOR);
     }};
 
     public static Map<String, TokenType> operatorTokens = new HashMap<>();

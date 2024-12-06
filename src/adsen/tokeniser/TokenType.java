@@ -30,6 +30,6 @@ public enum TokenType {
     DECLARATION_OPERATION, BINARY_OPERATOR, UNARY_OPERATOR,
 
     //keywords
-    LET, EXIT, IF, ELSE, WHILE,
+    LET, EXIT, IF, ELSE, WHILE, FOR,
 
 }

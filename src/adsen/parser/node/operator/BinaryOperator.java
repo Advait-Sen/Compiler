@@ -33,8 +33,8 @@ public class BinaryOperator implements Operator {
     }
 
     @Override
-    public int precedence() {
-        return operation.precedence;
+    public int operators() {
+        return 2;
     }
 
     @Override

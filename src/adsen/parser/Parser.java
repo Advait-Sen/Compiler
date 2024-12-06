@@ -15,13 +15,13 @@ import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
+import adsen.parser.node.statement.ForStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.parser.node.statement.WhileStatement;
 import adsen.tokeniser.Token;
-import adsen.tokeniser.TokenType;
 import adsen.tokeniser.Tokeniser;
 
 import java.util.ArrayList;
@@ -53,24 +53,42 @@ public class Parser {
     public Parser(List<Token> tokens) {
         this.tokens = Collections.unmodifiableList(tokens);
     }
+//
+//    NodeExpr parseExpr(boolean ignoreSemi) {
+//        return parseExpr(ignoreSemi, -1);
+//    }
 
     /**
      * Tries to read an expression from {@link Parser#tokens} list
+     *
+     * @param ignoreSemi Allows to ignore final semicolon if not required
+     * @param endPos     End index until which to read tokens
      */
-    NodeExpr parseExpr() {
+    NodeExpr parseExpr(boolean ignoreSemi, int endPos) {
         Token t;
+        int tokens = endPos - pos;
 
         List<Token> exprTokens = new ArrayList<>();
 
-        for (t = peek(); hasNext() && isValidExprToken(peek().type); t = consume()) {
-            exprTokens.add(t);
+        if (tokens == -1) {
+            for (t = peek(); hasNext() && isValidExprToken(peek()); t = consume()) {
+                exprTokens.add(t);
+            }
+        } else {
+            t = peek();
+            for (int i = 0; (i < tokens) && isValidExprToken(peek()); t = consume()) {
+                exprTokens.add(t);
+                i++;
+            }
         }
 
-        if (!hasNext())
-            throw new ExpressionError("Expected ';' after expression", exprTokens.getLast());
+        if (!ignoreSemi) {
+            if (!hasNext())
+                throw new ExpressionError("Expected ';' after expression", exprTokens.getLast());
 
-        if (t.type != SEMICOLON)
-            throw new ExpressionError("Expected ';' after expression", t);
+            if (t.type != SEMICOLON)
+                throw new ExpressionError("Expected ';' after expression", t);
+        }
 
         return parseExpr(exprTokens);
     }
@@ -106,7 +124,7 @@ public class Parser {
             Operator lastOp;
             Token opTok = operatorStack.pop();
             OperatorType opType = Operator.operatorType.get(opTok.value);
-
+            //todo handle too few arguments for operators
             //todo handle not leftToRight operators
             if (opType.type == UNARY_OPERATOR) {
                 NodeExpr arg = astStack.pop();
@@ -171,28 +189,33 @@ public class Parser {
     }
 
     /**
-     * Main parse function which returns the {@link NodeProgram} defining the entire program's AST
+     * Main parse function which returns the {@link NodeProgram} defining the entire program's AST.
      */
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
-        program.statements = parse(0, tokens.size()); //Statement count will always be less than token list size
+        program.statements = parse(0, tokens.size()); // Statement count will always be less than token list size
 
         return program;
     }
 
-    public List<NodeStatement> parse(int startPos, int count) {
-        List<NodeStatement> statements = new ArrayList<>();
+    public List<NodeStatement> parse(int startPos, int statementCount) {
+        return parse(startPos, statementCount, tokens.size(), false); //By default, looking at all the statements
+    }
 
-        for (pos = startPos; pos < tokens.size() && statements.size() < count; pos++) {
+    public List<NodeStatement> parse(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
+        List<NodeStatement> statements = new ArrayList<>();
+        int endPos = pos + tokenCount;
+        for (pos = startPos; hasNext() && pos < endPos && statements.size() < statementCount; pos++) {
             Token t = peek();
             NodeStatement statement;
-            boolean needSemi = true; //used for if, else, while etc.
+            //If we don't need the semicolon at the end, then don't look for it (eg. in for statement)
+            boolean needSemi = !ignoreSemi; //used for if, else, while etc.
 
             statement = switch (t.type) {
                 case EXIT -> { //Exit statement
                     consume(); //Consume exit token
-                    yield new ExitStatement(t, parseExpr());
+                    yield new ExitStatement(t, parseExpr(ignoreSemi, endPos));
                 }
                 case PRIMITIVE_TYPE -> { //Static declaration
                     Token identifier = consume(); //Consuming primitive name
@@ -203,11 +226,11 @@ public class Parser {
                     Token declarer = consume(); //Consuming identifier
 
                     if (peek().type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
+                        throw new ExpressionError("Expected a declaration after '" + identifier.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
-                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
+                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr(ignoreSemi, endPos));
                 }
                 case LET -> { // Normal declaration
                     Token identifier = consume(); //Consuming 'let' keyword
@@ -218,22 +241,22 @@ public class Parser {
                     Token declarer = consume(); //Consuming identifier
 
                     if (declarer.type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after " + identifier.value, declarer);
+                        throw new ExpressionError("Expected a declaration after '" + identifier.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
-                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
+                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr(ignoreSemi, endPos));
                 }
                 case IDENTIFIER -> { // Variable assignment
 
                     Token declarer = consume(); //Consuming identifier
 
                     if (declarer.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
-                        throw new ExpressionError("Expected an assignment after " + t.value, declarer);
+                        throw new ExpressionError("Expected an assignment after '" + t.value + "'", declarer);
 
                     consume(); //Consuming assigner operation
 
-                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
+                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr(ignoreSemi, endPos));
                 }
                 case C_OPEN_PAREN -> { //New scope
                     List<Token> scopeTokens = new ArrayList<>();
@@ -251,17 +274,17 @@ public class Parser {
                 case IF -> {
                     Token ifT = t;
                     t = consume();
-                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'if'", t);
+                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after if", t);
                     List<Token> conditionTokens = new ArrayList<>();
                     int bracket_counter = 1; //we have seen one open bracket
 
-                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t.type); t = consume()) {
+                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t); t = consume()) {
                         if (t.type == OPEN_PAREN) bracket_counter++;
                         if (peek(1).type == CLOSE_PAREN) bracket_counter--;
                         conditionTokens.add(t);
                     }
 
-                    if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
+                    if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
 
                     NodeExpr ifExpr = parseExpr(conditionTokens);
 
@@ -282,25 +305,59 @@ public class Parser {
                 case WHILE -> {
                     Token whileT = t;
                     t = consume();
-                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after 'while'", t);
+                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after while", t);
                     List<Token> conditionTokens = new ArrayList<>();
                     int bracket_counter = 1; //we have seen one open bracket
 
-                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t.type); t = consume()) {
+                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t); t = consume()) {
                         if (t.type == OPEN_PAREN) bracket_counter++;
                         if (peek(1).type == CLOSE_PAREN) bracket_counter--;
                         conditionTokens.add(t);
                     }
 
-                    if (!isValidExprToken(t.type)) throw new ExpressionError("Invalid token", t);
+                    if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
 
-                    NodeExpr ifExpr = parseExpr(conditionTokens);
+                    NodeExpr whileCondition = parseExpr(conditionTokens);
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
+                    NodeStatement executionStatement = parse(pos + 1, 1).getFirst();
 
-                    yield new WhileStatement(whileT, ifExpr, thenStatement);
+                    yield new WhileStatement(whileT, whileCondition, executionStatement);
+                }
+                case FOR -> {
+                    Token forT = t;
+                    t = consume();
+                    if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
+                    NodeStatement assigner = parse(pos + 1, 1).getFirst();
+                    List<Token> conditionTokens = new ArrayList<>();
+
+                    for (t = consume(); isValidExprToken(t); t = consume()) {
+                        conditionTokens.add(t);
+                    }
+
+                    if (t.type != SEMICOLON) throw new ExpressionError("Invalid token", t);
+
+                    NodeExpr forCondition = parseExpr(conditionTokens);
+
+                    int closed_bracket_pos;
+                    int bracket_counter = 1; //we have seen one open bracket
+
+                    for (closed_bracket_pos = 1; bracket_counter != 0; closed_bracket_pos++) {
+                        System.out.println("parse(closed_bracket_pos) = " + peek(closed_bracket_pos));
+                        if (peek(closed_bracket_pos).type == OPEN_PAREN) bracket_counter++;
+                        if (peek(closed_bracket_pos + 1).type == CLOSE_PAREN) bracket_counter--;
+                        conditionTokens.add(t);
+                    }
+
+                    System.out.println("Looking for incrementer");
+                    NodeStatement incrementer = parse(pos + 1, 1, closed_bracket_pos, true).getFirst();
+                    System.out.println("don't look for increment anymore");
+                    needSemi = false; //don't need semicolon after the expression
+
+                    NodeStatement executionStatement = parse(pos + 1, 1).getFirst();
+
+                    yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
                 }
                 default -> throw new ExpressionError("Unknown statement", t);
             };
@@ -319,9 +376,10 @@ public class Parser {
     }
 
     //Preparing for shunting yard
-    static boolean isValidExprToken(TokenType type) {
-        return switch (type) {
-            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN -> false; //Simpler to go by exclusion, it seems
+    static boolean isValidExprToken(Token token) {
+        return switch (token.type) {
+            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN, WHILE, FOR ->
+                    false; //Simpler to go by exclusion, it seems
             default -> true;
         };
     }
