@@ -31,6 +31,17 @@ public class Token {
         this.linepos = -1;
     }
 
+
+    /**
+     * Can the token be processed on its own to give a value
+     */
+    public boolean isValueToken(){
+        return switch (type){
+            case IDENTIFIER, BOOL_LITERAL, INT_LITERAL, FLOAT_LITERAL, CHAR_LITERAL, STR_LITERAL -> true;
+            default -> false;
+        };
+    }
+
     public String toString() {
         return type + ": " + value;
     }

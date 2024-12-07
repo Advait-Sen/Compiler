@@ -1,6 +1,8 @@
 package adsen.tokeniser;
 
 import adsen.error.ExpressionError;
+import adsen.parser.node.operator.Operator;
+import adsen.parser.node.operator.OperatorType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -227,15 +229,28 @@ public class Tokeniser {
      * Additional optimisations to tokenisation once we have a list of valid tokens
      */
     private void postProcessTokens() {
-        for (int i = 0; i < tokens.size(); i++) {
-            Token token = tokens.get(i);
+        //Postprocessing from second to penulimate token, so we can always have previous and next tokens
+        for (int i = 1; i < tokens.size() - 1; i++) {
+            Token previous = tokens.get(i - 1);
+            Token current = tokens.get(i);
+            Token next = tokens.get(i + 1);
 
-            if (token.type == IDENTIFIER) {
+            if (current.type == BINARY_OPERATOR) {
+                OperatorType opType = Operator.operatorType.get(current.value);
 
-                if (tokens.get(i - 1).type == LET) {
-                    //Should check for existing functions and variables first
-                    //todo separate postprocesses, for running through and updating lists of funcs, then vars afterwards, etc.
+                //This is possibly a unary token
+                //This implementation will require updating once new language features like [] and . are added
+                if (!previous.isValueToken() && previous.type != CLOSE_PAREN && previous.type != UNARY_OPERATOR) {
+                    if (opType == OperatorType.SUM) {
+                        current.value = "u+";
+                        current.type = UNARY_OPERATOR;
+                    }
+                    if (opType == OperatorType.DIFFERENCE) {
+                        current.value = "u-";
+                        current.type = UNARY_OPERATOR;
+                    }
                 }
+
             }
         }
     }

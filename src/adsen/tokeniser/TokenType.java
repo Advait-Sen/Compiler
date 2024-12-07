@@ -9,8 +9,8 @@ public enum TokenType {
     OPEN_PAREN, CLOSE_PAREN, SQ_OPEN_PAREN, SQ_CLOSE_PAREN,
     C_OPEN_PAREN, C_CLOSE_PAREN, SEMICOLON, COMMA, POINT,
 
-    //Preprocess stuff
-    IDENTIFIER, OPERATOR,
+    //Identifier
+    IDENTIFIER,
 
     //Types
     /**
@@ -29,7 +29,7 @@ public enum TokenType {
     //Specific operator types
     DECLARATION_OPERATION, BINARY_OPERATOR, UNARY_OPERATOR,
 
-    //keywords
+    //Keywords
     LET, EXIT, IF, ELSE, WHILE, FOR,
 
 }

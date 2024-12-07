@@ -231,7 +231,7 @@ public class Interpreter {
             //Placeholder made up token until I figure out better error messages
             Token errorTok = new Token(unOp.asString(), unOp.type().type);
             retVal = switch (unOp.type()) {
-                case NEGATE -> {
+                case NOT -> {
                     BoolPrimitive bool = (BoolPrimitive) evaluateExpr(unOp.operand(), BOOL);
 
                     bool.setValue(!bool.getValue()); //This might source of problems down the line, might want to make new BoolPrimitive instead
@@ -252,6 +252,31 @@ public class Interpreter {
                     intP.setValue(intP.getValue() - 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
 
                     yield intP;
+                }
+                //Does literally nothing except check that it's a number
+                case POSITIVE -> {
+                    NodePrimitive operand = evaluateExpr(unOp.operand());
+
+                    if ((operand instanceof IntPrimitive) || (operand instanceof FloatPrimitive)) {
+                        yield operand;
+                    }
+
+                    throw new ExpressionError("Expected numeric value, not '" + operand.getTypeString() + "'", errorTok);
+                }
+                case NEGATIVE -> {
+                    NodePrimitive operand = evaluateExpr(unOp.operand());
+
+                    if (operand instanceof IntPrimitive intP) {
+                        intP.setValue(-intP.getValue());
+                        yield intP;
+                    }
+
+                    if (operand instanceof FloatPrimitive floatP) {
+                        floatP.setValue(-floatP.getValue());
+                        yield floatP;
+                    }
+
+                    throw new ExpressionError("Expected numeric value, not '" + operand.getTypeString() + "'", errorTok);
                 }
                 default -> throw new ExpressionError("Don't know how we got here, unknown unary operator", errorTok);
             };

@@ -8,7 +8,5 @@ import java.util.Map;
 public interface Operator extends NodeExpr {
     OperatorType type();
 
-    int operators();
-
     Map<String, OperatorType> operatorType = new HashMap<>();
 }

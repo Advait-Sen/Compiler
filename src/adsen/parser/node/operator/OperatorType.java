@@ -18,12 +18,16 @@ public enum OperatorType {
     REMAINDER("%", 11, BINARY_OPERATOR),
     SUM("+", 10, BINARY_OPERATOR),
     DIFFERENCE("-", 10, BINARY_OPERATOR),
+    //This way of handling unary minus and plus is kinda stolen from scarpet
+    NEGATIVE("u-", 14, UNARY_OPERATOR),
+    POSITIVE("u+", 14, UNARY_OPERATOR),
+
 
     // Assignment operators
     ASSIGN("=", DECLARATION_OPERATION),
 
     // Boolean operators
-    NEGATE("!", 15, UNARY_OPERATOR),
+    NOT("!", 15, UNARY_OPERATOR),
     EQUAL("==", 4, BINARY_OPERATOR),
     DIFFERENT("!=", 4, BINARY_OPERATOR),
     GREATER(">", 4, BINARY_OPERATOR),

@@ -33,11 +33,6 @@ public class BinaryOperator implements Operator {
     }
 
     @Override
-    public int operators() {
-        return 2;
-    }
-
-    @Override
     public String asString() {
         return '(' + String.join(" ", left.asString(), operation.value, right.asString()) + ')';
     }

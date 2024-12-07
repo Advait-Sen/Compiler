@@ -27,11 +27,6 @@ public class UnaryOperator implements Operator {
     }
 
     @Override
-    public int operators() {
-        return 1;
-    }
-
-    @Override
     public String asString() {
         return '(' + String.join(" ", operation.value, operand.asString()) + ')';
     }
