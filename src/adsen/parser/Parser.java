@@ -124,7 +124,8 @@ public class Parser {
             Operator lastOp;
             Token opTok = operatorStack.pop();
             OperatorType opType = Operator.operatorType.get(opTok.value);
-            //todo handle too few arguments for operators
+            if (astStack.size() < opType.args)
+                throw new ExpressionError("Too few arguments for operator '" + opTok.value + "'", opTok);
             //todo handle not leftToRight operators
             if (opType.type == UNARY_OPERATOR) {
                 NodeExpr arg = astStack.pop();

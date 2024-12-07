@@ -44,16 +44,22 @@ public enum OperatorType {
     }
 
     OperatorType(String value, int precedence, TokenType type, boolean leftToRight) {
+        this(value, precedence, type, leftToRight, type == UNARY_OPERATOR ? 1 : 2);
+    }
+
+    OperatorType(String value, int precedence, TokenType type, boolean leftToRight, int args) {
         this.value = value;
         this.precedence = precedence;
         this.leftToRight = leftToRight;
         this.type = type;
+        this.args = args;
     }
 
     public final String value;
     public final int precedence;
     public final boolean leftToRight;
     public final TokenType type;
+    public final int args;
 
 
     static {
