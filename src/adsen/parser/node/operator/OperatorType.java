@@ -10,8 +10,8 @@ public enum OperatorType {
     //Some of the precedences are taken from here: https://pythongeeks.org/python-operator-precedence/
 
     // Maths operators
-    PRE_INCREMENT("++", 15, UNARY_OPERATOR),
-    PRE_DECREMENT("--", 15, UNARY_OPERATOR),
+    INCREMENT("++", 15, UNARY_OPERATOR),
+    DECREMENT("--", 15, UNARY_OPERATOR),
     EXPONENT("**", 12, BINARY_OPERATOR, false),
     PRODUCT("*", 11, BINARY_OPERATOR),
     QUOTIENT("/", 11, BINARY_OPERATOR),

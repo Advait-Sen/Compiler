@@ -238,7 +238,7 @@ public class Interpreter {
 
                     yield bool;
                 }
-                case PRE_INCREMENT -> {
+                case INCREMENT -> {
                     IntPrimitive intP = (IntPrimitive) evaluateExpr(unOp.operand(), INTEGER);
 
                     intP.setValue(intP.getValue() + 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
@@ -246,7 +246,7 @@ public class Interpreter {
                     yield intP;
                 }
 
-                case PRE_DECREMENT -> {
+                case DECREMENT -> {
                     IntPrimitive intP = (IntPrimitive) evaluateExpr(unOp.operand(), INTEGER);
 
                     intP.setValue(intP.getValue() - 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
