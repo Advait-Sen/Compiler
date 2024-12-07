@@ -16,6 +16,8 @@ public abstract sealed class NodePrimitive implements NodeExpr permits IntPrimit
 
     public abstract String getTypeString();
 
+    public abstract NodePrimitive negate();
+
     @Override
     public final String asString(){
         return token.value;

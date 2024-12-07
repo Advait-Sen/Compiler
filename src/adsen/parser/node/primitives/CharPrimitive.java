@@ -23,6 +23,11 @@ public final class CharPrimitive extends NodePrimitive {
         return TYPE_STRING;
     }
 
+    @Override
+    public NodePrimitive negate() {
+        return CharPrimitive.of((char) -value);
+    }
+
     public static CharPrimitive of(char value) {
         return new CharPrimitive(value);
     }

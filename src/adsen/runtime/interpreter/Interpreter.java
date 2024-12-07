@@ -245,13 +245,8 @@ public class Interpreter {
             //Placeholder made up token until I figure out better error messages
             Token errorTok = new Token(unOp.asString(), unOp.type().type);
             retVal = switch (unOp.type()) {
-                case NOT -> {
-                    BoolPrimitive bool =  evaluateExprBool(unOp.operand());
+                case NOT -> evaluateExprBool(unOp.operand()).negate();
 
-                    bool.setValue(!bool.getValue()); //This might source of problems down the line, might want to make new BoolPrimitive instead
-
-                    yield bool;
-                }
                 case INCREMENT -> {
                     IntPrimitive intP = evaluateExprInt(unOp.operand());
 
@@ -271,26 +266,22 @@ public class Interpreter {
                 case POSITIVE -> {
                     NodePrimitive operand = evaluateExpr(unOp.operand());
 
-                    if ((operand instanceof IntPrimitive) || (operand instanceof FloatPrimitive)) {
-                        yield operand;
+                    //Much simpler to go by exclusion
+                    if (operand instanceof BoolPrimitive) {
+                        throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
                     }
 
-                    throw new ExpressionError("Expected numeric value, not '" + operand.getTypeString() + "'", errorTok);
+                    yield operand;
                 }
                 case NEGATIVE -> {
                     NodePrimitive operand = evaluateExpr(unOp.operand());
 
-                    if (operand instanceof IntPrimitive intP) {
-                        intP.setValue(-intP.getValue());
-                        yield intP;
+                    //Use ! to negate bool, not unary -
+                    if (operand instanceof BoolPrimitive) {
+                        throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
                     }
 
-                    if (operand instanceof FloatPrimitive floatP) {
-                        floatP.setValue(-floatP.getValue());
-                        yield floatP;
-                    }
-
-                    throw new ExpressionError("Expected numeric value, not '" + operand.getTypeString() + "'", errorTok);
+                    yield operand.negate();
                 }
                 default -> throw new ExpressionError("Don't know how we got here, unknown unary operator", errorTok);
             };

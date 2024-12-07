@@ -27,6 +27,11 @@ public final class IntPrimitive extends NodePrimitive {
         return TYPE_STRING;
     }
 
+    @Override
+    public NodePrimitive negate() {
+        return IntPrimitive.of(-value);
+    }
+
     public static IntPrimitive of(long value) {
         return new IntPrimitive(value);
     }
