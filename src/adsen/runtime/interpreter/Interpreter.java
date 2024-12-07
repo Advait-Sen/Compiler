@@ -161,9 +161,7 @@ public class Interpreter {
 
             }
             case IfStatement ifStmt -> {
-                NodePrimitive shouldRun = evaluateExpr(ifStmt.getCondition(), BOOL);
-                if (!(shouldRun instanceof BoolPrimitive run))
-                    throw new ExpressionError("Must have boolean condition for if statement", ifStmt.token);
+                BoolPrimitive run = evaluateExprBool(ifStmt.getCondition());
 
                 if (run.getValue()) {
                     ret = executeStatement(ifStmt.thenStatement());
@@ -172,7 +170,7 @@ public class Interpreter {
                 }
             }
             case WhileStatement whileStmt -> {
-                while (((BoolPrimitive) evaluateExpr(whileStmt.condition(), BOOL)).getValue() && ret.isEmpty()) {
+                while (evaluateExprBool(whileStmt.condition()).getValue() && ret.isEmpty()) {
                     ret = executeStatement(whileStmt.statement());
                 }
             }
@@ -185,7 +183,7 @@ public class Interpreter {
                     forLoopVariable = declare.identifier().asString();
                 }
 
-                while (((BoolPrimitive) evaluateExpr(forStmt.condition())).getValue() && ret.isEmpty()) {
+                while (evaluateExprBool(forStmt.condition()).getValue() && ret.isEmpty()) {
                     ret = executeStatement(forStmt.statement());
                     executeStatement(forStmt.getIncrementer());
                 }
@@ -205,6 +203,22 @@ public class Interpreter {
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {
         return evaluateExpr(expr, NONE);
+    }
+
+    private BoolPrimitive evaluateExprBool(NodeExpr expr) {
+        return (BoolPrimitive) evaluateExpr(expr, BOOL);
+    }
+
+    private IntPrimitive evaluateExprInt(NodeExpr expr) {
+        return (IntPrimitive) evaluateExpr(expr, INTEGER);
+    }
+
+    private CharPrimitive evaluateExprChar(NodeExpr expr) {
+        return (CharPrimitive) evaluateExpr(expr, CHAR);
+    }
+
+    private FloatPrimitive evaluateExprFloat(NodeExpr expr) {
+        return (FloatPrimitive) evaluateExpr(expr, FLOAT);
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr, Context context) {
@@ -232,14 +246,14 @@ public class Interpreter {
             Token errorTok = new Token(unOp.asString(), unOp.type().type);
             retVal = switch (unOp.type()) {
                 case NOT -> {
-                    BoolPrimitive bool = (BoolPrimitive) evaluateExpr(unOp.operand(), BOOL);
+                    BoolPrimitive bool =  evaluateExprBool(unOp.operand());
 
                     bool.setValue(!bool.getValue()); //This might source of problems down the line, might want to make new BoolPrimitive instead
 
                     yield bool;
                 }
                 case INCREMENT -> {
-                    IntPrimitive intP = (IntPrimitive) evaluateExpr(unOp.operand(), INTEGER);
+                    IntPrimitive intP = evaluateExprInt(unOp.operand());
 
                     intP.setValue(intP.getValue() + 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
 
@@ -247,7 +261,7 @@ public class Interpreter {
                 }
 
                 case DECREMENT -> {
-                    IntPrimitive intP = (IntPrimitive) evaluateExpr(unOp.operand(), INTEGER);
+                    IntPrimitive intP = evaluateExprInt(unOp.operand());
 
                     intP.setValue(intP.getValue() - 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
 
