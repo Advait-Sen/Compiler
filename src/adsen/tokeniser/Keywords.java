@@ -16,6 +16,7 @@ import static adsen.tokeniser.TokenType.FOR;
 import static adsen.tokeniser.TokenType.IF;
 import static adsen.tokeniser.TokenType.LET;
 import static adsen.tokeniser.TokenType.PRIMITIVE_TYPE;
+import static adsen.tokeniser.TokenType.VOID;
 import static adsen.tokeniser.TokenType.WHILE;
 
 public class Keywords {
@@ -28,6 +29,7 @@ public class Keywords {
         put(FloatPrimitive.TYPE_STRING, PRIMITIVE_TYPE);
         put(BoolPrimitive.TYPE_STRING, PRIMITIVE_TYPE);
         put(CharPrimitive.TYPE_STRING, PRIMITIVE_TYPE);
+        put("void", VOID);
 
 
         //Keywords

@@ -17,6 +17,10 @@ public enum TokenType {
 
     //Types
     /**
+     * For function declarations
+     */
+    VOID,
+    /**
      * This will be 'float', 'int', 'char' and 'boolean'
      */
     PRIMITIVE_TYPE,

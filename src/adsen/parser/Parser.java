@@ -54,10 +54,7 @@ public class Parser {
     public Parser(List<Token> tokens) {
         this.tokens = Collections.unmodifiableList(tokens);
     }
-//
-//    NodeExpr parseExpr(boolean ignoreSemi) {
-//        return parseExpr(ignoreSemi, -1);
-//    }
+
 
     /**
      * Tries to read an expression from {@link Parser#tokens} list
@@ -192,20 +189,22 @@ public class Parser {
 
     /**
      * Main parse function which returns the {@link NodeProgram} defining the entire program's AST.
+     * <p>
+     * A program is a series of functions, with a main function being required
      */
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
-        program.statements = parse(0, tokens.size()); // Statement count will always be less than token list size
+        program.statements = parseStatements(0, tokens.size()); // Statement count will always be less than token list size
 
         return program;
     }
 
-    public List<NodeStatement> parse(int startPos, int statementCount) {
-        return parse(startPos, statementCount, tokens.size(), false); //By default, looking at all the statements
+    List<NodeStatement> parseStatements(int startPos, int statementCount) {
+        return parseStatements(startPos, statementCount, tokens.size(), false); //By default, looking at all the statements
     }
 
-    public List<NodeStatement> parse(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
+    List<NodeStatement> parseStatements(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
         List<NodeStatement> statements = new ArrayList<>();
         int endPos = pos + tokenCount;
         for (pos = startPos; hasNext() && pos < endPos && statements.size() < statementCount; pos++) {
@@ -314,12 +313,12 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement thenStatement = parse(pos + 1, 1).getFirst();
+                    NodeStatement thenStatement = parseStatements(pos + 1, 1).getFirst();
 
                     t = peek(1); //don't consume unless needed
 
                     if (t.type == ELSE) { //Parsing else statement right here
-                        NodeStatement elseStatement = parse(pos + 2, 1).getFirst();
+                        NodeStatement elseStatement = parseStatements(pos + 2, 1).getFirst();
 
                         yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
                     }
@@ -345,7 +344,7 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement executionStatement = parse(pos + 1, 1).getFirst();
+                    NodeStatement executionStatement = parseStatements(pos + 1, 1).getFirst();
 
                     yield new WhileStatement(whileT, whileCondition, executionStatement);
                 }
@@ -353,7 +352,7 @@ public class Parser {
                     Token forT = t;
                     t = consume();
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
-                    NodeStatement assigner = parse(pos + 1, 1).getFirst();
+                    NodeStatement assigner = parseStatements(pos + 1, 1).getFirst();
                     List<Token> conditionTokens = new ArrayList<>();
 
                     for (t = consume(); isValidExprToken(t); t = consume()) {
@@ -373,11 +372,11 @@ public class Parser {
                         conditionTokens.add(t);
                     }
 
-                    NodeStatement incrementer = parse(pos + 1, 1, closed_bracket_pos, true).getFirst();
+                    NodeStatement incrementer = parseStatements(pos + 1, 1, closed_bracket_pos, true).getFirst();
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement executionStatement = parse(pos + 1, 1).getFirst();
+                    NodeStatement executionStatement = parseStatements(pos + 1, 1).getFirst();
 
                     yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
                 }

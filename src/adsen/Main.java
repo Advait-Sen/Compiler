@@ -144,7 +144,7 @@ public class Main {
             }
 
             if (VERBOSE_FLAGS.contains("parser")) {
-                System.out.println("\nprogram.asString() =");
+                System.out.println("\nprogram.asStringOld() =");
                 for (NodeStatement statement : program.statements) {
                     System.out.println(statement.typeString() + " : " + statement.asString());
                 }

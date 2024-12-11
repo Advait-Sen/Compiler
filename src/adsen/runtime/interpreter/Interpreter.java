@@ -124,7 +124,6 @@ public class Interpreter {
                 }
 
                 if (assign instanceof IncrementStatement inc) {
-                    System.out.println("Incrementing");
                     String providedType = scopeStack.peek().getVariable(variableName).getTypeString();
                     if (!providedType.equals(IntPrimitive.TYPE_STRING)) {
                         throw new ExpressionError("Cannot increment '" + providedType + "', only '" + IntPrimitive.TYPE_STRING + "' type", assign.identifier().token);
@@ -156,7 +155,7 @@ public class Interpreter {
                 for (Scope stackScope : scopeStack) {
                     System.out.println("Printing scope " + stackScope.name);
                     stackScope.getVariables().forEach((s, np) -> {
-                        System.out.println("    " + s + " (" + np.getTypeString() + "): " + np.asString());
+                        System.out.println("    " + s + " (" + np.getTypeString() + "): " + np.asStringOld());
                     });
                     System.out.println("End of scope\n");
                 }
