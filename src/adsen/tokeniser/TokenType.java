@@ -12,6 +12,9 @@ public enum TokenType {
     //Identifier
     IDENTIFIER,
 
+    //Post-process stuff
+    VARIABLE, FUNCTION,
+
     //Types
     /**
      * This will be 'float', 'int', 'char' and 'boolean'

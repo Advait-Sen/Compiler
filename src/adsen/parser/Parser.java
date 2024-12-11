@@ -109,7 +109,7 @@ public class Parser {
                 case FLOAT_LITERAL -> new FloatPrimitive(t);
                 case BOOL_LITERAL -> new BoolPrimitive(t);
                 //case STR_LITERAL -> new String Object Type; gonna implement this as built-in complex type
-                case IDENTIFIER -> new NodeIdentifier(t);
+                case VARIABLE -> new NodeIdentifier(t);
 
                 default -> throw new ExpressionError("Unexpected token in expression", t);
             };
@@ -150,7 +150,7 @@ public class Parser {
                 case CHAR_LITERAL -> new CharPrimitive(exprToken);
                 case FLOAT_LITERAL -> new FloatPrimitive(exprToken);
                 case BOOL_LITERAL -> new BoolPrimitive(exprToken);
-                case IDENTIFIER -> new NodeIdentifier(exprToken);
+                case VARIABLE -> new NodeIdentifier(exprToken);
                 default -> null;
             };
 
@@ -222,8 +222,8 @@ public class Parser {
                 case PRIMITIVE_TYPE -> { //Static declaration
                     Token identifier = consume(); //Consuming primitive name
 
-                    if (identifier.type != IDENTIFIER)
-                        throw new ExpressionError("Must have an identifier after '" + t.value + "'", identifier);
+                    if (identifier.type != VARIABLE)
+                        throw new ExpressionError("Must have a variable name after '" + t.value + "'", identifier);
 
                     Token declarer = consume(); //Consuming identifier
 
@@ -237,7 +237,7 @@ public class Parser {
                 case LET -> { // Normal declaration
                     Token identifier = consume(); //Consuming 'let' keyword
 
-                    if (identifier.type != IDENTIFIER)
+                    if (identifier.type != VARIABLE)
                         throw new ExpressionError("Must have an identifier after 'let'", identifier);
 
                     Token declarer = consume(); //Consuming identifier
@@ -258,21 +258,19 @@ public class Parser {
 
                     Token ident = consume(); //Consuming incrementor
 
-                    if (ident.type!=IDENTIFIER) {
-                        throw new ExpressionError("Expected an identifier after "+t.value, ident);
+                    if (ident.type != VARIABLE) {
+                        throw new ExpressionError("Expected an identifier after " + t.value, ident);
                     }
                     consume(); //Consuming identifier
 
                     yield new IncrementStatement(new NodeIdentifier(ident), t, true);
                 }
-                case IDENTIFIER -> { // Variable assignment
+                case VARIABLE -> { // Variable assignment
 
                     Token declarer = consume(); //Consuming identifier
 
-                    System.out.println("declarer = " + declarer);
-
                     //Could be increment or decrement
-                    if(declarer.type==UNARY_OPERATOR && peek(1).type==SEMICOLON){
+                    if (declarer.type == UNARY_OPERATOR && peek(1).type == SEMICOLON) {
                         consume();//Consuming incrementor
                         yield new IncrementStatement(new NodeIdentifier(t), declarer, false);
                     }

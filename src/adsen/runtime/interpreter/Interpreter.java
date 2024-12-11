@@ -130,10 +130,7 @@ public class Interpreter {
                         throw new ExpressionError("Cannot increment '" + providedType + "', only '" + IntPrimitive.TYPE_STRING + "' type", assign.identifier().token);
                     }
                     IntPrimitive value = ((IntPrimitive) scopeStack.peek().getVariable(variableName));
-                    value.setValue(value.getValue() + (inc.incrementor == OperatorType.INCREMENT ? 1 : -1));
-                    System.out.println("value.getValue() = " + value.getValue());
-                    scopeStack.peek().setVariable(variableName, value);
-                    System.out.println("scopeStack.peek().getVariable(variableName).asString() = " + scopeStack.peek().getVariable(variableName).asString());
+                    scopeStack.peek().setVariable(variableName, value.setValue(value.getValue() + (inc.incrementor == OperatorType.INCREMENT ? 1 : -1)));
                     break;
                 }
 

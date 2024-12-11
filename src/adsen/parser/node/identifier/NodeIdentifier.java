@@ -10,7 +10,7 @@ public class NodeIdentifier implements NodeExpr {
     String name;
 
     public NodeIdentifier(Token token) {
-        if (token.type != TokenType.IDENTIFIER) {
+        if (token.type != TokenType.IDENTIFIER && token.type!=TokenType.VARIABLE) {
             throw new ExpressionError("How did we get here? Tried to create an identifier node with non-identifier token", token);
         }
         this.token = token;

@@ -37,7 +37,7 @@ public class Token {
      */
     public boolean isValueToken(){
         return switch (type){
-            case IDENTIFIER, BOOL_LITERAL, INT_LITERAL, FLOAT_LITERAL, CHAR_LITERAL, STR_LITERAL -> true;
+            case VARIABLE, IDENTIFIER, BOOL_LITERAL, INT_LITERAL, FLOAT_LITERAL, CHAR_LITERAL, STR_LITERAL -> true;
             default -> false;
         };
     }

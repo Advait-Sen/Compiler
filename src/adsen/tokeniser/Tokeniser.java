@@ -229,7 +229,7 @@ public class Tokeniser {
      * Additional optimisations to tokenisation once we have a list of valid tokens
      */
     private void postProcessTokens() {
-        //Postprocessing from second to penulimate token, so we can always have previous and next tokens
+        //Postprocessing from second to penulimate token, so we can always have previous and next tokens available
         for (int i = 1; i < tokens.size() - 1; i++) {
             Token previous = tokens.get(i - 1);
             Token current = tokens.get(i);
@@ -250,7 +250,13 @@ public class Tokeniser {
                         current.type = UNARY_OPERATOR;
                     }
                 }
-
+            } else if (current.type == IDENTIFIER) {
+                //Making identifiers more specific (Gonna add class names here eventually)
+                if (next.type == OPEN_PAREN) {
+                    current.type = FUNCTION;
+                } else {
+                    current.type = VARIABLE;
+                }
             }
         }
     }

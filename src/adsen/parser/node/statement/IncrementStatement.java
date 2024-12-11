@@ -1,7 +1,6 @@
 package adsen.parser.node.statement;
 
 import adsen.error.ExpressionError;
-import adsen.parser.node.NodeExpr;
 import adsen.parser.node.identifier.NodeIdentifier;
 import adsen.parser.node.operator.Operator;
 import adsen.parser.node.operator.OperatorType;
