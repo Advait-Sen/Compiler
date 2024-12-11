@@ -198,7 +198,7 @@ public class Tokeniser {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
-                while (hasNext() && !(Character.isWhitespace(c) || Character.isLetterOrDigit(c) || c == '_' || c == '\'' || c == '.' || c == '"' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
+                while (hasNext() && !(Character.isWhitespace(c) || Character.isLetterOrDigit(c) || c == '_' || c == '\'' || c == ';' || c == '.' || c == '"' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
                     //Just grab everything until the next parenthesis, comma, whitespace, char, number, string, or identifier
                     token.append(c);
                     c = consume();

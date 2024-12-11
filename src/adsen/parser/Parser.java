@@ -17,6 +17,7 @@ import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.ForStatement;
 import adsen.parser.node.statement.IfStatement;
+import adsen.parser.node.statement.IncrementStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
@@ -248,9 +249,33 @@ public class Parser {
 
                     yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr(ignoreSemi, endPos));
                 }
+                case UNARY_OPERATOR -> {
+                    OperatorType opType = Operator.operatorType.get(t.value);
+
+                    if (opType != OperatorType.INCREMENT && opType != OperatorType.DECREMENT) {
+                        throw new ExpressionError("Not a statement", t);
+                    }
+
+                    Token ident = consume(); //Consuming incrementor
+
+                    if (ident.type!=IDENTIFIER) {
+                        throw new ExpressionError("Expected an identifier after "+t.value, ident);
+                    }
+                    consume(); //Consuming identifier
+
+                    yield new IncrementStatement(new NodeIdentifier(ident), t, true);
+                }
                 case IDENTIFIER -> { // Variable assignment
 
                     Token declarer = consume(); //Consuming identifier
+
+                    System.out.println("declarer = " + declarer);
+
+                    //Could be increment or decrement
+                    if(declarer.type==UNARY_OPERATOR && peek(1).type==SEMICOLON){
+                        consume();//Consuming incrementor
+                        yield new IncrementStatement(new NodeIdentifier(t), declarer, false);
+                    }
 
                     if (declarer.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
                         throw new ExpressionError("Expected an assignment after '" + t.value + "'", declarer);

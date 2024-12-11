@@ -32,11 +32,17 @@ public final class BoolPrimitive extends NodePrimitive {
         return BoolPrimitive.of(!value);
     }
 
-    public void setValue(boolean newValue) {
+    public BoolPrimitive setValue(boolean newValue) {
         value = newValue;
+        return this;
     }
 
     public boolean getValue() {
         return value;
+    }
+
+    public String asString(){
+        token.value = String.valueOf(value);
+        return super.asString();
     }
 }

@@ -36,11 +36,17 @@ public final class IntPrimitive extends NodePrimitive {
         return new IntPrimitive(value);
     }
 
-    public void setValue(long newValue) {
+    public IntPrimitive setValue(long newValue) {
         value = newValue;
+        return this;
     }
 
     public long getValue() {
         return value;
+    }
+
+    public String asString(){
+        token.value = String.valueOf(value);
+        return super.asString();
     }
 }

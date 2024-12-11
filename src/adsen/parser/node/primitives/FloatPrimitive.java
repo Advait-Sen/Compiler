@@ -32,12 +32,18 @@ public final class FloatPrimitive extends NodePrimitive {
         return new FloatPrimitive(value);
     }
 
-    public void setValue(double newValue) {
+    public FloatPrimitive setValue(double newValue) {
         value = newValue;
+        return this;
     }
 
     public double getValue() {
         return value;
+    }
+
+    public String asString(){
+        token.value = String.valueOf(value);
+        return super.asString();
     }
 }
 

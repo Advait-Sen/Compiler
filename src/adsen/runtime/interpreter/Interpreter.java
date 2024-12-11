@@ -5,6 +5,7 @@ import adsen.parser.node.NodeExpr;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.identifier.NodeIdentifier;
 import adsen.parser.node.operator.BinaryOperator;
+import adsen.parser.node.operator.OperatorType;
 import adsen.parser.node.operator.UnaryOperator;
 import adsen.parser.node.primitives.BoolPrimitive;
 import adsen.parser.node.primitives.CharPrimitive;
@@ -16,6 +17,7 @@ import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.ForStatement;
 import adsen.parser.node.statement.IfStatement;
+import adsen.parser.node.statement.IncrementStatement;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
@@ -119,6 +121,20 @@ public class Interpreter {
 
                 if (!scopeStack.peek().hasVariable(variableName)) {
                     throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
+                }
+
+                if (assign instanceof IncrementStatement inc) {
+                    System.out.println("Incrementing");
+                    String providedType = scopeStack.peek().getVariable(variableName).getTypeString();
+                    if (!providedType.equals(IntPrimitive.TYPE_STRING)) {
+                        throw new ExpressionError("Cannot increment '" + providedType + "', only '" + IntPrimitive.TYPE_STRING + "' type", assign.identifier().token);
+                    }
+                    IntPrimitive value = ((IntPrimitive) scopeStack.peek().getVariable(variableName));
+                    value.setValue(value.getValue() + (inc.incrementor == OperatorType.INCREMENT ? 1 : -1));
+                    System.out.println("value.getValue() = " + value.getValue());
+                    scopeStack.peek().setVariable(variableName, value);
+                    System.out.println("scopeStack.peek().getVariable(variableName).asString() = " + scopeStack.peek().getVariable(variableName).asString());
+                    break;
                 }
 
                 NodePrimitive value = evaluateExpr(assign.expr());

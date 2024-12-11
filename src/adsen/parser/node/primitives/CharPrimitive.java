@@ -32,11 +32,17 @@ public final class CharPrimitive extends NodePrimitive {
         return new CharPrimitive(value);
     }
 
-    public void setValue(char newValue) {
+    public CharPrimitive setValue(char newValue) {
         value = newValue;
+        return this;
     }
 
     public char getValue() {
         return value;
+    }
+
+    public String asString(){
+        token.value = String.valueOf(value);
+        return super.asString();
     }
 }
