@@ -2,6 +2,7 @@ package adsen.parser;
 
 import adsen.error.ExpressionError;
 import adsen.parser.node.NodeExpr;
+import adsen.parser.node.NodeFunction;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.identifier.NodeIdentifier;
 import adsen.parser.node.operator.BinaryOperator;
@@ -114,7 +115,7 @@ public class Parser {
 
         //Adapted from this StackOverflow thread
         //https://stackoverflow.com/questions/21356772/abstract-syntax-tree-using-the-shunting-yard-algorithm
-        List<NodeExpr> postfix = new ArrayList<>(); //Might not be necessary, but keeping it anyway in case bugs occur
+        //List<NodeExpr> postfix = new ArrayList<>(); //Might not be necessary, but keeping it anyway in case bugs occur
         Stack<Token> operatorStack = new Stack<>();
         Stack<NodeExpr> astStack = new Stack<>();
 
@@ -137,7 +138,7 @@ public class Parser {
             } else
                 throw new ExpressionError("Don't know how we got here, found unknown operator type", opTok);
 
-            postfix.add(lastOp);
+            //postfix.add(lastOp);
             astStack.push(lastOp);
         };
 
@@ -152,7 +153,7 @@ public class Parser {
             };
 
             if (temp != null) {
-                postfix.add(temp);
+                //postfix.add(temp);
                 astStack.push(temp);
             } else if (exprToken.type == BINARY_OPERATOR || exprToken.type == UNARY_OPERATOR) {
                 OperatorType opType = Operator.operatorType.get(exprToken.value);
@@ -187,12 +188,49 @@ public class Parser {
         return expr;
     }
 
-    /**
-     * Main parse function which returns the {@link NodeProgram} defining the entire program's AST.
-     * <p>
-     * A program is a series of functions, with a main function being required
-     */
     public NodeProgram parse() {
+        NodeProgram program = new NodeProgram();
+
+        for (pos = 0; pos < tokens.size(); pos++) {
+            Token t = tokens.get(pos);
+
+            switch (t.type) {
+                // Anticipating complex types
+                case VOID, PRIMITIVE_TYPE, COMPOUND_TYPE, CLASS_TYPE -> {
+                    Token returnType = t;
+                    Token functionName = consume();
+                    if (functionName.type != FUNCTION)
+                        throw new ExpressionError("Expected function declaration", functionName);
+
+                    consume(); //This is the open parenthesis after the function name
+                    List<Token> signature = new ArrayList<>();
+                    for (t = consume(); t.type != CLOSE_PAREN; t = consume()) {
+                        if (t.type == PRIMITIVE_TYPE || t.type == COMPOUND_TYPE || t.type == CLASS_TYPE) {
+                            signature.add(t);
+                            t = consume();
+                            if (t.type == VARIABLE) {
+                                signature.add(t);
+                                t = consume();
+                                if (t.type == CLOSE_PAREN) break; //Reached the end of the signature
+                                if (t.type != COMMA)
+                                    throw new ExpressionError("Expected ','", t);
+                            } else throw new ExpressionError("Expected variable", t);
+                        } else throw new ExpressionError("Expected type", t);
+                    }
+                    System.out.println("signature = " + signature);
+                    program.functions.add(new NodeFunction(returnType, functionName, signature));
+                }
+                default -> throw new ExpressionError("Unexpected token: " + t, t);
+            }
+        }
+
+        return program;
+    }
+
+    /**
+     * Old parse function which returns the {@link NodeProgram} defining the entire program's AST.
+     */
+    public NodeProgram parseOld() {
         NodeProgram program = new NodeProgram();
 
         program.statements = parseStatements(0, tokens.size()); // Statement count will always be less than token list size
@@ -201,7 +239,7 @@ public class Parser {
     }
 
     List<NodeStatement> parseStatements(int startPos, int statementCount) {
-        return parseStatements(startPos, statementCount, tokens.size(), false); //By default, looking at all the statements
+        return parseStatements(startPos, statementCount, tokens.size(), false); //By default, looking at all the tokens
     }
 
     List<NodeStatement> parseStatements(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
@@ -292,7 +330,7 @@ public class Parser {
                     }
 
                     needSemi = false;
-                    yield new ScopeStatement(new Parser(scopeTokens).parse().statements);
+                    yield new ScopeStatement(new Parser(scopeTokens).parseOld().statements);
                 }
                 case IF -> {
                     Token ifT = t;

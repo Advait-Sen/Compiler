@@ -2,6 +2,7 @@ package adsen;
 
 import adsen.error.ExpressionError;
 import adsen.parser.Parser;
+import adsen.parser.node.NodeFunction;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.primitives.NodePrimitive;
@@ -23,6 +24,11 @@ public class Main {
     public static RuntimeException throwError(String message) {
         return new RuntimeException(message);
     }
+
+    /**
+     * Flag for new function parsing style
+     */
+    private static boolean NEW_PARSE_FUNC;
 
     /**
      * Flag saying whether parsing is occurring
@@ -76,6 +82,7 @@ public class Main {
         Set<String> compilerArgs = Set.of(Arrays.copyOfRange(args, 1, args.length));
 
         DO_PARSE = !(compilerArgs.contains("-noparse") || compilerArgs.contains("-np"));
+        NEW_PARSE_FUNC = compilerArgs.contains("-func") || compilerArgs.contains("-f");
         INTERPRET = compilerArgs.contains("-interpret") || compilerArgs.contains("-i");
         COMPILE = compilerArgs.contains("-compile") || compilerArgs.contains("-c");
 
@@ -126,6 +133,27 @@ public class Main {
             }
         }
 
+        if (NEW_PARSE_FUNC) {
+            System.out.println("Initialising new function-based Parser");
+            Parser parser = new Parser(tokeniser);
+
+            NodeProgram program;
+            try {
+                program = parser.parse();
+            } catch (ExpressionError expressionError) {
+                //Not using throwError here, since it's the programmer's fault, not compiler's fault
+                System.out.println("Error in new parsing:");
+                System.out.println(expressionError.getMessage());
+                System.exit(-1);
+                return;
+            }
+
+            if (VERBOSE_FLAGS.contains("parser")) {
+                System.out.println("\nprogram.asStringOld() =");
+                program.functions.forEach(System.out::println);
+            }
+        }
+
         if (DO_PARSE) {
             System.out.println("Initialising Parser");
 
@@ -134,7 +162,7 @@ public class Main {
             NodeProgram program;
 
             try {
-                program = parser.parse();
+                program = parser.parseOld();
             } catch (ExpressionError expressionError) {
                 //Not using throwError here, since it's the programmer's fault, not compiler's fault
                 System.out.println("Error in parsing:");
