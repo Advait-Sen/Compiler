@@ -230,12 +230,19 @@ public class Parser {
     /**
      * Old parse function which returns the {@link NodeProgram} defining the entire program's AST.
      */
-    public NodeProgram parseOld() {
+    public NodeProgram parseStatements() {
         NodeProgram program = new NodeProgram();
 
         program.statements = parseStatements(0, tokens.size()); // Statement count will always be less than token list size
 
         return program;
+    }
+
+    /**
+     * Method which returns the next parsed statement, since it seems to be such a popular request
+     */
+    NodeStatement parseOneStatement(int startPos){
+        return parseStatements(startPos, 1).getFirst();
     }
 
     List<NodeStatement> parseStatements(int startPos, int statementCount) {
@@ -330,7 +337,7 @@ public class Parser {
                     }
 
                     needSemi = false;
-                    yield new ScopeStatement(new Parser(scopeTokens).parseOld().statements);
+                    yield new ScopeStatement(new Parser(scopeTokens).parseStatements(0, tokens.size()));
                 }
                 case IF -> {
                     Token ifT = t;
@@ -351,12 +358,12 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement thenStatement = parseStatements(pos + 1, 1).getFirst();
+                    NodeStatement thenStatement = parseOneStatement(pos + 1);
 
                     t = peek(1); //don't consume unless needed
 
                     if (t.type == ELSE) { //Parsing else statement right here
-                        NodeStatement elseStatement = parseStatements(pos + 2, 1).getFirst();
+                        NodeStatement elseStatement = parseOneStatement(pos + 2);
 
                         yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
                     }
@@ -382,7 +389,7 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement executionStatement = parseStatements(pos + 1, 1).getFirst();
+                    NodeStatement executionStatement = parseOneStatement(pos + 1);
 
                     yield new WhileStatement(whileT, whileCondition, executionStatement);
                 }
@@ -390,7 +397,7 @@ public class Parser {
                     Token forT = t;
                     t = consume();
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
-                    NodeStatement assigner = parseStatements(pos + 1, 1).getFirst();
+                    NodeStatement assigner = parseOneStatement(pos + 1);
                     List<Token> conditionTokens = new ArrayList<>();
 
                     for (t = consume(); isValidExprToken(t); t = consume()) {
@@ -414,7 +421,7 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement executionStatement = parseStatements(pos + 1, 1).getFirst();
+                    NodeStatement executionStatement = parseOneStatement(pos + 1);
 
                     yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
                 }

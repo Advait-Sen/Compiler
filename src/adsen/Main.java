@@ -162,7 +162,7 @@ public class Main {
             NodeProgram program;
 
             try {
-                program = parser.parseOld();
+                program = parser.parseStatements();
             } catch (ExpressionError expressionError) {
                 //Not using throwError here, since it's the programmer's fault, not compiler's fault
                 System.out.println("Error in parsing:");
