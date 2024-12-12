@@ -26,6 +26,7 @@ import adsen.runtime.Context;
 import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
@@ -49,21 +50,21 @@ public class Interpreter {
     /**
      * The program from which we are generating assembly
      */
-    public final NodeProgram program;
+    public final List<NodeStatement> program;
 
     /**
      * Stack used to keep track of scopes
      */
     public Stack<Scope> scopeStack;
 
-    public Interpreter(NodeProgram program) {
+    public Interpreter(List<NodeStatement> program) {
         this.program = program;
     }
 
     public NodePrimitive run() throws ExpressionError {
         scopeStack = new Stack<>();
 
-        scopeStack.push(Scope.empty("main", program.statements)); //this is gonna change when I implement main function
+        scopeStack.push(Scope.empty("main", program)); //this is gonna change when I implement main function
 
         Optional<NodePrimitive> retVal = Optional.empty();
 

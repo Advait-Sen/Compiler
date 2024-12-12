@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @SuppressWarnings({"FieldCanBeLocal", "SpellCheckingInspection"})
@@ -159,7 +160,7 @@ public class Main {
 
             Parser parser = new Parser(tokeniser);
 
-            NodeProgram program;
+            List<NodeStatement> program;
 
             try {
                 program = parser.parseStatements();
@@ -173,7 +174,7 @@ public class Main {
 
             if (VERBOSE_FLAGS.contains("parser")) {
                 System.out.println("\nprogram.asStringOld() =");
-                for (NodeStatement statement : program.statements) {
+                for (NodeStatement statement : program) {
                     System.out.println(statement.typeString() + " : " + statement.asString());
                 }
             }

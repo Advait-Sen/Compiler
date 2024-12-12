@@ -237,12 +237,8 @@ public class Parser {
     /**
      * Old parse function which returns the {@link NodeProgram} defining the entire program's AST.
      */
-    public NodeProgram parseStatements() {
-        NodeProgram program = new NodeProgram();
-
-        program.statements = parseStatements(0, tokens.size()); // Statement count will always be less than token list size
-
-        return program;
+    public List<NodeStatement> parseStatements() {
+        return parseStatements(0, tokens.size()); // Statement count will always be less than token list size
     }
 
     /**
@@ -334,6 +330,13 @@ public class Parser {
                     yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr(ignoreSemi, endPos));
                 }
                 case C_OPEN_PAREN -> { //New scope
+                    needSemi = false;
+
+                    if (peek(1).type == C_CLOSE_PAREN) { //Special case for empty scope
+                        consume();//consuming closed curly bracket
+                        yield new ScopeStatement(Collections.emptyList());
+                    }
+
                     List<Token> scopeTokens = new ArrayList<>();
                     int c_bracket_counter = 1; //we have seen one open curly bracket
 
@@ -343,7 +346,6 @@ public class Parser {
                         scopeTokens.add(t);
                     }
 
-                    needSemi = false;
                     yield new ScopeStatement(new Parser(scopeTokens).parseStatements(0, tokens.size()));
                 }
                 case IF -> {
