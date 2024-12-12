@@ -149,8 +149,8 @@ public class Main {
             }
 
             if (VERBOSE_FLAGS.contains("parser")) {
-                System.out.println("\nprogram.asStringOld() =");
-                program.functions.forEach(System.out::println);
+                System.out.println("\nprogram.functions =");
+                program.functions.forEach(f->System.out.println(f.asString()));
             }
         }
 

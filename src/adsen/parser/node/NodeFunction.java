@@ -46,6 +46,16 @@ public class NodeFunction {
     }
 
     public String asString() {
-        return returnType.value + " " + name + " (";
+        StringBuilder builder = new StringBuilder(returnType.value + " " + name + " (");
+
+        if (args > 0)
+            builder.append(signature.get(0).value).append(" ").append(signature.get(1).value);
+
+        for (int i = 1; i < args; i++) {
+            builder.append(", ").append(signature.get(i * 2).value).append(" ").append(signature.get(i * 2 + 1).value);
+        }
+
+        builder.append(')');
+        return builder.toString();
     }
 }
