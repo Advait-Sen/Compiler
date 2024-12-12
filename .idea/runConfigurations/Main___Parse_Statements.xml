@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Main - Parse" type="Application" factoryName="Application">
+  <configuration default="false" name="Main - Parse Statements" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="adsen.Main" />
     <module name="Compiler" />
-    <option name="PROGRAM_PARAMETERS" value="test.he -v t p" />
+    <option name="PROGRAM_PARAMETERS" value="test.he -v t p -np -s" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
