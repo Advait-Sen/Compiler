@@ -37,6 +37,10 @@ public class NodeFunction {
         body.add(statement);
     }
 
+    public void andThen(List<NodeStatement> statements) {
+        body.addAll(statements);
+    }
+
     public List<NodeStatement> getBody() {
         return body;
     }

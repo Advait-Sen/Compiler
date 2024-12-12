@@ -217,8 +217,15 @@ public class Parser {
                             } else throw new ExpressionError("Expected variable", t);
                         } else throw new ExpressionError("Expected type", t);
                     }
-                    System.out.println("signature = " + signature);
-                    program.functions.add(new NodeFunction(returnType, functionName, signature));
+
+                    NodeFunction function = new NodeFunction(returnType, functionName, signature);
+
+                    if (peek(1).type != C_OPEN_PAREN)
+                        throw new ExpressionError("Expected '{' after function declaration", peek(1));
+
+                    function.andThen(((ScopeStatement) parseOneStatement(pos + 1)).statements);
+
+                    program.functions.add(function);
                 }
                 default -> throw new ExpressionError("Unexpected token: " + t, t);
             }
@@ -241,7 +248,7 @@ public class Parser {
     /**
      * Method which returns the next parsed statement, since it seems to be such a popular request
      */
-    NodeStatement parseOneStatement(int startPos){
+    NodeStatement parseOneStatement(int startPos) {
         return parseStatements(startPos, 1).getFirst();
     }
 
