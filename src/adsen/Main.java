@@ -2,7 +2,6 @@ package adsen;
 
 import adsen.error.ExpressionError;
 import adsen.parser.Parser;
-import adsen.parser.node.NodeFunction;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.primitives.IntPrimitive;
 import adsen.parser.node.primitives.NodePrimitive;
@@ -27,14 +26,13 @@ public class Main {
     }
 
     /**
-     * Flag for new function parsing style
+     * Flag for parsing function
      */
-    private static boolean NEW_PARSE_FUNC;
-
+    private static boolean PARSE_PROGRAM;
     /**
-     * Flag saying whether parsing is occurring
+     * Flag saying whether we are parsing statements
      */
-    private static boolean DO_PARSE;
+    private static boolean PARSE_STATEMENTS;
     /**
      * Flag to interpret
      */
@@ -82,10 +80,13 @@ public class Main {
         //Getting the compiler arguments
         Set<String> compilerArgs = Set.of(Arrays.copyOfRange(args, 1, args.length));
 
-        DO_PARSE = !(compilerArgs.contains("-noparse") || compilerArgs.contains("-np"));
-        NEW_PARSE_FUNC = compilerArgs.contains("-func") || compilerArgs.contains("-f");
+        PARSE_PROGRAM = !(compilerArgs.contains("-noparse") || compilerArgs.contains("-np"));
+        PARSE_STATEMENTS = compilerArgs.contains("-statements") || compilerArgs.contains("-s");
         INTERPRET = compilerArgs.contains("-interpret") || compilerArgs.contains("-i");
         COMPILE = compilerArgs.contains("-compile") || compilerArgs.contains("-c");
+
+        if (PARSE_PROGRAM && PARSE_STATEMENTS)
+            throw throwError("Invalid flags, cannot set parser for program and statement at the same time");
 
         if (INTERPRET && COMPILE)
             throw throwError("Invalid flags, cannot compile and interpret at the same time");
@@ -132,36 +133,14 @@ public class Main {
             for (Token token : tokeniser.tokens()) {
                 System.out.println(token);
             }
+            System.out.println(); //Extra newline for separation
         }
 
-        if (NEW_PARSE_FUNC) {
-            System.out.println("Initialising new function-based Parser");
-            Parser parser = new Parser(tokeniser);
-
-            NodeProgram program;
-            try {
-                program = parser.parse();
-            } catch (ExpressionError expressionError) {
-                //Not using throwError here, since it's the programmer's fault, not compiler's fault
-                System.out.println("Error in new parsing:");
-                System.out.println(expressionError.getMessage());
-                System.exit(-1);
-                return;
-            }
-
-            if (VERBOSE_FLAGS.contains("parser")) {
-                System.out.println("\nprogram.functions =");
-                program.functions.forEach(f->System.out.println(f.asString()));
-            }
-        }
-
-        if (DO_PARSE) {
-            System.out.println("Initialising Parser");
-
+        if (PARSE_STATEMENTS) {
+            System.out.println("Initialising old statement-based Parser");
             Parser parser = new Parser(tokeniser);
 
             List<NodeStatement> program;
-
             try {
                 program = parser.parseStatements();
             } catch (ExpressionError expressionError) {
@@ -177,6 +156,48 @@ public class Main {
                 for (NodeStatement statement : program) {
                     System.out.println(statement.typeString() + " : " + statement.asString());
                 }
+            }
+
+            //Run interpreter
+            if (INTERPRET) {
+                Interpreter interpreter = new Interpreter(program);
+                NodePrimitive exitValue;
+
+                try {
+                    exitValue = interpreter.runStatements();
+                } catch (ExpressionError error) {
+                    System.out.println(error.getMessage());
+                    exitValue = IntPrimitive.of(-1);
+                }
+
+                if (VERBOSE_FLAGS.contains("interpreter")) {
+                    System.out.println("\nProgram variables:");
+                    interpreter.variables().forEach((s, np) -> System.out.println(s + ": " + np.asString()));
+                }
+
+                System.out.println("\nProcess finished with exit value " + exitValue.asString());
+            }
+        }
+
+        if (PARSE_PROGRAM) {
+
+            System.out.println("Initialising program Parser");
+            Parser parser = new Parser(tokeniser);
+
+            NodeProgram program;
+            try {
+                program = parser.parse();
+            } catch (ExpressionError expressionError) {
+                //Not using throwError here, since it's the programmer's fault, not compiler's fault
+                System.out.println("Error in new parsing:");
+                System.out.println(expressionError.getMessage());
+                System.exit(-1);
+                return;
+            }
+
+            if (VERBOSE_FLAGS.contains("parser")) {
+                System.out.println("\nprogram.functions =");
+                program.functions.values().forEach(f -> System.out.println(f.asString()));
             }
 
             //Run interpreter

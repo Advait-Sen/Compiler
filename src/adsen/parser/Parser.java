@@ -225,7 +225,7 @@ public class Parser {
 
                     function.andThen(((ScopeStatement) parseOneStatement(pos + 1)).statements);
 
-                    program.functions.add(function);
+                    program.functions.put(function.name, function);
                 }
                 default -> throw new ExpressionError("Unexpected token: " + t, t);
             }

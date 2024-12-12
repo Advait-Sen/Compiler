@@ -2,6 +2,7 @@ package adsen.runtime.interpreter;
 
 import adsen.error.ExpressionError;
 import adsen.parser.node.NodeExpr;
+import adsen.parser.node.NodeFunction;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.identifier.NodeIdentifier;
 import adsen.parser.node.operator.BinaryOperator;
@@ -38,6 +39,7 @@ import java.util.function.LongBinaryOperator;
 import java.util.function.Supplier;
 
 import static adsen.runtime.Context.*;
+import static adsen.runtime.Scope.MAIN_FUNCTION;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling.
@@ -48,9 +50,14 @@ import static adsen.runtime.Context.*;
 public class Interpreter {
 
     /**
-     * The program from which we are generating assembly
+     * The statements to run
      */
-    public final List<NodeStatement> program;
+    List<NodeStatement> statements;
+
+    /**
+     * The program to run
+     */
+    NodeProgram program;
 
     /**
      * Stack used to keep track of scopes
@@ -58,13 +65,43 @@ public class Interpreter {
     public Stack<Scope> scopeStack;
 
     public Interpreter(List<NodeStatement> program) {
+        this.statements = program;
+    }
+
+    public Interpreter(NodeProgram program) {
         this.program = program;
     }
 
-    public NodePrimitive run() throws ExpressionError {
+    /**
+     * For when the Interpreter has been initialised with a {@link List}<{@link NodeStatement}>
+     *     instead of with {@link NodeProgram}.
+     */
+    public NodePrimitive runStatements() throws ExpressionError {
         scopeStack = new Stack<>();
 
-        scopeStack.push(Scope.empty("main", program)); //this is gonna change when I implement main function
+        scopeStack.push(Scope.empty("main", statements)); //this is gonna change when I implement main function
+
+        Optional<NodePrimitive> retVal = Optional.empty();
+
+        for (int i = 0; i < scopeStack.getFirst().getStatements().size() && retVal.isEmpty(); i++) {
+            retVal = executeStatement(i);
+        }
+
+        if (scopeStack.size() > 1)
+            throw new RuntimeException("Did not pop scopes correctly");
+
+        return retVal.orElseGet(() -> IntPrimitive.of(0));
+    }
+
+    public NodePrimitive run() {
+        if(!program.functions.containsKey(MAIN_FUNCTION))
+            throw new RuntimeException("Program does not contain main function");
+
+        NodeFunction mainFunction = program.mainFunction();
+
+        scopeStack = new Stack<>();
+        scopeStack.push(Scope.fromFunction(mainFunction));
+
 
         Optional<NodePrimitive> retVal = Optional.empty();
 

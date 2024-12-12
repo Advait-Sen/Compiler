@@ -1,31 +1,33 @@
 package adsen.parser.node;
 
-import adsen.parser.node.statement.NodeStatement;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.util.ArrayList;
-import java.util.List;
+import static adsen.runtime.Scope.MAIN_FUNCTION;
 
 public class NodeProgram {
 
     /**
-     * List of statements in the program (old system)
+     * Map of function names to functions
      */
-    @Deprecated
-    public List<NodeStatement> statements = new ArrayList<>();
-    /**
-     * List of functions in the program (new system)
-     */
-    public List<NodeFunction> functions = new ArrayList<>();
+    public Map<String, NodeFunction> functions = new HashMap<>();
 
-    public String asStringOld() {
-        return statements.stream().map(NodeStatement::asString).reduce("", (s1, s2) -> s1 + '\n' + s2);
+    public NodeFunction getFunction(String name) {
+        if (!functions.containsKey(name))
+            throw new RuntimeException("No such function '" + name + "'");
+        return functions.get(name);
+    }
+
+    public NodeFunction mainFunction() {
+        return getFunction(MAIN_FUNCTION);
     }
 
     /**
-     * New way of getting string form of program, will supersede old {@link NodeProgram#asStringOld()}
-     * once refactoring is complete
+     * Prints out all the function headers in the program
+     * <p>
+     * In future will contain boilerplate, imports, defines, etc.
      */
     public String asString() {
-        return functions.stream().map(NodeFunction::asString).reduce("", (s1, s2) -> s1 + "\n\n" + s2);
+        return functions.values().stream().map(NodeFunction::asString).reduce("", (s1, s2) -> s1 + "\n\n" + s2);
     }
 }

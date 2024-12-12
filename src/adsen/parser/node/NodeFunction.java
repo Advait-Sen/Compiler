@@ -45,6 +45,10 @@ public class NodeFunction {
         return body;
     }
 
+    public List<Token> getSignature() {
+        return signature;
+    }
+
     public String asString() {
         StringBuilder builder = new StringBuilder(returnType.value + " " + name + " (");
 
