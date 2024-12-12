@@ -1,7 +1,7 @@
 package adsen.runtime;
 
 import adsen.parser.node.NodeFunction;
-import adsen.parser.node.primitives.NodePrimitive;
+import adsen.parser.node.expr.primitives.NodePrimitive;
 import adsen.parser.node.statement.NodeStatement;
 
 import java.util.Collections;

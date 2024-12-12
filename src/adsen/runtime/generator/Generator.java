@@ -1,6 +1,6 @@
 package adsen.runtime.generator;
 
-import adsen.parser.node.NodeExpr;
+import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeProgram;
 
 import java.util.Set;

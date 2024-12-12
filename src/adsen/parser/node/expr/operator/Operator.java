@@ -1,6 +1,6 @@
-package adsen.parser.node.operator;
+package adsen.parser.node.expr.operator;
 
-import adsen.parser.node.NodeExpr;
+import adsen.parser.node.expr.NodeExpr;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,6 +1,6 @@
 package adsen.parser.node.statement;
 
-import adsen.parser.node.NodeExpr;
+import adsen.parser.node.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
 public class WhileStatement implements NodeStatement {

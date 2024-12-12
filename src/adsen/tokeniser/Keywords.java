@@ -1,10 +1,10 @@
 package adsen.tokeniser;
 
-import adsen.parser.node.operator.OperatorType;
-import adsen.parser.node.primitives.BoolPrimitive;
-import adsen.parser.node.primitives.CharPrimitive;
-import adsen.parser.node.primitives.FloatPrimitive;
-import adsen.parser.node.primitives.IntPrimitive;
+import adsen.parser.node.expr.operator.OperatorType;
+import adsen.parser.node.expr.primitives.BoolPrimitive;
+import adsen.parser.node.expr.primitives.CharPrimitive;
+import adsen.parser.node.expr.primitives.FloatPrimitive;
+import adsen.parser.node.expr.primitives.IntPrimitive;
 
 import java.util.HashMap;
 import java.util.Map;

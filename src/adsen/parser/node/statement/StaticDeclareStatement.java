@@ -1,7 +1,7 @@
 package adsen.parser.node.statement;
 
-import adsen.parser.node.NodeExpr;
-import adsen.parser.node.identifier.NodeIdentifier;
+import adsen.parser.node.expr.NodeExpr;
+import adsen.parser.node.expr.NodeIdentifier;
 import adsen.tokeniser.Token;
 
 /**
