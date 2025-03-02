@@ -55,27 +55,31 @@ public class Main {
 
         final String fileName = args[0];
         int verboseFlagIndex;
+        boolean doVerbose = false;
         //Gonna replace this with better flag search once more flags are added
         for (verboseFlagIndex = 1; verboseFlagIndex < args.length; verboseFlagIndex++) {
             if (args[verboseFlagIndex].equals("-verbose") || args[verboseFlagIndex].equals("-v")) {
+                doVerbose = true;
                 break;
             }
         }
 
         VERBOSE_FLAGS = new HashSet<>();
 
-        for (verboseFlagIndex += 1; verboseFlagIndex < args.length; verboseFlagIndex++) {
-            if (args[verboseFlagIndex].startsWith("-")) break;
+        if (doVerbose) {
+            for (verboseFlagIndex += 1; verboseFlagIndex < args.length; verboseFlagIndex++) {
+                if (args[verboseFlagIndex].startsWith("-")) break;
 
-            switch (args[verboseFlagIndex]) {
-                case "t", "tokeniser" -> VERBOSE_FLAGS.add("tokeniser");
-                case "p", "parser" -> VERBOSE_FLAGS.add("parser");
-                case "i", "interpreter" -> VERBOSE_FLAGS.add("interpreter");
-                case "g", "generator" -> VERBOSE_FLAGS.add("generator");
+                switch (args[verboseFlagIndex]) {
+                    case "t", "tokeniser" -> VERBOSE_FLAGS.add("tokeniser");
+                    case "p", "parser" -> VERBOSE_FLAGS.add("parser");
+                    case "i", "interpreter" -> VERBOSE_FLAGS.add("interpreter");
+                    case "g", "generator" -> VERBOSE_FLAGS.add("generator");
+                }
             }
         }
 
-        VERBOSE_FLAGS = Collections.unmodifiableSet(VERBOSE_FLAGS); //Not rly necessary, but looks cool
+        VERBOSE_FLAGS = Collections.unmodifiableSet(VERBOSE_FLAGS); //Not rly necessary, but feels useful
 
         //Getting the compiler arguments
         Set<String> compilerArgs = Set.of(Arrays.copyOfRange(args, 1, args.length));
