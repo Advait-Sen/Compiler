@@ -17,6 +17,7 @@ import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.ForStatement;
+import adsen.parser.node.statement.FunctionCallStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.IncrementStatement;
 import adsen.parser.node.statement.NodeStatement;
@@ -205,17 +206,22 @@ public class Parser {
                     consume(); //This is the open parenthesis after the function name
                     List<Token> signature = new ArrayList<>();
                     for (t = consume(); t.type != CLOSE_PAREN; t = consume()) {
+
                         if (t.type == PRIMITIVE_TYPE || t.type == COMPOUND_TYPE || t.type == CLASS_TYPE) {
                             signature.add(t);
                             t = consume();
+
                             if (t.type == VARIABLE) {
                                 signature.add(t);
                                 t = consume();
+
                                 if (t.type == CLOSE_PAREN) break; //Reached the end of the signature
-                                if (t.type != COMMA)
-                                    throw new ExpressionError("Expected ','", t);
+                                if (t.type != COMMA) throw new ExpressionError("Expected ','", t);
+
                             } else throw new ExpressionError("Expected variable", t);
+
                         } else throw new ExpressionError("Expected type", t);
+
                     }
 
                     NodeFunction function = new NodeFunction(returnType, functionName, signature);
@@ -433,6 +439,49 @@ public class Parser {
                     NodeStatement executionStatement = parseOneStatement(pos + 1);
 
                     yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
+                }
+                case FUNCTION -> { //Function call
+                    Token fCallTok = t;
+                    t = consume();
+
+                    if (t.type != OPEN_PAREN)
+                        throw new ExpressionError("Expected '(' after '" + fCallTok.value + "'", t);
+
+                    int parens = 1;
+                    List<Token> tempExpr = new ArrayList<>();
+                    List<NodeExpr> args = new ArrayList<>();
+
+
+                    while (t.type != CLOSE_PAREN) { //Grab tokens into args separated by commas
+
+                        t = consume(); //Consuming the open parenthesis, and subsequent commas
+
+                        while (!(parens == 1 && (t.type == COMMA || t.type == CLOSE_PAREN))) {
+
+                            if (t.type == OPEN_PAREN) parens++;
+                            if (t.type == CLOSE_PAREN) parens--;
+
+                            if (parens == 0) throw new ExpressionError("Unexpected ')'", t);
+
+                            tempExpr.add(t);
+                            t = consume();
+                        }
+                        // If no tokens have been found for the expression, then this might be a function with 0 args
+                        // But if we already have args, then this is an error
+                        if(tempExpr.isEmpty()) {
+                            if(args.isEmpty() && t.type==CLOSE_PAREN){ //Function with 0 args
+                                break;
+                            } else{
+                                throw new ExpressionError("Expected function argument", t);
+                            }
+                        }
+                        args.add(parseExpr(tempExpr));
+                        tempExpr.clear();
+                    }
+
+                    consume(); //Consuming closed parenthesis
+
+                    yield new FunctionCallStatement(fCallTok, args);
                 }
                 default -> throw new ExpressionError("Unknown statement", t);
             };
