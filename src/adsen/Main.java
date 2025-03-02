@@ -140,6 +140,7 @@ public class Main {
             System.out.println(); //Extra newline for separation
         }
 
+        // Old statement-based system
         if (PARSE_STATEMENTS) {
             System.out.println("Initialising old statement-based Parser");
             Parser parser = new Parser(tokeniser);
