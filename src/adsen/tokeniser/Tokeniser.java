@@ -41,6 +41,9 @@ public class Tokeniser {
         colpos = 0;
     }
 
+    /**
+     * List of valid tokens generated from a string input
+     */
     private final List<Token> tokens = new ArrayList<>();
 
     /**
@@ -49,6 +52,8 @@ public class Tokeniser {
     public void tokenise() {
         if (!tokens.isEmpty()) return;
 
+        // To keep track of matching parentheses. It also gets done automatically later on the parser,
+        // but this allows to catch errors earlier on, and I'm proud of this code
         Stack<Token> parens = new Stack<>();
 
         for (pos = 0; hasNext(); pos++) {
@@ -76,6 +81,8 @@ public class Tokeniser {
                 boolean isFloat = false;
                 boolean isHex = c == '0' && hasNext() && peek(1) == 'x';
 
+                // While there are more characters to read,
+                // and, the next character is a hex digit, decimal point, or regular digit
                 while (hasNext() && (isHex && isHexDigit(c) || !isFloat && c == '.' || isDigit(c))) {
                     token.append(c);
 
@@ -85,21 +92,27 @@ public class Tokeniser {
 
                     c = consume();
                 }
+                //Backtracking since the while loop shoots one character further than necessary
                 pos--;
                 colpos--;
-                token.type = isHex ? HEX_LITERAL : isFloat ? FLOAT_LITERAL : INT_LITERAL;
 
-            } else if (c == '\'' || c == '"') { //Char or Str literal
+                token.type = isHex ? HEX_LITERAL : (isFloat ? FLOAT_LITERAL : INT_LITERAL);
+
+            } else
+
+            //Char or Str literal
+            if (c == '\'' || c == '"') {
                 boolean isStr = c == '"';
                 token.type = isStr ? STR_LITERAL : CHAR_LITERAL;
 
+                //Basically just grabbing all the characters that follow until the closure of the string or char
                 while (hasNext()) {
                     c = consume();
                     //Check for end of literal
                     if (isStr && c == '"' || !isStr && c == '\'') {
                         break;
                     }
-                    //escape characters
+                    //Checking for and handling escape characters
                     if (c == '\\') {
                         c = consume();
 
@@ -107,15 +120,15 @@ public class Tokeniser {
                             case 'n' -> '\n';
                             case 't' -> '\t';
                             case '\\' -> '\\';
-                            case '"' -> '"';
-                            case '\'' -> '\'';
+                            case '"' -> '"'; //Allow to escape " in characters (so '\"') even tho it's unnecessary
+                            case '\'' -> '\''; //And same deal with "\'" in strings, todo add compiletime warnings
                             default -> {
                                 token.append("\\" + c);
-                                throw new ExpressionError("Invalid escape character '\\" + c + "'", token);
+                                throw new ExpressionError("Invalid escape 'character '\\" + c + "'", token);
                             }
                         });
 
-                    } else {
+                    } else { //If it's not an escape character, then it's safe to add
                         token.append(c);
                     }
                 }
@@ -131,7 +144,10 @@ public class Tokeniser {
                 if (!hasNext())
                     throw new ExpressionError("Did not terminate " + (isStr ? "string" : "char"), token);
 
-            } else if (Character.isLetter(c) || c == '_') { //Identifiers, Bools, Keywords
+            } else
+
+            //Identifiers, Bools, Keywords, basically any word
+            if (Character.isLetter(c) || c == '_') {
 
                 while (hasNext() && (Character.isLetterOrDigit(c) || c == '_')) {
                     token.append(c);
@@ -141,9 +157,13 @@ public class Tokeniser {
                 pos--; //Because the last consume() overshoots by one
                 colpos--;
 
+                // If we haven't already mapped a token type (so 'true', 'false', 'int', 'exit',
+                // then it's an identifier, i.e. a function or variable name (so far)
                 token.type = tokeniserKeywords.getOrDefault(token.value, IDENTIFIER);
+            } else
 
-            } else if (c == '/') { //Checking for comments (not division)
+            //Checking for comments (not division)
+            if (c == '/' && (peek(1)=='/' || peek(1)=='*')) {
                 c = consume();
                 if (c == '/') { //Line comment, consume until end of line
                     while (c != '\n') {
@@ -154,20 +174,21 @@ public class Tokeniser {
                         c = consume();
                     } while (hasNext(1) && !(c == '*' && peek(1) == '/'));
 
+                    consume(); //Consume the / at the end of the block comment
+
                     if (!hasNext(1)) { //Reached end of file without seeing '*/'
                         throw new ExpressionError("Unclosed block comment", token);
                     }
                 }
-
-                //Else the '/' is probably for division, so we'll handle it with the other operators below
-
-            } else if (c == ';') {
+            } else
+            //Grabbing special characters that have their own tokens
+            if (c == ';') {
                 token.type = SEMICOLON;
                 token.append(c);
             } else if (c == ',') {
                 token.type = COMMA;
                 token.append(c);
-            } else if (c == '(') {
+            } else if (c == '(') { //Open parentheses get pushed onto the stack
                 token.type = OPEN_PAREN;
                 token.append(c);
                 parens.push(token);
@@ -179,7 +200,7 @@ public class Tokeniser {
                 token.type = C_OPEN_PAREN;
                 token.append(c);
                 parens.push(token);
-            } else if (c == ')') {
+            } else if (c == ')') { //Closed parentheses pop off the stack, and if they don't match, we've got a problem
                 token.type = CLOSE_PAREN;
                 token.append(c);
                 if (parens.empty() || !parens.pop().value.equals("(")) {
@@ -198,6 +219,7 @@ public class Tokeniser {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
+
                 while (hasNext() && !(Character.isWhitespace(c) || Character.isLetterOrDigit(c) || c == '_' || c == '\'' || c == ';' || c == '.' || c == '"' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')) {
                     //Just grab everything until the next parenthesis, comma, whitespace, char, number, string, or identifier
                     token.append(c);
@@ -229,7 +251,7 @@ public class Tokeniser {
      * Additional optimisations to tokenisation once we have a list of valid tokens
      */
     private void postProcessTokens() {
-        //Postprocessing from second to penulimate token, so we can always have previous and next tokens available
+        //Postprocessing from second to penultimate token, so we can always have previous and next tokens available
         for (int i = 1; i < tokens.size() - 1; i++) {
             Token previous = tokens.get(i - 1);
             Token current = tokens.get(i);
