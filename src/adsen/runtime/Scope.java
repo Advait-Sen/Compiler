@@ -10,10 +10,13 @@ import java.util.List;
 import java.util.Map;
 
 public class Scope {
+    /**
+     * Name of the main function in the program
+     */
     public static final String MAIN_FUNCTION = "main";
 
     public final String name;
-    Map<String, NodePrimitive> variables;
+    final Map<String, NodePrimitive> variables;
     private final List<NodeStatement> statements;
     private int pos;
 
@@ -40,21 +43,22 @@ public class Scope {
     }
 
     /**
-     * Returns a blank {@link Scope} given a function with no arguments
+     * Returns a blank {@link Scope} given a function with no arguments.
+     * Mostly only used for main function in the beginning
      */
     public static Scope fromFunction(NodeFunction func) {
         return fromFunction(func, Collections.emptyMap());
     }
 
     /**
-     * Returns a blank {@link Scope} from a function. Mostly only used for main function in the beginning
+     * Returns a blank {@link Scope} from a function.
      */
     public static Scope fromFunction(NodeFunction func, Map<String, NodePrimitive> arguments) {
-        if(arguments.size()!=func.args)
-            throw new RuntimeException("Incorrect number of arguments, expected "+func.args+", found "+arguments.size());
+        if (arguments.size() != func.args)
+            throw new RuntimeException("Incorrect number of arguments, expected " + func.args + ", found " + arguments.size());
 
         Scope newScope = Scope.empty(func.name, func.getBody());
-        newScope.variables = arguments;
+        newScope.variables.putAll(arguments);
 
         return newScope;
     }

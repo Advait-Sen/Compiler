@@ -17,6 +17,7 @@ import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.ForStatement;
+import adsen.parser.node.statement.FunctionCallStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.IncrementStatement;
 import adsen.parser.node.statement.NodeStatement;
@@ -27,6 +28,7 @@ import adsen.runtime.Context;
 import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,6 +66,12 @@ public class Interpreter {
      */
     public Stack<Scope> scopeStack;
 
+    /**
+     * This is an older way of running the Interpreter, and is only used for certain testing
+     * Suppressing the warning because removal is quite a way off
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed")
+    @Deprecated(forRemoval = true)
     public Interpreter(List<NodeStatement> program) {
         this.statements = program;
     }
@@ -74,7 +82,7 @@ public class Interpreter {
 
     /**
      * For when the Interpreter has been initialised with a {@link List}<{@link NodeStatement}>
-     *     instead of with {@link NodeProgram}.
+     * instead of with {@link NodeProgram}.
      */
     public NodePrimitive runStatements() throws ExpressionError {
         scopeStack = new Stack<>();
@@ -93,15 +101,17 @@ public class Interpreter {
         return retVal.orElseGet(() -> IntPrimitive.of(0));
     }
 
+    /**
+     * For when the Interpreter has been initialised with a {@link NodeProgram}
+     */
     public NodePrimitive run() {
-        if(!program.functions.containsKey(MAIN_FUNCTION))
+        if (!program.functions.containsKey(MAIN_FUNCTION))
             throw new RuntimeException("Program does not contain main function");
 
         NodeFunction mainFunction = program.mainFunction();
 
         scopeStack = new Stack<>();
         scopeStack.push(Scope.fromFunction(mainFunction));
-
 
         Optional<NodePrimitive> retVal = Optional.empty();
 
@@ -116,14 +126,14 @@ public class Interpreter {
     }
 
     /**
-     * Executes the next statement in the scope
+     * Executes a particular statement in the scope
      */
     Optional<NodePrimitive> executeStatement(int i) {
         return executeStatement(scopeStack.peek().getStatement(i));
     }
 
     /**
-     * Executes a generic statement without scope context
+     * Executes a generic statement
      */
     Optional<NodePrimitive> executeStatement(NodeStatement statement) {
         int pos = scopeStack.peek().getPos();
@@ -182,7 +192,7 @@ public class Interpreter {
 
                 scopeStack.peek().setVariable(variableName, value);
             }
-            case ScopeStatement scope -> {
+            case ScopeStatement scope -> { //todo allow to exit from within scopes
                 Scope newScope = Scope.filled(scope.name, scopeStack.peek(), scope.statements);
                 scopeStack.push(newScope);
 
@@ -244,7 +254,51 @@ public class Interpreter {
                     scopeStack.peek().removeVariable(forLoopVariable);
                 }
             }
-            default -> {
+
+            case FunctionCallStatement fCallStmt -> {
+                System.out.println("Calling function "+fCallStmt.name.value);
+                // Check that the function called is an actual function in the scope
+                // This will be more complicated later on with imports etc.
+                NodeFunction func = program.getFunction(fCallStmt.name.value);
+
+                // Check that the signature is correct
+                if (fCallStmt.args.size() != func.args)
+                    throw new ExpressionError("Incorrect number of arguments for function", fCallStmt.name);
+
+                Scope newScope;
+
+                if (func.args == 0) {
+                    newScope = Scope.fromFunction(func);
+                } else {
+                    Map<String, NodePrimitive> arguments = new HashMap<>();
+
+                    //We have correct number of arguments, now we check if they are of the right type
+                    for (int i = 0; i < func.args; i++) {
+                        String desiredType = func.getSignature().get(i * 2).value;
+                        NodePrimitive argValue = evaluateExpr(fCallStmt.args.get(i));
+                        String obtainedType = argValue.getTypeString();
+
+                        if (!obtainedType.equals(desiredType)) {
+                            throw new ExpressionError("Expected '" + desiredType + "', obtained '" + obtainedType + "'", fCallStmt.name);
+                        } else {
+                            //Name of the argument, value of the argument
+                            arguments.put(func.getSignature().get(i * 2 + 1).value, argValue);
+                        }
+                    }
+
+                    newScope = Scope.fromFunction(func, arguments);
+                }
+                scopeStack.push(newScope);
+
+                for (int j = 0; j < newScope.getStatements().size() && ret.isEmpty(); j++) {
+                    ret = executeStatement(j);
+                }
+
+                scopeStack.pop();
+            }
+
+            default -> { //Might throw an error here at some point later on
+                System.out.println("Reached an unhandled statement type");
             }
         }
 
@@ -255,7 +309,7 @@ public class Interpreter {
         return evaluateExpr(expr, NONE);
     }
 
-    private BoolPrimitive evaluateExprBool(NodeExpr expr) {
+    private BoolPrimitive evaluateExprBool(NodeExpr  expr) {
         return (BoolPrimitive) evaluateExpr(expr, BOOL);
     }
 

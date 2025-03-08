@@ -54,23 +54,16 @@ public class Main {
         }
 
         final String fileName = args[0];
-        int verboseFlagIndex;
-        boolean doVerbose = false;
+        boolean doVerbose = args[1].equals("-verbose") || args[1].equals("-v");
         //Gonna replace this with better flag search once more flags are added
-        for (verboseFlagIndex = 1; verboseFlagIndex < args.length; verboseFlagIndex++) {
-            if (args[verboseFlagIndex].equals("-verbose") || args[verboseFlagIndex].equals("-v")) {
-                doVerbose = true;
-                break;
-            }
-        }
 
         VERBOSE_FLAGS = new HashSet<>();
 
         if (doVerbose) {
-            for (verboseFlagIndex += 1; verboseFlagIndex < args.length; verboseFlagIndex++) {
-                if (args[verboseFlagIndex].startsWith("-")) break;
+            for (int i = 2; i < args.length; i++) {
+                if (args[i].startsWith("-")) break; //Reached the end of verbose flags
 
-                switch (args[verboseFlagIndex]) {
+                switch (args[i]) {
                     case "t", "tokeniser" -> VERBOSE_FLAGS.add("tokeniser");
                     case "p", "parser" -> VERBOSE_FLAGS.add("parser");
                     case "i", "interpreter" -> VERBOSE_FLAGS.add("interpreter");
@@ -165,6 +158,7 @@ public class Main {
 
             //Run interpreter
             if (INTERPRET) {
+                //noinspection removal
                 Interpreter interpreter = new Interpreter(program);
                 NodePrimitive exitValue;
 

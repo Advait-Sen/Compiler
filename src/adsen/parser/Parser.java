@@ -351,7 +351,7 @@ public class Parser {
                         if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
                         scopeTokens.add(t);
                     }
-
+                    //todo check if this causes errors when creating error messages
                     yield new ScopeStatement(new Parser(scopeTokens).parseStatements(0, tokens.size()));
                 }
                 case IF -> {
@@ -408,7 +408,7 @@ public class Parser {
 
                     yield new WhileStatement(whileT, whileCondition, executionStatement);
                 }
-                case FOR -> {
+                case FOR -> { //Todo add proper checks for assigner and incrementer being assignment statements
                     Token forT = t;
                     t = consume();
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);

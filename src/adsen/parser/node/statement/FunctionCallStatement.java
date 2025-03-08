@@ -7,11 +7,11 @@ import java.util.List;
 
 public class FunctionCallStatement implements NodeStatement {
 
-    public final Token token;
+    public final Token name;
     public final List<NodeExpr> args;
 
     public FunctionCallStatement(Token token, List<NodeExpr> args) {
-        this.token = token;
+        this.name = token;
         this.args = args;
     }
 
@@ -27,7 +27,7 @@ public class FunctionCallStatement implements NodeStatement {
 
         argStr = argStr.concat(")");
 
-        return token.value + argStr;
+        return name.value + argStr;
     }
 
     @Override
