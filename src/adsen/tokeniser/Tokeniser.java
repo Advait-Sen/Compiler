@@ -108,6 +108,12 @@ public class Tokeniser {
                 //Basically just grabbing all the characters that follow until the closure of the string or char
                 while (hasNext()) {
                     c = consume();
+                    if(c == '\n'){
+                        //Incrementing line number after a newline
+                        colpos = 0;
+                        linepos++;
+                    }
+
                     //Check for end of literal
                     if (isStr && c == '"' || !isStr && c == '\'') {
                         break;
@@ -121,7 +127,7 @@ public class Tokeniser {
                             case 't' -> '\t';
                             case '\\' -> '\\';
                             case '"' -> '"'; //Allow to escape " in characters (so '\"') even tho it's unnecessary
-                            case '\'' -> '\''; //And same deal with "\'" in strings, todo add compiletime warnings
+                            case '\'' -> '\''; //And same deal with "\'" in strings, todo add compiletime warnings about this
                             default -> {
                                 token.append("\\" + c);
                                 throw new ExpressionError("Invalid escape 'character '\\" + c + "'", token);
@@ -167,11 +173,19 @@ public class Tokeniser {
                 c = consume();
                 if (c == '/') { //Line comment, consume until end of line
                     while (c != '\n') {
-                        c = consume(); //todo add newlines to linepos and colpos for proper error messages when scanning comments and strings
+                        c = consume();
                     }
+                    //Incrementing the line after the end of the comment
+                    colpos = 0;
+                    linepos++;
                 } else if (c == '*') { //Block comment, consume until '*/'
                     do {
                         c = consume();
+                        if(c == '\n') {
+                            //Incrementing the line after the end of the line
+                            colpos = 0;
+                            linepos++;
+                        }
                     } while (hasNext(1) && !(c == '*' && peek(1) == '/'));
 
                     consume(); //Consume the / at the end of the block comment
@@ -230,7 +244,7 @@ public class Tokeniser {
 
                 if (operatorTokens.containsKey(token.value)) {
                     token.type = operatorTokens.get(token.value);
-                } else if (!token.value.isEmpty()) {
+                } else if (!token.value.isEmpty()) { //In case we ran into a comment or something that leaves an incomplete token
                     throw new ExpressionError("Unknown symbol", token);
                 }
             }

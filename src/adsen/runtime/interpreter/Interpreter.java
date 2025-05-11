@@ -332,6 +332,9 @@ public class Interpreter {
         }
         */
 
+        //todo add a new NodePrimitive type of pointer, which will point to complex objects
+        //Todo add function call expr or something, which will allow for use of functions in expressions
+
         NodePrimitive retVal = IntPrimitive.of(0);
 
         if (expr instanceof NodePrimitive) {
