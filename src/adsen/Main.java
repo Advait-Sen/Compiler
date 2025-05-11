@@ -143,7 +143,7 @@ public class Main {
                 program = parser.parseStatements();
             } catch (ExpressionError expressionError) {
                 //Not using throwError here, since it's the programmer's fault, not compiler's fault
-                System.out.println("Error in parsing:");
+                System.out.println("Error in old parsing:");
                 System.out.println(expressionError.getMessage());
                 System.exit(-1);
                 return;
@@ -188,7 +188,7 @@ public class Main {
                 program = parser.parse();
             } catch (ExpressionError expressionError) {
                 //Not using throwError here, since it's the programmer's fault, not compiler's fault
-                System.out.println("Error in new parsing:");
+                System.out.println("\nError in parsing:");
                 System.out.println(expressionError.getMessage());
                 System.exit(-1);
                 return;

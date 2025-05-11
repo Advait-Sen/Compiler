@@ -256,7 +256,7 @@ public class Interpreter {
             }
 
             case FunctionCallStatement fCallStmt -> {
-                System.out.println("Calling function "+fCallStmt.name.value);
+                //System.out.println("Calling function "+fCallStmt.name.value);
                 // Check that the function called is an actual function in the scope
                 // This will be more complicated later on with imports etc.
                 NodeFunction func = program.getFunction(fCallStmt.name.value);
