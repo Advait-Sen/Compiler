@@ -352,6 +352,7 @@ public class Interpreter {
             //Placeholder made up token until I figure out better error messages
             Token errorTok = new Token(unOp.asString(), unOp.type().type);
             retVal = switch (unOp.type()) {
+                //Todo figure out what this does to non-boolean values
                 case NOT -> evaluateExprBool(unOp.operand()).negate();
 
                 case INCREMENT -> {
