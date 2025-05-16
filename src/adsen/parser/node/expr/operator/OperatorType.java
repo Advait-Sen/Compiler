@@ -18,7 +18,7 @@ public enum OperatorType {
     REMAINDER("%", 11, BINARY_OPERATOR),
     SUM("+", 10, BINARY_OPERATOR),
     DIFFERENCE("-", 10, BINARY_OPERATOR),
-    //This way of handling unary minus and plus is kinda stolen from scarpet
+    //This way of handling unary minus and plus is kinda stolen from scarpet (https://github.com/gnembon/scarpet)
     NEGATIVE("u-", 14, UNARY_OPERATOR),
     POSITIVE("u+", 14, UNARY_OPERATOR),
 
