@@ -309,7 +309,7 @@ public class Interpreter {
         return evaluateExpr(expr, NONE);
     }
 
-    private BoolPrimitive evaluateExprBool(NodeExpr  expr) {
+    private BoolPrimitive evaluateExprBool(NodeExpr expr) {
         return (BoolPrimitive) evaluateExpr(expr, BOOL);
     }
 
@@ -335,155 +335,158 @@ public class Interpreter {
         //todo add a new NodePrimitive type of pointer, which will point to complex objects
         //Todo add function call expr or something, which will allow for use of functions in expressions
 
-        NodePrimitive retVal = IntPrimitive.of(0);
+        NodePrimitive retVal = switch (expr) {
+            case NodePrimitive nodePrimitive -> nodePrimitive;
 
-        if (expr instanceof NodePrimitive) {
-            retVal = (NodePrimitive) expr;
-        }
+            case NodeIdentifier ident -> {
+                if (!scopeStack.peek().hasVariable(ident.asString()))
+                    throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
 
-        if (expr instanceof NodeIdentifier ident) {
-            if (!scopeStack.peek().hasVariable(ident.asString()))
-                throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
+                yield scopeStack.peek().getVariable(ident.asString());
+            }
+            case UnaryOperator unOp -> {
+                //Placeholder made up token until I figure out better error messages
+                Token errorTok = new Token(unOp.asString(), unOp.type().type);
 
-            retVal = scopeStack.peek().getVariable(ident.asString());
-        }
+                yield switch (unOp.type()) {
+                    //Todo figure out what this does to non-boolean values
+                    case NOT -> evaluateExprBool(unOp.operand()).negate();
 
-        if (expr instanceof UnaryOperator unOp) {
-            //Placeholder made up token until I figure out better error messages
-            Token errorTok = new Token(unOp.asString(), unOp.type().type);
-            retVal = switch (unOp.type()) {
-                //Todo figure out what this does to non-boolean values
-                case NOT -> evaluateExprBool(unOp.operand()).negate();
+                    case INCREMENT -> {
+                        IntPrimitive intP = evaluateExprInt(unOp.operand());
 
-                case INCREMENT -> {
-                    IntPrimitive intP = evaluateExprInt(unOp.operand());
+                        intP.setValue(intP.getValue() + 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
 
-                    intP.setValue(intP.getValue() + 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
-
-                    yield intP;
-                }
-
-                case DECREMENT -> {
-                    IntPrimitive intP = evaluateExprInt(unOp.operand());
-
-                    intP.setValue(intP.getValue() - 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
-
-                    yield intP;
-                }
-                //Does literally nothing except check that it's a number
-                case POSITIVE -> {
-                    NodePrimitive operand = evaluateExpr(unOp.operand());
-
-                    //Much simpler to go by exclusion
-                    if (operand instanceof BoolPrimitive) {
-                        throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                        yield intP;
                     }
 
-                    yield operand;
-                }
-                case NEGATIVE -> {
-                    NodePrimitive operand = evaluateExpr(unOp.operand());
+                    case DECREMENT -> {
+                        IntPrimitive intP = evaluateExprInt(unOp.operand());
 
-                    //Use ! to negate bool, not unary -
-                    if (operand instanceof BoolPrimitive) {
-                        throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                        intP.setValue(intP.getValue() - 1); //This might source of problems down the line, might want to make new BoolPrimitive instead
+
+                        yield intP;
                     }
+                    //Does literally nothing except check that it's a number
+                    case POSITIVE -> {
+                        NodePrimitive operand = evaluateExpr(unOp.operand());
 
-                    yield operand.negate();
-                }
-                default -> throw new ExpressionError("Don't know how we got here, unknown unary operator", errorTok);
-            };
-        }
+                        //Much simpler to go by exclusion
+                        if (operand instanceof BoolPrimitive) {
+                            throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                        }
 
-        if (expr instanceof BinaryOperator binOp) {
+                        yield operand;
+                    }
+                    case NEGATIVE -> {
+                        NodePrimitive operand = evaluateExpr(unOp.operand());
 
-            //Placeholder made up token until I figure out better error messages
-            Token errorTok = new Token(binOp.asString(), binOp.type().type);
+                        //Use ! to negate bool, not unary -
+                        if (operand instanceof BoolPrimitive) {
+                            throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                        }
 
-            //Don't keep the error as a variable since it causes expressions to be evaluated that we might not want evaluated
-            Supplier<ExpressionError> errorCreator = () -> new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, evaluateExpr(binOp.left()).getTypeString(), evaluateExpr(binOp.right()).getTypeString()), errorTok);
-
-
-            BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
-                NodePrimitive left = evaluateExpr(binOp.left());
-                NodePrimitive right = evaluateExpr(binOp.right());
-
-                //todo implicit casting later on
-                return switch (left) {
-                    case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
-                            FloatPrimitive.of(dbop.applyAsDouble(leftF.getValue(), rightF.getValue()));
-                    case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
-                            IntPrimitive.of(lbop.applyAsLong(leftI.getValue(), rightI.getValue()));
-                    case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
-                            CharPrimitive.of((char) lbop.applyAsLong(leftC.getValue(), rightC.getValue()));
-                    case null, default -> throw errorCreator.get();
-                };
-            };
-
-            Function<IntPredicate, BoolPrimitive> comparisonOp = (intop) -> {
-                NodePrimitive left = evaluateExpr(binOp.left());
-                NodePrimitive right = evaluateExpr(binOp.right());
-
-                //todo implicit casting later on
-                int comparison = switch (left) {
-                    case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
-                            Double.compare(leftF.getValue(), rightF.getValue());
-                    case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
-                            Long.compare(leftI.getValue(), rightI.getValue());
-                    case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
-                            Character.compare(leftC.getValue(), rightC.getValue());
-                    case BoolPrimitive leftC when right instanceof BoolPrimitive rightC ->
-                            Boolean.compare(leftC.getValue(), rightC.getValue());
-                    case null, default -> throw errorCreator.get();
+                        yield operand.negate();
+                    }
+                    default ->
+                            throw new ExpressionError("Don't know how we got here, unknown unary operator", errorTok);
                 };
 
-                return BoolPrimitive.of(intop.test(comparison));
-            };
+            }
+            case BinaryOperator binOp -> {
 
-            retVal = switch (binOp.type()) {
-                case SUM -> mathematicalBinOp.apply(Double::sum, Long::sum);
-                case DIFFERENCE -> mathematicalBinOp.apply((d1, d2) -> d1 - d2, (l1, l2) -> l1 - l2);
-                case PRODUCT -> mathematicalBinOp.apply((d1, d2) -> d1 * d2, (l1, l2) -> l1 * l2);
-                case QUOTIENT -> mathematicalBinOp.apply((d1, d2) -> d1 / d2, (l1, l2) -> l1 / l2);
-                case REMAINDER -> mathematicalBinOp.apply((d1, d2) -> d1 % d2, (l1, l2) -> l1 % l2);
-                case EXPONENT -> mathematicalBinOp.apply(Math::pow, (l1, l2) -> (long) Math.pow(l1, l2));
+                //Placeholder made up token until I figure out better error messages
+                Token errorTok = new Token(binOp.asString(), binOp.type().type);
 
-                case EQUAL -> comparisonOp.apply(i -> i == 0);
-                case DIFFERENT -> comparisonOp.apply(i -> i != 0);
-                case LESS -> comparisonOp.apply(i -> i < 0);
-                case GREATER -> comparisonOp.apply(i -> i > 0);
-                case LESS_EQ -> comparisonOp.apply(i -> i <= 0);
-                case GREATER_EQ -> comparisonOp.apply(i -> i >= 0);
+                //Don't keep the error as a variable since it causes expressions to be evaluated that we might not want evaluated
+                Supplier<ExpressionError> errorCreator = () -> new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, evaluateExpr(binOp.left()).getTypeString(), evaluateExpr(binOp.right()).getTypeString()), errorTok);
 
-                case AND -> {
-                    if ((evaluateExpr(binOp.left()) instanceof BoolPrimitive leftB)) {
-                        if (leftB.getValue()) {
-                            if (evaluateExpr(binOp.right()) instanceof BoolPrimitive rightB) {
-                                yield BoolPrimitive.of(rightB.getValue());
+
+                BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
+                    NodePrimitive left = evaluateExpr(binOp.left());
+                    NodePrimitive right = evaluateExpr(binOp.right());
+
+                    //todo implicit casting later on
+                    return switch (left) {
+                        case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
+                                FloatPrimitive.of(dbop.applyAsDouble(leftF.getValue(), rightF.getValue()));
+                        case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
+                                IntPrimitive.of(lbop.applyAsLong(leftI.getValue(), rightI.getValue()));
+                        case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
+                                CharPrimitive.of((char) lbop.applyAsLong(leftC.getValue(), rightC.getValue()));
+                        case null, default -> throw errorCreator.get();
+                    };
+                };
+
+                Function<IntPredicate, BoolPrimitive> comparisonOp = (intop) -> {
+                    NodePrimitive left = evaluateExpr(binOp.left());
+                    NodePrimitive right = evaluateExpr(binOp.right());
+
+                    //todo implicit casting later on
+                    int comparison = switch (left) {
+                        case FloatPrimitive leftF when right instanceof FloatPrimitive rightF ->
+                                Double.compare(leftF.getValue(), rightF.getValue());
+                        case IntPrimitive leftI when right instanceof IntPrimitive rightI ->
+                                Long.compare(leftI.getValue(), rightI.getValue());
+                        case CharPrimitive leftC when right instanceof CharPrimitive rightC ->
+                                Character.compare(leftC.getValue(), rightC.getValue());
+                        case BoolPrimitive leftC when right instanceof BoolPrimitive rightC ->
+                                Boolean.compare(leftC.getValue(), rightC.getValue());
+                        case null, default -> throw errorCreator.get();
+                    };
+
+                    return BoolPrimitive.of(intop.test(comparison));
+                };
+
+                yield switch (binOp.type()) {
+                    case SUM -> mathematicalBinOp.apply(Double::sum, Long::sum);
+                    case DIFFERENCE -> mathematicalBinOp.apply((d1, d2) -> d1 - d2, (l1, l2) -> l1 - l2);
+                    case PRODUCT -> mathematicalBinOp.apply((d1, d2) -> d1 * d2, (l1, l2) -> l1 * l2);
+                    case QUOTIENT -> mathematicalBinOp.apply((d1, d2) -> d1 / d2, (l1, l2) -> l1 / l2);
+                    case REMAINDER -> mathematicalBinOp.apply((d1, d2) -> d1 % d2, (l1, l2) -> l1 % l2);
+                    case EXPONENT -> mathematicalBinOp.apply(Math::pow, (l1, l2) -> (long) Math.pow(l1, l2));
+
+                    case EQUAL -> comparisonOp.apply(i -> i == 0);
+                    case DIFFERENT -> comparisonOp.apply(i -> i != 0);
+                    case LESS -> comparisonOp.apply(i -> i < 0);
+                    case GREATER -> comparisonOp.apply(i -> i > 0);
+                    case LESS_EQ -> comparisonOp.apply(i -> i <= 0);
+                    case GREATER_EQ -> comparisonOp.apply(i -> i >= 0);
+
+                    case AND -> {
+                        if ((evaluateExpr(binOp.left()) instanceof BoolPrimitive leftB)) {
+                            if (leftB.getValue()) {
+                                if (evaluateExpr(binOp.right()) instanceof BoolPrimitive rightB) {
+                                    yield BoolPrimitive.of(rightB.getValue());
+                                }
+                            } else { //If first value is false, don't evaluate second expression
+                                yield BoolPrimitive.of(false);
                             }
-                        } else { //If first value is false, don't evaluate second expression
-                            yield BoolPrimitive.of(false);
                         }
+                        throw errorCreator.get();
                     }
-                    throw errorCreator.get();
-                }
 
-                case OR -> {
-                    if ((evaluateExpr(binOp.left()) instanceof BoolPrimitive leftB)) {
-                        if (!leftB.getValue()) {
-                            if (evaluateExpr(binOp.right()) instanceof BoolPrimitive rightB) {
-                                yield BoolPrimitive.of(rightB.getValue());
+                    case OR -> {
+                        if ((evaluateExpr(binOp.left()) instanceof BoolPrimitive leftB)) {
+                            if (!leftB.getValue()) {
+                                if (evaluateExpr(binOp.right()) instanceof BoolPrimitive rightB) {
+                                    yield BoolPrimitive.of(rightB.getValue());
+                                }
+                            } else { //If first value is true, don't evaluate second expression
+                                yield BoolPrimitive.of(true);
                             }
-                        } else { //If first value is true, don't evaluate second expression
-                            yield BoolPrimitive.of(true);
                         }
+                        throw errorCreator.get();
                     }
-                    throw errorCreator.get();
-                }
-                //case OR -> boolBiOp.apply(Boolean::logicalOr);
-                default -> throw new ExpressionError("Don't know how we got here, unknown binary operator", errorTok);
-            };
-        }
+                    //case OR -> boolBiOp.apply(Boolean::logicalOr);
+                    default ->
+                            throw new ExpressionError("Don't know how we got here, unknown binary operator", errorTok);
+                };
+            }
+
+            //This branch should only happen when we hit a new NodeExpr that hasn't been handled yet
+            default -> IntPrimitive.of(0);
+        };
 
         return switch (context) {
             case NONE -> retVal;
