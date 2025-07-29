@@ -55,11 +55,11 @@ public class Main {
 
         final String fileName = args[0];
 
+        VERBOSE_FLAGS = new HashSet<>();
+
         if (args.length > 1) {
             boolean doVerbose = args[1].equals("-verbose") || args[1].equals("-v");
             //Gonna replace this with better flag search once more flags are added
-
-            VERBOSE_FLAGS = new HashSet<>();
 
             if (doVerbose) {
                 for (int i = 2; i < args.length; i++) {
@@ -198,7 +198,10 @@ public class Main {
 
             if (VERBOSE_FLAGS.contains("parser")) {
                 System.out.println("\nprogram.functions =");
-                program.functions.values().forEach(f -> System.out.println(f.asString()));
+                program.functions.values().forEach(f -> {
+                    System.out.println(f.asString());
+                    f.getBody().forEach(s -> System.out.println("    " + s.asString()));
+                });
             }
 
             //Run interpreter
