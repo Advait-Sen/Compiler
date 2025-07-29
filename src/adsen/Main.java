@@ -54,34 +54,36 @@ public class Main {
         }
 
         final String fileName = args[0];
-        boolean doVerbose = args[1].equals("-verbose") || args[1].equals("-v");
-        //Gonna replace this with better flag search once more flags are added
 
-        VERBOSE_FLAGS = new HashSet<>();
+        if (args.length > 1) {
+            boolean doVerbose = args[1].equals("-verbose") || args[1].equals("-v");
+            //Gonna replace this with better flag search once more flags are added
 
-        if (doVerbose) {
-            for (int i = 2; i < args.length; i++) {
-                if (args[i].startsWith("-")) break; //Reached the end of verbose flags
+            VERBOSE_FLAGS = new HashSet<>();
 
-                switch (args[i]) {
-                    case "t", "tokeniser" -> VERBOSE_FLAGS.add("tokeniser");
-                    case "p", "parser" -> VERBOSE_FLAGS.add("parser");
-                    case "i", "interpreter" -> VERBOSE_FLAGS.add("interpreter");
-                    case "g", "generator" -> VERBOSE_FLAGS.add("generator");
+            if (doVerbose) {
+                for (int i = 2; i < args.length; i++) {
+                    if (args[i].startsWith("-")) break; //Reached the end of verbose flags
+
+                    switch (args[i]) {
+                        case "t", "tokeniser" -> VERBOSE_FLAGS.add("tokeniser");
+                        case "p", "parser" -> VERBOSE_FLAGS.add("parser");
+                        case "i", "interpreter" -> VERBOSE_FLAGS.add("interpreter");
+                        case "g", "generator" -> VERBOSE_FLAGS.add("generator");
+                    }
                 }
             }
+
+            VERBOSE_FLAGS = Collections.unmodifiableSet(VERBOSE_FLAGS); //Not rly necessary, but feels useful
+
+            //Getting the compiler arguments
+            Set<String> compilerArgs = Set.of(Arrays.copyOfRange(args, 1, args.length));
+
+            PARSE_PROGRAM = !(compilerArgs.contains("-noparse") || compilerArgs.contains("-np"));
+            PARSE_STATEMENTS = compilerArgs.contains("-statements") || compilerArgs.contains("-s");
+            INTERPRET = compilerArgs.contains("-interpret") || compilerArgs.contains("-i");
+            COMPILE = compilerArgs.contains("-compile") || compilerArgs.contains("-c");
         }
-
-        VERBOSE_FLAGS = Collections.unmodifiableSet(VERBOSE_FLAGS); //Not rly necessary, but feels useful
-
-        //Getting the compiler arguments
-        Set<String> compilerArgs = Set.of(Arrays.copyOfRange(args, 1, args.length));
-
-        PARSE_PROGRAM = !(compilerArgs.contains("-noparse") || compilerArgs.contains("-np"));
-        PARSE_STATEMENTS = compilerArgs.contains("-statements") || compilerArgs.contains("-s");
-        INTERPRET = compilerArgs.contains("-interpret") || compilerArgs.contains("-i");
-        COMPILE = compilerArgs.contains("-compile") || compilerArgs.contains("-c");
-
         if (PARSE_PROGRAM && PARSE_STATEMENTS)
             throw throwError("Invalid flags, cannot set parser for program and statement at the same time");
 
