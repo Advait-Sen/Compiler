@@ -1,6 +1,7 @@
 package adsen.runtime.interpreter;
 
 import adsen.error.ExpressionError;
+import adsen.parser.node.expr.FuncCallExpr;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeFunction;
 import adsen.parser.node.NodeProgram;
@@ -21,6 +22,7 @@ import adsen.parser.node.statement.FunctionCallStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.IncrementStatement;
 import adsen.parser.node.statement.NodeStatement;
+import adsen.parser.node.statement.ReturnStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.parser.node.statement.WhileStatement;
@@ -28,6 +30,7 @@ import adsen.runtime.Context;
 import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
 
+import adsen.tokeniser.TokenType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,8 +98,7 @@ public class Interpreter {
             retVal = executeStatement(i);
         }
 
-        if (scopeStack.size() > 1)
-            throw new RuntimeException("Did not pop scopes correctly");
+        if (scopeStack.size() > 1) throw new RuntimeException("Did not pop scopes correctly");
 
         return retVal.orElseGet(() -> IntPrimitive.of(0));
     }
@@ -119,8 +121,7 @@ public class Interpreter {
             retVal = executeStatement(i);
         }
 
-        if (scopeStack.size() > 1)
-            throw new RuntimeException("Did not pop scopes correctly");
+        if (scopeStack.size() > 1) throw new RuntimeException("Did not pop scopes correctly");
 
         return retVal.orElseGet(() -> IntPrimitive.of(0));
     }
@@ -141,7 +142,7 @@ public class Interpreter {
         Optional<NodePrimitive> ret = Optional.empty();
 
         switch (statement) {
-            case ExitStatement exit -> ret = Optional.ofNullable(evaluateExpr(exit.expr()));
+            case ExitStatement exit -> ret = Optional.of(evaluateExpr(exit.expr()));
 
             case DeclareStatement declare -> {
                 NodeIdentifier identifier = declare.identifier();
@@ -297,15 +298,24 @@ public class Interpreter {
                 scopeStack.pop();
             }
 
-            /*
             case ReturnStatement retStmt -> {
+                Scope scope = scopeStack.peek();
+                System.out.println("Returning from " + scope.name);
 
-            }
-             */
+                NodePrimitive retValue = evaluateExpr(retStmt.expr());
 
-            default -> { //Might throw an error here at some point later on
-                System.out.println("Reached an unhandled statement type: "+statement.typeString());
+                //The currently executing function
+                NodeFunction function = program.getFunction(scope.name);
+
+                if (!retValue.getTypeString().equals( function.returnType.value))
+                    throw new ExpressionError("Expected '" + function.returnType.value + "' return type from function '" + function.name + "', got '" + retValue.getTypeString() + "' instead", retValue.getToken());
+
+
+                ret = Optional.of(retValue);
             }
+
+            default -> //Might throw an error here at some point later on
+                    System.out.println("Reached an unhandled statement type: " + statement.typeString());
         }
 
         return ret;
@@ -350,6 +360,7 @@ public class Interpreter {
 
                 yield scopeStack.peek().getVariable(ident.asString());
             }
+
             case UnaryOperator unOp -> {
                 //Placeholder made up token until I figure out better error messages
                 Token errorTok = new Token(unOp.asString(), unOp.type().type);
@@ -387,12 +398,13 @@ public class Interpreter {
                     case NEGATIVE -> {
                         NodePrimitive operand = evaluateExpr(unOp.operand());
 
-                        yield switch (operand){
-                            case IntPrimitive intP-> IntPrimitive.of(-intP.getValue());
-                            case FloatPrimitive floatP-> FloatPrimitive.of(-floatP.getValue());
-                            case CharPrimitive charP-> CharPrimitive.of((char) -charP.getValue());
+                        yield switch (operand) {
+                            case IntPrimitive intP -> IntPrimitive.of(-intP.getValue());
+                            case FloatPrimitive floatP -> FloatPrimitive.of(-floatP.getValue());
+                            case CharPrimitive charP -> CharPrimitive.of((char) -charP.getValue());
                             //Use ! to negate bool, not unary -
-                            case BoolPrimitive _ ->throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                            case BoolPrimitive _ ->
+                                    throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
                         };
                     }
                     default ->
@@ -489,6 +501,58 @@ public class Interpreter {
                     default ->
                             throw new ExpressionError("Don't know how we got here, unknown binary operator", errorTok);
                 };
+            }
+
+            case FuncCallExpr fCall -> {
+                //System.out.println("Calling function " + fCall.name + " within an expression");
+                // Check that the function called is an actual function in the scope
+                // This will be more complicated later on with imports etc.
+                NodeFunction func = program.getFunction(fCall.name);
+
+                // Check that the signature is correct
+                if (fCall.argCount != func.args)
+                    throw new ExpressionError("Incorrect number of arguments for function", fCall.token);
+
+                if (func.returnType.type == TokenType.VOID)
+                    throw new ExpressionError("Invalid return type, cannot have void return type here", fCall.token);
+
+                Scope newScope;
+
+                if (func.args == 0) {
+                    newScope = Scope.fromFunction(func);
+                } else {
+                    Map<String, NodePrimitive> arguments = new HashMap<>();
+
+                    //We have correct number of arguments, now we check if they are of the right type
+                    for (int i = 0; i < func.args; i++) {
+                        String desiredType = func.getSignature().get(i * 2).value;
+                        NodePrimitive argValue = evaluateExpr(fCall.arguments.get(i));
+                        String obtainedType = argValue.getTypeString();
+
+                        if (!obtainedType.equals(desiredType)) {
+                            throw new ExpressionError("Expected '" + desiredType + "', obtained '" + obtainedType + "'", fCall.token);
+                        } else {
+                            //Name of the argument, value of the argument
+                            arguments.put(func.getSignature().get(i * 2 + 1).value, argValue);
+                        }
+                    }
+
+                    newScope = Scope.fromFunction(func, arguments);
+                }
+                scopeStack.push(newScope);
+
+                Optional<NodePrimitive> ret = Optional.empty();
+
+                for (int j = 0; j < newScope.getStatements().size() && ret.isEmpty(); j++) {
+                    ret = executeStatement(j);
+                }
+
+                scopeStack.pop();
+
+                if (ret.isEmpty())
+                    throw new ExpressionError("Did not return a value from function '" + fCall.name + "'", fCall.token);
+
+                yield ret.get();
             }
 
             //This branch should only happen when we hit a new NodeExpr that hasn't been handled yet

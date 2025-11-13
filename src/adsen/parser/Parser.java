@@ -22,6 +22,7 @@ import adsen.parser.node.statement.FunctionCallStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.IncrementStatement;
 import adsen.parser.node.statement.NodeStatement;
+import adsen.parser.node.statement.ReturnStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.parser.node.statement.WhileStatement;
@@ -361,6 +362,10 @@ public class Parser {
                 case EXIT -> { //Exit statement
                     consume(); //Consume exit token
                     yield new ExitStatement(t, parseExpr(ignoreSemi, endPos));
+                }
+                case RETURN -> { //Return statement
+                    consume(); //Consume return token
+                    yield new ReturnStatement(t, parseExpr(ignoreSemi, endPos));
                 }
                 case PRIMITIVE_TYPE -> { //Static declaration
                     Token identifier = consume(); //Consuming primitive name

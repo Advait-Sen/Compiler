@@ -16,6 +16,7 @@ import static adsen.tokeniser.TokenType.FOR;
 import static adsen.tokeniser.TokenType.IF;
 import static adsen.tokeniser.TokenType.LET;
 import static adsen.tokeniser.TokenType.PRIMITIVE_TYPE;
+import static adsen.tokeniser.TokenType.RETURN;
 import static adsen.tokeniser.TokenType.VOID;
 import static adsen.tokeniser.TokenType.WHILE;
 
@@ -39,6 +40,7 @@ public class Keywords {
         put("else", ELSE);
         put("while", WHILE);
         put("for", FOR);
+        put("return", RETURN);
     }};
 
     public static Map<String, TokenType> operatorTokens = new HashMap<>();

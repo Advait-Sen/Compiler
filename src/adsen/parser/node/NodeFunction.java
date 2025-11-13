@@ -30,7 +30,7 @@ public class NodeFunction {
             throw new ExpressionError("Invalid function signature", nameToken);
 
         this.signature = signature;
-        this.args = signature.size() >> 1;
+        this.args = signature.size() / 2;
     }
 
     public void andThen(NodeStatement statement) {
