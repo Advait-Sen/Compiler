@@ -297,8 +297,14 @@ public class Interpreter {
                 scopeStack.pop();
             }
 
+            /*
+            case ReturnStatement retStmt -> {
+
+            }
+             */
+
             default -> { //Might throw an error here at some point later on
-                System.out.println("Reached an unhandled statement type");
+                System.out.println("Reached an unhandled statement type: "+statement.typeString());
             }
         }
 
@@ -381,12 +387,13 @@ public class Interpreter {
                     case NEGATIVE -> {
                         NodePrimitive operand = evaluateExpr(unOp.operand());
 
-                        //Use ! to negate bool, not unary -
-                        if (operand instanceof BoolPrimitive) {
-                            throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
-                        }
-
-                        yield operand.negate();
+                        yield switch (operand){
+                            case IntPrimitive intP-> IntPrimitive.of(-intP.getValue());
+                            case FloatPrimitive floatP-> FloatPrimitive.of(-floatP.getValue());
+                            case CharPrimitive charP-> CharPrimitive.of((char) -charP.getValue());
+                            //Use ! to negate bool, not unary -
+                            case BoolPrimitive _ ->throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                        };
                     }
                     default ->
                             throw new ExpressionError("Don't know how we got here, unknown unary operator", errorTok);
