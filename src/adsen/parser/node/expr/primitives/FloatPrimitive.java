@@ -23,11 +23,6 @@ public final class FloatPrimitive extends NodePrimitive {
         return TYPE_STRING;
     }
 
-    @Override
-    public NodePrimitive negate() {
-        return FloatPrimitive.of(-value);
-    }
-
     public static FloatPrimitive of(double value) {
         return new FloatPrimitive(value);
     }

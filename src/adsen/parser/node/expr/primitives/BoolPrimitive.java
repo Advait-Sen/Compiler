@@ -27,7 +27,6 @@ public final class BoolPrimitive extends NodePrimitive {
         return TYPE_STRING;
     }
 
-    @Override
     public NodePrimitive negate() {
         return BoolPrimitive.of(!value);
     }

@@ -1,5 +1,6 @@
 package adsen.parser.node.expr.primitives;
 
+import adsen.error.ExpressionError;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.TokenType;
 
@@ -21,11 +22,6 @@ public final class CharPrimitive extends NodePrimitive {
     @Override
     public String getTypeString() {
         return TYPE_STRING;
-    }
-
-    @Override
-    public NodePrimitive negate() {
-        return CharPrimitive.of((char) -value);
     }
 
     public static CharPrimitive of(char value) {
