@@ -9,16 +9,7 @@ import adsen.parser.node.expr.primitives.IntPrimitive;
 import java.util.HashMap;
 import java.util.Map;
 
-import static adsen.tokeniser.TokenType.BOOL_LITERAL;
-import static adsen.tokeniser.TokenType.ELSE;
-import static adsen.tokeniser.TokenType.EXIT;
-import static adsen.tokeniser.TokenType.FOR;
-import static adsen.tokeniser.TokenType.IF;
-import static adsen.tokeniser.TokenType.LET;
-import static adsen.tokeniser.TokenType.PRIMITIVE_TYPE;
-import static adsen.tokeniser.TokenType.RETURN;
-import static adsen.tokeniser.TokenType.VOID;
-import static adsen.tokeniser.TokenType.WHILE;
+import static adsen.tokeniser.TokenType.*;
 
 public class Keywords {
     public static Map<String, TokenType> tokeniserKeywords = new HashMap<>() {{
@@ -41,6 +32,7 @@ public class Keywords {
         put("while", WHILE);
         put("for", FOR);
         put("return", RETURN);
+        put("continue", CONTINUE);
     }};
 
     public static Map<String, TokenType> operatorTokens = new HashMap<>();

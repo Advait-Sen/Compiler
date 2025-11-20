@@ -15,6 +15,7 @@ import adsen.parser.node.expr.primitives.CharPrimitive;
 import adsen.parser.node.expr.primitives.FloatPrimitive;
 import adsen.parser.node.expr.primitives.IntPrimitive;
 import adsen.parser.node.statement.AssignStatement;
+import adsen.parser.node.statement.ContinueStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
 import adsen.parser.node.statement.ForStatement;
@@ -367,6 +368,12 @@ public class Parser {
                     consume(); //Consume return token
                     yield new ReturnStatement(t, parseExpr(ignoreSemi, endPos));
                 }
+
+                case CONTINUE -> { //Continue statement
+                    consume();
+                    yield new ContinueStatement(t);
+                }
+
                 case PRIMITIVE_TYPE -> { //Static declaration
                     Token identifier = consume(); //Consuming primitive name
 
@@ -502,6 +509,10 @@ public class Parser {
 
                     NodeStatement executionStatement = parseOneStatement(pos + 1);
 
+                    if (executionStatement instanceof ScopeStatement scope) {
+                        scope.setLoop();
+                    }
+
                     yield new WhileStatement(whileT, whileCondition, executionStatement);
                 }
                 case FOR -> { //Todo add proper checks for assigner and incrementer being assignment statements
@@ -533,6 +544,10 @@ public class Parser {
                     needSemi = false; //don't need semicolon after the expression
 
                     NodeStatement executionStatement = parseOneStatement(pos + 1);
+
+                    if (executionStatement instanceof ScopeStatement scope) {
+                        scope.setLoop();
+                    }
 
                     yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
                 }
@@ -598,7 +613,7 @@ public class Parser {
     //Preparing for shunting yard
     static boolean isValidExprToken(Token token) {
         return switch (token.type) {
-            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN, WHILE, FOR ->
+            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN, WHILE, FOR, CONTINUE ->
                     false; //Simpler to go by exclusion, it seems
             default -> true;
         };
