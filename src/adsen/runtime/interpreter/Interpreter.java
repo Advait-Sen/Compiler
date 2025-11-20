@@ -9,23 +9,8 @@ import adsen.parser.node.expr.NodeIdentifier;
 import adsen.parser.node.expr.operator.BinaryOperator;
 import adsen.parser.node.expr.operator.OperatorType;
 import adsen.parser.node.expr.operator.UnaryOperator;
-import adsen.parser.node.expr.primitives.BoolPrimitive;
-import adsen.parser.node.expr.primitives.CharPrimitive;
-import adsen.parser.node.expr.primitives.FloatPrimitive;
-import adsen.parser.node.expr.primitives.IntPrimitive;
-import adsen.parser.node.expr.primitives.NodePrimitive;
-import adsen.parser.node.statement.AssignStatement;
-import adsen.parser.node.statement.DeclareStatement;
-import adsen.parser.node.statement.ExitStatement;
-import adsen.parser.node.statement.ForStatement;
-import adsen.parser.node.statement.FunctionCallStatement;
-import adsen.parser.node.statement.IfStatement;
-import adsen.parser.node.statement.IncrementStatement;
-import adsen.parser.node.statement.NodeStatement;
-import adsen.parser.node.statement.ReturnStatement;
-import adsen.parser.node.statement.ScopeStatement;
-import adsen.parser.node.statement.StaticDeclareStatement;
-import adsen.parser.node.statement.WhileStatement;
+import adsen.parser.node.expr.primitives.*;
+import adsen.parser.node.statement.*;
 import adsen.runtime.Context;
 import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
@@ -300,7 +285,7 @@ public class Interpreter {
 
             case ReturnStatement retStmt -> {
                 Scope scope = scopeStack.peek();
-                System.out.println("Returning from " + scope.name);
+                //System.out.println("Returning from " + scope.name);
 
                 NodePrimitive retValue = evaluateExpr(retStmt.expr());
 
