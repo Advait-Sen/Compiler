@@ -418,7 +418,8 @@ public class Parser {
                     Token declarer = consume(); //Consuming identifier
 
                     //Could be increment or decrement
-                    if (declarer.type == UNARY_OPERATOR && peek(1).type == SEMICOLON) {
+                    //Checking that the next token is a semicolon (single statement) or closed parenthesis (for loop incrementer)
+                    if (declarer.type == UNARY_OPERATOR && (peek(1).type == SEMICOLON || peek(1).type == CLOSE_PAREN)) {
                         consume();//Consuming incrementor
                         yield new IncrementStatement(new NodeIdentifier(t), declarer, false);
                     }
