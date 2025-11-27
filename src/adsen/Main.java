@@ -165,6 +165,7 @@ public class Main {
                 NodePrimitive exitValue;
 
                 try {
+                    //noinspection deprecation
                     exitValue = interpreter.runStatements();
                 } catch (ExpressionError error) {
                     System.out.println(error.getMessage());

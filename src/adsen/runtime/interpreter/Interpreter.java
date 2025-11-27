@@ -56,10 +56,9 @@ public class Interpreter {
 
     /**
      * This is an older way of running the Interpreter, and is only used for certain testing
-     * Suppressing the warning because removal is quite a way off
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
-    @Deprecated(forRemoval = true)
+    @Deprecated()
     public Interpreter(List<NodeStatement> program) {
         this.statements = program;
     }
@@ -68,14 +67,18 @@ public class Interpreter {
         this.program = program;
     }
 
+
     /**
      * For when the Interpreter has been initialised with a {@link List}<{@link NodeStatement}>
      * instead of with {@link NodeProgram}.
+     * @deprecated This is not to be used, use {@link Interpreter#run()} instead
      */
+    @SuppressWarnings("DeprecatedIsStillUsed")
+    @Deprecated
     public NodePrimitive runStatements() throws ExpressionError {
         scopeStack = new Stack<>();
 
-        scopeStack.push(Scope.empty("main", statements)); //this is gonna change when I implement main function
+        scopeStack.push(Scope.empty("main", statements));
 
         Optional<NodePrimitive> retVal = Optional.empty();
 
@@ -115,14 +118,14 @@ public class Interpreter {
      * Executes a particular statement in the scope
      */
     Optional<NodePrimitive> executeStatement(int i) {
-        return executeStatement(scopeStack.peek().getStatement(i));
+        return executeStatement(scope().getStatement(i));
     }
 
     /**
      * Executes a generic statement
      */
     Optional<NodePrimitive> executeStatement(NodeStatement statement) {
-        int pos = scopeStack.peek().getPos();
+        int pos = scope().getPos(); //Completely unused, not even sure if it's accurate, but eh it does no harm to keep it jic
 
         Optional<NodePrimitive> ret = Optional.empty();
 
@@ -132,7 +135,7 @@ public class Interpreter {
             case DeclareStatement declare -> {
                 NodeIdentifier identifier = declare.identifier();
 
-                if (scopeStack.peek().hasVariable(identifier.asString())) {
+                if (scope().hasVariable(identifier.asString())) {
                     //Copy of Java error message
                     throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
                 }
@@ -148,38 +151,38 @@ public class Interpreter {
                     }
                 }
 
-                scopeStack.peek().setVariable(identifier.asString(), value);
+                scope().setVariable(identifier.asString(), value);
             }
             case AssignStatement assign -> {
                 String variableName = assign.identifier().asString();
 
-                if (!scopeStack.peek().hasVariable(variableName)) {
+                if (!scope().hasVariable(variableName)) {
                     throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
                 }
 
                 if (assign instanceof IncrementStatement inc) {
-                    String providedType = scopeStack.peek().getVariable(variableName).getTypeString();
+                    String providedType = scope().getVariable(variableName).getTypeString();
                     if (!providedType.equals(IntPrimitive.TYPE_STRING)) {
                         throw new ExpressionError("Cannot increment '" + providedType + "', only '" + IntPrimitive.TYPE_STRING + "' type", assign.identifier().token);
                     }
-                    IntPrimitive value = ((IntPrimitive) scopeStack.peek().getVariable(variableName));
-                    scopeStack.peek().setVariable(variableName, value.setValue(value.getValue() + (inc.incrementor == OperatorType.INCREMENT ? 1 : -1)));
+                    IntPrimitive value = ((IntPrimitive) scope().getVariable(variableName));
+                    scope().setVariable(variableName, value.setValue(value.getValue() + (inc.incrementor == OperatorType.INCREMENT ? 1 : -1)));
                     break;
                 }
 
                 NodePrimitive value = evaluateExpr(assign.expr());
 
-                String requiredType = scopeStack.peek().getVariable(variableName).getTypeString();
+                String requiredType = scope().getVariable(variableName).getTypeString();
                 String providedType = value.getTypeString();
 
                 if (!requiredType.equals(providedType)) {
                     throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
                 }
 
-                scopeStack.peek().setVariable(variableName, value);
+                scope().setVariable(variableName, value);
             }
             case ScopeStatement scope -> { //todo test exit from within scopes
-                Scope newScope = Scope.filled(scope.name, scopeStack.peek(), scope.statements);
+                Scope newScope = Scope.filled(scope.name, scope(), scope.statements);
 
                 if (scope.isLoop()) { //If this scope statement came from a loop, then make this scope a loop
                     newScope.setLoop();
@@ -188,20 +191,14 @@ public class Interpreter {
                 scopeStack.push(newScope);
 
                 for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
-                    NodeStatement scopeNodeStmt = scopeStack.peek().getStatement(j);
+                    NodeStatement scopeNodeStmt = scope().getStatement(j);
                     if (scopeNodeStmt instanceof ContinueStatement continueStmt) {
-                        if (scopeStack.peek().isLoop()) {
-
-                            if (!scopeStack.peek().continueLoop())
-                                throw new ExpressionError("Unexpected 'continue', should not have reached this point", continueStmt.token);
-
-                        } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
-
+                        handleContinueStatement(continueStmt);
                     } else { //Not gonna execute break and continue statements, since they do nothing and skip the rest of the statements in the scope
                         ret = executeStatement(j);
                     }
 
-                    if (scopeStack.peek().isLoopContinued()) {
+                    if (scope().isLoopContinued()) {
                         //Not executing the rest of the statements in this scope
                         //Calling it here, since continue might have been called (and not handled) in a child scope too
                         break;
@@ -222,14 +219,14 @@ public class Interpreter {
                 //If we continued to the end of this scope, we'll inform the previous scope
                 //That way, even the previous scope can continue if necessary, or reach the actual loop, in which case the loop will continue
                 //Idem for break
-                scopeStack.peek().inheritLoopState(newScope);
+                scope().inheritLoopState(newScope);
 
                 // If we modified a variable that was obtained from earlier scope, then remember the update
                 // This is possibly not the most efficient or correct way of doing things
                 // But this might be the most that can be done with an interpreted language
                 newScope.getVariables().forEach((s, np) -> {
-                    if (scopeStack.peek().hasVariable(s)) {
-                        scopeStack.peek().setVariable(s, np);
+                    if (scope().hasVariable(s)) {
+                        scope().setVariable(s, np);
                     }
                 });
 
@@ -249,7 +246,7 @@ public class Interpreter {
                     ret = executeStatement(whileStmt.statement());
 
                     //Idk what to do with the return value of this method
-                    scopeStack.peek().returnFromContinue();
+                    scope().returnFromContinue();
                 }
             }
             case ForStatement forStmt -> {
@@ -266,7 +263,7 @@ public class Interpreter {
                     ret = executeStatement(forStmt.statement());
 
                     //Idk what to do with the return value of this method
-                    scopeStack.peek().returnFromContinue();
+                    scope().returnFromContinue();
 
                     executeStatement(forStmt.getIncrementer());
                 }
@@ -274,7 +271,7 @@ public class Interpreter {
                 // Technically don't need this, since removing "" won't do anything
                 // But this makes it more legible, and also future-safe
                 if (!forLoopVariable.isEmpty()) {
-                    scopeStack.peek().removeVariable(forLoopVariable);
+                    scope().removeVariable(forLoopVariable);
                 }
             }
 
@@ -321,7 +318,7 @@ public class Interpreter {
             }
 
             case ReturnStatement retStmt -> {
-                Scope scope = scopeStack.peek();
+                Scope scope = scope();
                 //System.out.println("Returning from " + scope.name);
 
                 NodePrimitive retValue = evaluateExpr(retStmt.expr());
@@ -336,20 +333,26 @@ public class Interpreter {
                 ret = Optional.of(retValue);
             }
 
-            case ContinueStatement continueStmt -> {
-                if (scopeStack.peek().isLoop()) {
-
-                    if (!scopeStack.peek().continueLoop())
-                        throw new ExpressionError("Unexpected 'continue', should not have reached this point", continueStmt.token);
-
-                } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
-            }
+            case ContinueStatement continueStmt -> handleContinueStatement(continueStmt);
 
             default -> //Might throw an error here at some point later on
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
         }
 
         return ret;
+    }
+
+    private Scope scope() {
+        return scopeStack.peek();
+    }
+
+    private void handleContinueStatement(ContinueStatement continueStmt) {
+        if (scope().isLoop()) {
+
+            if (!scope().continueLoop())
+                throw new ExpressionError("Unexpected 'continue', should not have reached this point", continueStmt.token);
+
+        } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {
@@ -386,10 +389,10 @@ public class Interpreter {
             case NodePrimitive nodePrimitive -> nodePrimitive;
 
             case NodeIdentifier ident -> {
-                if (!scopeStack.peek().hasVariable(ident.asString()))
+                if (!scope().hasVariable(ident.asString()))
                     throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
 
-                yield scopeStack.peek().getVariable(ident.asString());
+                yield scope().getVariable(ident.asString());
             }
 
             case UnaryOperator unOp -> {
@@ -624,6 +627,6 @@ public class Interpreter {
      * Currently only used for verbose messages, but might in future be more useful.
      */
     public Map<String, NodePrimitive> variables() {
-        return scopeStack.peek().getVariables();
+        return scope().getVariables();
     }
 }
