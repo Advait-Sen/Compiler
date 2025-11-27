@@ -178,12 +178,35 @@ public class Interpreter {
 
                 scopeStack.peek().setVariable(variableName, value);
             }
-            case ScopeStatement scope -> { //todo allow to exit from within scopes
+            case ScopeStatement scope -> { //todo test exit from within scopes
                 Scope newScope = Scope.filled(scope.name, scopeStack.peek(), scope.statements);
+
+                if (scope.isLoop()) { //If this scope statement came from a loop, then make this scope a loop
+                    newScope.setLoop();
+                }
+
                 scopeStack.push(newScope);
 
                 for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
-                    ret = executeStatement(j);
+                    NodeStatement scopeNodeStmt = scopeStack.peek().getStatement(j);
+                    if (scopeNodeStmt instanceof ContinueStatement continueStmt) {
+                        if (scopeStack.peek().isLoop()) {
+
+                            if (!scopeStack.peek().continueLoop())
+                                throw new ExpressionError("Unexpected 'continue', should not have reached this point", continueStmt.token);
+
+                        } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
+
+                    } else { //Not gonna execute break and continue statements, since they do nothing and skip the rest of the statements in the scope
+                        ret = executeStatement(j);
+                    }
+
+                    if (scopeStack.peek().isLoopContinued()) {
+                        //Not executing the rest of the statements in this scope
+                        //Calling it here, since continue might have been called (and not handled) in a child scope too
+                        System.out.println("Breaking for continue");
+                        break;
+                    }
                 }
                 /* For printing out scopes as debug feature
                 for (Scope stackScope : scopeStack) {
@@ -196,8 +219,14 @@ public class Interpreter {
                 */
                 newScope = scopeStack.pop();
 
+
+                //If we continued to the end of this scope, we'll inform the previous scope
+                //That way, even the previous scope can continue if necessary, or reach the actual loop, in which case the loop will continue
+                //Idem for break
+                scopeStack.peek().inheritLoopState(newScope);
+
                 // If we modified a variable that was obtained from earlier scope, then remember the update
-                // This is possibly not the most efficient way of doing things
+                // This is possibly not the most efficient or correct way of doing things
                 // But this might be the most that can be done with an interpreted language
                 newScope.getVariables().forEach((s, np) -> {
                     if (scopeStack.peek().hasVariable(s)) {
@@ -217,7 +246,11 @@ public class Interpreter {
             }
             case WhileStatement whileStmt -> {
                 while (evaluateExprBool(whileStmt.condition()).getValue() && ret.isEmpty()) {
+                    //todo check for continue and break here with whileStmt.statement()
                     ret = executeStatement(whileStmt.statement());
+                    if (scopeStack.peek().returnFromContinue()) {
+                        System.out.println("Continued in while loop");
+                    }
                 }
             }
             case ForStatement forStmt -> {
@@ -230,7 +263,12 @@ public class Interpreter {
                 }
 
                 while (evaluateExprBool(forStmt.condition()).getValue() && ret.isEmpty()) {
+                    //todo check for continue and break here with forStmt.statement()
                     ret = executeStatement(forStmt.statement());
+
+                    if (scopeStack.peek().returnFromContinue()) {
+                        System.out.println("Continued in for loop");
+                    }
                     executeStatement(forStmt.getIncrementer());
                 }
 
@@ -292,12 +330,15 @@ public class Interpreter {
                 //The currently executing function
                 NodeFunction function = program.getFunction(scope.name);
 
-                if (!retValue.getTypeString().equals( function.returnType.value))
+                if (!retValue.getTypeString().equals(function.returnType.value))
                     throw new ExpressionError("Expected '" + function.returnType.value + "' return type from function '" + function.name + "', got '" + retValue.getTypeString() + "' instead", retValue.getToken());
 
 
                 ret = Optional.of(retValue);
             }
+
+            case ContinueStatement continueStmt ->
+                    throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
 
             default -> //Might throw an error here at some point later on
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
