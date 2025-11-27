@@ -336,8 +336,14 @@ public class Interpreter {
                 ret = Optional.of(retValue);
             }
 
-            case ContinueStatement continueStmt ->
-                    throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
+            case ContinueStatement continueStmt -> {
+                if (scopeStack.peek().isLoop()) {
+
+                    if (!scopeStack.peek().continueLoop())
+                        throw new ExpressionError("Unexpected 'continue', should not have reached this point", continueStmt.token);
+
+                } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
+            }
 
             default -> //Might throw an error here at some point later on
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
