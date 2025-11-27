@@ -27,6 +27,10 @@ public final class FloatPrimitive extends NodePrimitive {
         return new FloatPrimitive(value);
     }
 
+    public FloatPrimitive copy() {
+        return FloatPrimitive.of(value);
+    }
+
     public FloatPrimitive setValue(double newValue) {
         value = newValue;
         return this;
@@ -36,7 +40,7 @@ public final class FloatPrimitive extends NodePrimitive {
         return value;
     }
 
-    public String asString(){
+    public String asString() {
         token.value = String.valueOf(value);
         return super.asString();
     }

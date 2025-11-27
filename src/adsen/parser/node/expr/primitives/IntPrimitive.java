@@ -31,6 +31,10 @@ public final class IntPrimitive extends NodePrimitive {
         return new IntPrimitive(value);
     }
 
+    public IntPrimitive copy() {
+        return IntPrimitive.of(value);
+    }
+
     public IntPrimitive setValue(long newValue) {
         value = newValue;
         return this;
@@ -40,7 +44,7 @@ public final class IntPrimitive extends NodePrimitive {
         return value;
     }
 
-    public String asString(){
+    public String asString() {
         token.value = String.valueOf(value);
         return super.asString();
     }

@@ -28,6 +28,10 @@ public final class CharPrimitive extends NodePrimitive {
         return new CharPrimitive(value);
     }
 
+    public CharPrimitive copy() {
+        return CharPrimitive.of(value);
+    }
+
     public CharPrimitive setValue(char newValue) {
         value = newValue;
         return this;
@@ -37,7 +41,7 @@ public final class CharPrimitive extends NodePrimitive {
         return value;
     }
 
-    public String asString(){
+    public String asString() {
         token.value = String.valueOf(value);
         return super.asString();
     }

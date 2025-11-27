@@ -22,6 +22,10 @@ public final class BoolPrimitive extends NodePrimitive {
         return new BoolPrimitive(value);
     }
 
+    public BoolPrimitive copy() {
+        return BoolPrimitive.of(value);
+    }
+
     @Override
     public String getTypeString() {
         return TYPE_STRING;
@@ -40,7 +44,7 @@ public final class BoolPrimitive extends NodePrimitive {
         return value;
     }
 
-    public String asString(){
+    public String asString() {
         token.value = String.valueOf(value);
         return super.asString();
     }
