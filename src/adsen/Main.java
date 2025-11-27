@@ -221,7 +221,7 @@ public class Main {
                     interpreter.variables().forEach((s, np) -> System.out.println(s + ": " + np.asString()));
                 }
 
-                System.out.println("\nProcess finished with exit value " + exitValue.asString());
+                System.out.println("\nProgram finished with exit value " + exitValue.asString());
             }
 
         }
