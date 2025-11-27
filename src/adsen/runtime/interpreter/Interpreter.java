@@ -204,7 +204,6 @@ public class Interpreter {
                     if (scopeStack.peek().isLoopContinued()) {
                         //Not executing the rest of the statements in this scope
                         //Calling it here, since continue might have been called (and not handled) in a child scope too
-                        System.out.println("Breaking for continue");
                         break;
                     }
                 }
@@ -248,9 +247,9 @@ public class Interpreter {
                 while (evaluateExprBool(whileStmt.condition()).getValue() && ret.isEmpty()) {
                     //todo check for continue and break here with whileStmt.statement()
                     ret = executeStatement(whileStmt.statement());
-                    if (scopeStack.peek().returnFromContinue()) {
-                        System.out.println("Continued in while loop");
-                    }
+
+                    //Idk what to do with the return value of this method
+                    scopeStack.peek().returnFromContinue();
                 }
             }
             case ForStatement forStmt -> {
@@ -266,9 +265,9 @@ public class Interpreter {
                     //todo check for continue and break here with forStmt.statement()
                     ret = executeStatement(forStmt.statement());
 
-                    if (scopeStack.peek().returnFromContinue()) {
-                        System.out.println("Continued in for loop");
-                    }
+                    //Idk what to do with the return value of this method
+                    scopeStack.peek().returnFromContinue();
+
                     executeStatement(forStmt.getIncrementer());
                 }
 
@@ -585,7 +584,7 @@ public class Interpreter {
             default -> IntPrimitive.of(0);
         };
 
-        return switch (context) {
+        return (switch (context) {
             case NONE -> retVal;
 
             case BOOL -> {
@@ -611,7 +610,7 @@ public class Interpreter {
             //noinspection UnnecessaryDefault since it might be necessary in the future
             default ->
                     throw new ExpressionError("Don't know how we got here, found unknown evaluation context", retVal.getToken());
-        };
+        }).copy(); //todo check later if this copy breaks things
     }
 
 
