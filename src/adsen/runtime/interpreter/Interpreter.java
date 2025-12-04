@@ -79,7 +79,8 @@ public class Interpreter {
     public NodePrimitive runStatements() throws ExpressionError {
         scopeStack = new Stack<>();
 
-        scopeStack.push(Scope.empty("main", statements));
+        //It's not pretty, but this code doesn't need to be, since it's deprecated
+        scopeStack.push(Scope.empty(MAIN_FUNCTION, statements, "int"));
 
         Optional<NodePrimitive> retVal = Optional.empty();
 
@@ -263,7 +264,7 @@ public class Interpreter {
             }
             case ForStatement forStmt -> {
 
-                for (executeStatement(forStmt.getAssigner());//If the assignment is an exit statement, ignore it for now
+                for (executeStatement(forStmt.getAssigner());
                      evaluateExprBool(forStmt.condition()).getValue() && ret.isEmpty();
                      executeStatement(forStmt.getIncrementer())) {
 
@@ -333,12 +334,8 @@ public class Interpreter {
 
                 NodePrimitive retValue = evaluateExpr(retStmt.expr());
 
-                //The currently executing function
-                NodeFunction function = program.getFunction(scope.name);
-
-                if (!retValue.getTypeString().equals(function.returnType.value))
-                    throw new ExpressionError("Expected '" + function.returnType.value + "' return type from function '" + function.name + "', got '" + retValue.getTypeString() + "' instead", retValue.getToken());
-
+                if (!retValue.getTypeString().equals(scope.getReturnType()))
+                    throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope.name + "', got '" + retValue.getTypeString() + "' instead", retValue.getToken());
 
                 ret = Optional.of(retValue);
             }

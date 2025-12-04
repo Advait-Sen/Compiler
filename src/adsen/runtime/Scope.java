@@ -21,36 +21,34 @@ public class Scope {
     private int pos;
     private LoopState loopState;
     private final LoopState initialLoopState;
+    private final String returnType;
 
-    Scope(String name, List<NodeStatement> statements) {
+    private Scope(String name, List<NodeStatement> statements, String returnType) {
         this.name = name;
         this.variables = new HashMap<>();
         this.statements = statements;
         this.loopState = LoopState.NOT_LOOP;
         this.initialLoopState = loopState;
+        this.returnType = returnType;
         pos = 0;
     }
 
-    Scope(String name, Scope existing, List<NodeStatement> statements) {
-        this.name = name;
-        this.variables = new HashMap<>(existing.variables);
-        this.statements = statements; //Statements are part of new scope code
-        this.loopState = existing.loopState;
-        this.initialLoopState = existing.loopState;
-        pos = 0;
+    private Scope(String name, Scope existing, List<NodeStatement> statements) {
+        this(name, existing, statements, existing.isLoop());
     }
 
-    Scope(String name, Scope existing, List<NodeStatement> statements, boolean isLoop) {
+    private Scope(String name, Scope existing, List<NodeStatement> statements, boolean isLoop) {
         this.name = name;
         this.variables = new HashMap<>(existing.variables);
         this.statements = statements; //Statements are part of new scope code
         this.loopState = isLoop ? LoopState.LOOP : LoopState.NOT_LOOP;
         this.initialLoopState = loopState;
+        this.returnType = existing.returnType;
         pos = 0;
     }
 
-    public static Scope empty(String name, List<NodeStatement> statements) {
-        return new Scope(name, statements);
+    public static Scope empty(String name, List<NodeStatement> statements, String returnType) {
+        return new Scope(name, statements,returnType);
     }
 
     public static Scope fromPrevious(String name, Scope existing, List<NodeStatement> statements) {
@@ -76,10 +74,14 @@ public class Scope {
         if (arguments.size() != func.args)
             throw new RuntimeException("Incorrect number of arguments, expected " + func.args + ", found " + arguments.size());
 
-        Scope newScope = Scope.empty(func.name, func.getBody());
+        Scope newScope = Scope.empty(func.name, func.getBody(), func.returnType.value);
         newScope.variables.putAll(arguments);
 
         return newScope;
+    }
+
+    public String getReturnType() {
+        return returnType;
     }
 
     public NodeStatement getStatement(int i) {
