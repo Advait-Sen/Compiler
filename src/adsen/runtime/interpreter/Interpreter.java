@@ -16,6 +16,7 @@ import adsen.runtime.Scope;
 import adsen.tokeniser.Token;
 
 import adsen.tokeniser.TokenType;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,7 @@ public class Interpreter {
      * For when the Interpreter has been initialised with a {@link NodeProgram}
      */
     public NodePrimitive run() {
-        if (!program.hasFunction(MAIN_FUNCTION))
+        if (program.lacksFunction(MAIN_FUNCTION))
             throw new RuntimeException("Program does not contain main function");
 
         NodeFunction mainFunction = program.mainFunction();
@@ -287,44 +288,28 @@ public class Interpreter {
             }
 
             case FunctionCallStatement fCallStmt -> {
-                //System.out.println("Calling function "+fCallStmt);
-                // Check that the function called is an actual function in the scope
-                // This will be more complicated later on with imports etc.
-                NodeFunction func = program.getFunction(fCallStmt);
 
-                // Check that the signature is correct
-                //todo incorporate this into program.getFunction() call
-                if (fCallStmt.args.size() != func.args)
-                    throw new ExpressionError("Incorrect number of arguments for function", fCallStmt.name);
+                Map<String, NodePrimitive> arguments = new HashMap<>();
+                List<NodePrimitive> typeSignature = new ArrayList<>();
 
-                Scope newScope;
-
-                if (func.args == 0) {
-                    newScope = Scope.fromFunction(func);
-                } else {
-                    Map<String, NodePrimitive> arguments = new HashMap<>();
-
-                    //We have correct number of arguments, now we check if they are of the right type
-                    for (int i = 0; i < func.args; i++) {
-                        String desiredType = func.getSignature().get(i * 2).value;
-                        NodePrimitive argValue = evaluateExpr(fCallStmt.args.get(i));
-                        String obtainedType = argValue.getTypeString();
-
-                        if (!obtainedType.equals(desiredType)) {
-                            throw new ExpressionError("Expected '" + desiredType + "', obtained '" + obtainedType + "'", fCallStmt.name);
-                        } else {
-                            //Name of the argument, value of the argument
-                            arguments.put(func.getSignature().get(i * 2 + 1).value, argValue);
-                        }
-                    }
-
-                    newScope = Scope.fromFunction(func, arguments);
+                for (int i = 0; i < fCallStmt.args.size(); i++) {
+                    NodePrimitive argValue = evaluateExpr(fCallStmt.args.get(i));
+                    typeSignature.add(argValue);
                 }
+
+                NodeFunction func = program.getFunction(fCallStmt.name, typeSignature);
+
+                for (int i = 0; i < typeSignature.size(); i++) {
+                    arguments.put(func.getSignature().get(i * 2 + 1).value, typeSignature.get(i));
+                }
+
+                Scope newScope = Scope.fromFunction(func, arguments);
+
                 scopeStack.push(newScope);
 
                 for (int j = 0; j < newScope.getStatements().size() && ret.isEmpty(); j++) {
                     ret = executeStatement(j);
-                }
+                }//todo handle what happens if ret is not empty
 
                 scopeStack.pop();
             }
@@ -554,41 +539,26 @@ public class Interpreter {
             }
 
             case FuncCallExpr fCall -> {
-                //System.out.println("Calling function " + fCall.name + " within an expression");
-                // Check that the function called is an actual function in the scope
-                // This will be more complicated later on with imports etc.
-                NodeFunction func = program.getFunction(fCall);
 
-                // Check that the signature is correct
-                if (fCall.getArgCount() != func.args)
-                    throw new ExpressionError("Incorrect number of arguments for function", fCall.token);
+                Map<String, NodePrimitive> arguments = new HashMap<>();
+                List<NodePrimitive> typeSignature = new ArrayList<>();
+
+                for (int i = 0; i < fCall.getArgCount(); i++) {
+                    NodePrimitive argValue = evaluateExpr(fCall.arguments.get(i));
+                    typeSignature.add(argValue);
+                }
+
+                NodeFunction func = program.getFunction(fCall.token, typeSignature);
 
                 if (func.returnType.type == TokenType.VOID)
                     throw new ExpressionError("Invalid return type, cannot have void return type here", fCall.token);
 
-                Scope newScope;
-
-                if (func.args == 0) {
-                    newScope = Scope.fromFunction(func);
-                } else {
-                    Map<String, NodePrimitive> arguments = new HashMap<>();
-
-                    //We have correct number of arguments, now we check if they are of the right type
-                    for (int i = 0; i < func.args; i++) {
-                        String desiredType = func.getSignature().get(i * 2).value;
-                        NodePrimitive argValue = evaluateExpr(fCall.arguments.get(i));
-                        String obtainedType = argValue.getTypeString();
-
-                        if (!obtainedType.equals(desiredType)) {
-                            throw new ExpressionError("Expected '" + desiredType + "', obtained '" + obtainedType + "'", fCall.token);
-                        } else {
-                            //Name of the argument, value of the argument
-                            arguments.put(func.getSignature().get(i * 2 + 1).value, argValue);
-                        }
-                    }
-
-                    newScope = Scope.fromFunction(func, arguments);
+                for (int i = 0; i < typeSignature.size(); i++) {
+                    arguments.put(func.getSignature().get(i * 2 + 1).value, typeSignature.get(i));
                 }
+
+                Scope newScope = Scope.fromFunction(func, arguments);
+
                 scopeStack.push(newScope);
 
                 Optional<NodePrimitive> ret = Optional.empty();

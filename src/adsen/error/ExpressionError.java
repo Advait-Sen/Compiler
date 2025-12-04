@@ -2,6 +2,8 @@ package adsen.error;
 
 import adsen.tokeniser.Token;
 
+import static adsen.tokeniser.TokenType.VOID;
+
 public class ExpressionError extends RuntimeException {
     Token token;
     int linepos;
@@ -9,9 +11,15 @@ public class ExpressionError extends RuntimeException {
 
     public ExpressionError(String message, Token token) {
         super(message);
-        this.token = token;
-        this.linepos = token.linepos;
-        this.colpos = token.colpos;
+        if (token != null) { //Token should not be null generally, this is for special cases
+            this.token = token;
+            this.linepos = token.linepos;
+            this.colpos = token.colpos;
+        } else {
+            this.token = new Token("<empty>", VOID);
+            this.linepos = 0;
+            this.colpos = 0;
+        }
     }
 
     //todo better error messages, for eg if token is a string then wrapping with " + value + ", etc.

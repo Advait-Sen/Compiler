@@ -1,17 +1,15 @@
 package adsen.parser.node;
 
 import adsen.error.ExpressionError;
-import adsen.parser.node.expr.FuncCallExpr;
-import adsen.parser.node.statement.FunctionCallStatement;
+import adsen.parser.node.expr.primitives.NodePrimitive;
 import adsen.tokeniser.Token;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import static adsen.runtime.Scope.MAIN_FUNCTION;
@@ -31,13 +29,13 @@ public class NodeProgram {
     private final Map<String, NodeFunction> functions = new HashMap<>();
 
     private NodeFunction getFunction(String name, Supplier<List<String>> typeSignatureSupplier, Token token) {
-        if (!hasFunction(name))
+        if (lacksFunction(name))
             throw new ExpressionError("No such function '" + name + "'", token);
 
         //If the function exists and isn't overloaded
         if (functions.get(name) != null) return functions.get(name);
 
-        List<String> typeSignature = typeSignatureSupplier.get();
+        List<String> typeSignature = new ArrayList<>(typeSignatureSupplier.get());
         typeSignature.addFirst(name);
 
         if (!signatureFunctions.containsKey(typeSignature)) {
@@ -48,23 +46,14 @@ public class NodeProgram {
         return signatureFunctions.get(typeSignature);
     }
 
-    private NodeFunction getFunction(String name) {
-        if (!functions.containsKey(name))
-            throw new RuntimeException("No such function '" + name + "'");
-        return functions.get(name);
-    }
+    public NodeFunction getFunction(Token functionNameToken, List<NodePrimitive> argValues) {
+        Supplier<List<String>> typeSignatureSupplier = () -> argValues.stream().map(NodePrimitive::getTypeString).toList();
 
-    public NodeFunction getFunction(FunctionCallStatement fCallStmt) {
-
-        return getFunction(fCallStmt.name.value);
-    }
-
-    public NodeFunction getFunction(FuncCallExpr fCallExpr) {
-        return getFunction(fCallExpr.name);
+        return getFunction(functionNameToken.value, typeSignatureSupplier, functionNameToken);
     }
 
     public NodeFunction mainFunction() {
-        return getFunction(MAIN_FUNCTION);
+        return getFunction(MAIN_FUNCTION, Collections::emptyList, null);
     }
 
     /**
@@ -116,10 +105,12 @@ public class NodeProgram {
 
     /**
      * This works because even if functions have been overloaded, they will still have a {@code null} entry in
-     * {@link NodeProgram#functions}
+     * {@link NodeProgram#functions}.
+     * <p>
+     * Used to be called {@code hasFunction}, but it was always inverted, so IDE recommended inverting it lol
      */
-    public boolean hasFunction(String name) {
-        return functions.containsKey(name);
+    public boolean lacksFunction(String name) {
+        return !functions.containsKey(name);
     }
 
     public Collection<NodeFunction> getFunctions() {
