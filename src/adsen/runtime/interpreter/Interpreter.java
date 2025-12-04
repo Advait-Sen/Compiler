@@ -71,6 +71,7 @@ public class Interpreter {
     /**
      * For when the Interpreter has been initialised with a {@link List}<{@link NodeStatement}>
      * instead of with {@link NodeProgram}.
+     *
      * @deprecated This is not to be used, use {@link Interpreter#run()} instead
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
@@ -130,6 +131,8 @@ public class Interpreter {
         Optional<NodePrimitive> ret = Optional.empty();
 
         switch (statement) {
+            //Todo decide whether this should be a hard exit from all execution, or just remove this
+            //Cos rn it works like an unsafe (not type-checked) version of return
             case ExitStatement exit -> ret = Optional.of(evaluateExpr(exit.expr()));
 
             case DeclareStatement declare -> {
@@ -182,10 +185,14 @@ public class Interpreter {
                 scope().setVariable(variableName, value);
             }
             case ScopeStatement scope -> { //todo test exit from within scopes
-                Scope newScope = Scope.filled(scope.name, scope(), scope.statements);
+                Scope newScope;
 
-                if (scope.isLoop()) { //If this scope statement came from a loop, then make this scope a loop
-                    newScope.setLoop();
+                // If this scope statement came from a loop, then make this scope a loop
+                // If this scope is a new loop, then it can't inherit that state from its parent
+                if (scope.isLoop()) {
+                    newScope = Scope.fromPreviousWithLoop(scope.name, scope(), scope.statements);
+                } else {
+                    newScope = Scope.fromPrevious(scope.name, scope(), scope.statements);
                 }
 
                 scopeStack.push(newScope);
@@ -194,13 +201,15 @@ public class Interpreter {
                     NodeStatement scopeNodeStmt = scope().getStatement(j);
                     if (scopeNodeStmt instanceof ContinueStatement continueStmt) {
                         handleContinueStatement(continueStmt);
+                    } else if (scopeNodeStmt instanceof BreakStatement breakStmt) {
+                        handleBreakStatement(breakStmt);
                     } else { //Not gonna execute break and continue statements, since they do nothing and skip the rest of the statements in the scope
                         ret = executeStatement(j);
                     }
 
-                    if (scope().isLoopContinued()) {
+                    if (scope().isLoopContinued() || scope().isLoopBroken()) {
                         //Not executing the rest of the statements in this scope
-                        //Calling it here, since continue might have been called (and not handled) in a child scope too
+                        //Calling it here, since continue or break might have been called (and not handled) in a child scope too
                         break;
                     }
                 }
@@ -242,36 +251,37 @@ public class Interpreter {
             }
             case WhileStatement whileStmt -> {
                 while (evaluateExprBool(whileStmt.condition()).getValue() && ret.isEmpty()) {
-                    //todo check for continue and break here with whileStmt.statement()
                     ret = executeStatement(whileStmt.statement());
 
                     //Idk what to do with the return value of this method
                     scope().returnFromContinue();
+
+                    if (scope().returnFromBreak()) {
+                        break;
+                    }
                 }
             }
             case ForStatement forStmt -> {
-                executeStatement(forStmt.getAssigner()); //If the assignment is an exit statement, ignore it
 
-                String forLoopVariable = "";
-                //If we managed to execute it, that means it went successfully
-                if (forStmt.getAssigner() instanceof DeclareStatement declare) {
-                    forLoopVariable = declare.identifier().asString();
-                }
+                for (executeStatement(forStmt.getAssigner());//If the assignment is an exit statement, ignore it for now
+                     evaluateExprBool(forStmt.condition()).getValue() && ret.isEmpty();
+                     executeStatement(forStmt.getIncrementer())) {
 
-                while (evaluateExprBool(forStmt.condition()).getValue() && ret.isEmpty()) {
-                    //todo check for continue and break here with forStmt.statement()
                     ret = executeStatement(forStmt.statement());
 
                     //Idk what to do with the return value of this method
                     scope().returnFromContinue();
 
-                    executeStatement(forStmt.getIncrementer());
+                    if (scope().returnFromBreak()) {
+                        break;
+                    }
                 }
 
-                // Technically don't need this, since removing "" won't do anything
-                // But this makes it more legible, and also future-safe
-                if (!forLoopVariable.isEmpty()) {
-                    scope().removeVariable(forLoopVariable);
+                // Removing for loop variable
+                // If scope already contained a variable with that name, then the statement won't have executed properly
+                // So no need to worry about possibly removing an important variable
+                if (forStmt.getAssigner() instanceof DeclareStatement declare) {
+                    scope().removeVariable(declare.identifier().asString());
                 }
             }
 
@@ -334,6 +344,7 @@ public class Interpreter {
             }
 
             case ContinueStatement continueStmt -> handleContinueStatement(continueStmt);
+            case BreakStatement breakStmt -> handleBreakStatement(breakStmt);
 
             default -> //Might throw an error here at some point later on
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
@@ -348,11 +359,18 @@ public class Interpreter {
 
     private void handleContinueStatement(ContinueStatement continueStmt) {
         if (scope().isLoop()) {
-
             if (!scope().continueLoop())
                 throw new ExpressionError("Unexpected 'continue', should not have reached this point", continueStmt.token);
 
         } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
+    }
+
+    private void handleBreakStatement(BreakStatement breakStmt) {
+        if (scope().isLoop()) {
+            if (!scope().breakLoop())
+                throw new ExpressionError("Unexpected 'break', should not have reached this point", breakStmt.token);
+
+        } else throw new ExpressionError("Unexpected 'break' outside of loop", breakStmt.token);
     }
 
     private NodePrimitive evaluateExpr(NodeExpr expr) {

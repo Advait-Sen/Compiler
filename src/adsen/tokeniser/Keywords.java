@@ -33,6 +33,7 @@ public class Keywords {
         put("for", FOR);
         put("return", RETURN);
         put("continue", CONTINUE);
+        put("break", BREAK);
     }};
 
     public static Map<String, TokenType> operatorTokens = new HashMap<>();

@@ -20,12 +20,14 @@ public class Scope {
     private final List<NodeStatement> statements;
     private int pos;
     private LoopState loopState;
+    private final LoopState initialLoopState;
 
     Scope(String name, List<NodeStatement> statements) {
         this.name = name;
         this.variables = new HashMap<>();
         this.statements = statements;
         this.loopState = LoopState.NOT_LOOP;
+        this.initialLoopState = loopState;
         pos = 0;
     }
 
@@ -34,6 +36,16 @@ public class Scope {
         this.variables = new HashMap<>(existing.variables);
         this.statements = statements; //Statements are part of new scope code
         this.loopState = existing.loopState;
+        this.initialLoopState = existing.loopState;
+        pos = 0;
+    }
+
+    Scope(String name, Scope existing, List<NodeStatement> statements, boolean isLoop) {
+        this.name = name;
+        this.variables = new HashMap<>(existing.variables);
+        this.statements = statements; //Statements are part of new scope code
+        this.loopState = isLoop ? LoopState.LOOP : LoopState.NOT_LOOP;
+        this.initialLoopState = loopState;
         pos = 0;
     }
 
@@ -41,8 +53,12 @@ public class Scope {
         return new Scope(name, statements);
     }
 
-    public static Scope filled(String name, Scope existing, List<NodeStatement> statements) {
+    public static Scope fromPrevious(String name, Scope existing, List<NodeStatement> statements) {
         return new Scope(name, existing, statements);
+    }
+
+    public static Scope fromPreviousWithLoop(String name, Scope existing, List<NodeStatement> statements) {
+        return new Scope(name, existing, statements, true);
     }
 
     /**
@@ -113,16 +129,9 @@ public class Scope {
 
     //Loop methods
 
-    public void setLoop() {
-        if(this.loopState == LoopState.NOT_LOOP){
-            this.loopState = LoopState.LOOP;
-        }
-    }
-
     /**
      * Is it not not a loop? Then it is a loop
      */
-
     public boolean isLoop() {
         return this.loopState != LoopState.NOT_LOOP;
     }
@@ -133,9 +142,22 @@ public class Scope {
      * @return {@code true} if {@link Scope#loopState} was equal to {@link LoopState#LOOP}, now set to {@link LoopState#LOOP_CONTINUE}
      */
     public boolean continueLoop() {
-        if(this.loopState == LoopState.LOOP){
+        if (this.loopState == LoopState.LOOP) {
             this.loopState = LoopState.LOOP_CONTINUE;
-           return true;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Attempts to run {@code break} within a loop. Leaves throwing errors in case of invalid state to the caller
+     *
+     * @return {@code true} if {@link Scope#loopState} was equal to {@link LoopState#LOOP}, now set to {@link LoopState#LOOP_BREAK}
+     */
+    public boolean breakLoop() {
+        if (this.loopState == LoopState.LOOP) {
+            this.loopState = LoopState.LOOP_BREAK;
+            return true;
         }
         return false;
     }
@@ -149,22 +171,36 @@ public class Scope {
         return this.loopState == LoopState.LOOP_CONTINUE;
     }
 
+    /**
+     * Returns true if the loop has seen a {@code break} statement
+     *
+     * @return {@code true} if the loop is in the {@link LoopState#LOOP_BREAK} state
+     */
+    public boolean isLoopBroken() {
+        return this.loopState == LoopState.LOOP_BREAK;
+    }
+
     public boolean returnFromContinue() {
-        if(this.loopState == LoopState.LOOP_CONTINUE) {
-            this.loopState = LoopState.LOOP;
+        if (this.loopState == LoopState.LOOP_CONTINUE) {
+            this.loopState = initialLoopState;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean returnFromBreak() {
+        if (this.loopState == LoopState.LOOP_BREAK) {
+            this.loopState = initialLoopState;
             return true;
         }
         return false;
     }
 
     /**
-     * When continue or break is called in a child scope, and the parent
-     * @param child
+     * When continue or break is called in a child scope, but not handled, the parent scope must inherit it
      */
     public void inheritLoopState(Scope child) {
-        if(this.isLoop()) {
-            this.loopState = child.loopState;
-        }
+        this.loopState = child.loopState;
     }
 }
 
@@ -172,8 +208,5 @@ public class Scope {
  * Enum to track state with regard to loops
  */
 enum LoopState {
-    NOT_LOOP,
-    LOOP,
-    LOOP_CONTINUE,
-    LOOP_BREAK
+    NOT_LOOP, LOOP, LOOP_CONTINUE, LOOP_BREAK
 }

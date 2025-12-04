@@ -15,6 +15,7 @@ import adsen.parser.node.expr.primitives.CharPrimitive;
 import adsen.parser.node.expr.primitives.FloatPrimitive;
 import adsen.parser.node.expr.primitives.IntPrimitive;
 import adsen.parser.node.statement.AssignStatement;
+import adsen.parser.node.statement.BreakStatement;
 import adsen.parser.node.statement.ContinueStatement;
 import adsen.parser.node.statement.DeclareStatement;
 import adsen.parser.node.statement.ExitStatement;
@@ -372,6 +373,11 @@ public class Parser {
                 case CONTINUE -> { //Continue statement
                     consume();
                     yield new ContinueStatement(t);
+                }
+
+                case BREAK -> { //Break statement
+                    consume();
+                    yield new BreakStatement(t);
                 }
 
                 case PRIMITIVE_TYPE -> { //Static declaration
