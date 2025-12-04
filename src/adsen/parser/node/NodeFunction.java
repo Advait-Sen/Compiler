@@ -45,6 +45,18 @@ public class NodeFunction {
         return body;
     }
 
+    /**
+     * Intended to be used for storing functions in {@link NodeProgram}
+     */
+    public List<String> getTypeSignature() {
+        List<String> typeSignature = new ArrayList<>();
+
+        for (int i = 0; i < signature.size(); i += 2) {
+            typeSignature.add(signature.get(i).value);
+        }
+        return typeSignature;
+    }
+
     public List<Token> getSignature() {
         return signature;
     }

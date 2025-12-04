@@ -97,7 +97,7 @@ public class Interpreter {
      * For when the Interpreter has been initialised with a {@link NodeProgram}
      */
     public NodePrimitive run() {
-        if (!program.functions.containsKey(MAIN_FUNCTION))
+        if (!program.hasFunction(MAIN_FUNCTION))
             throw new RuntimeException("Program does not contain main function");
 
         NodeFunction mainFunction = program.mainFunction();
@@ -287,12 +287,13 @@ public class Interpreter {
             }
 
             case FunctionCallStatement fCallStmt -> {
-                //System.out.println("Calling function "+fCallStmt.name.value);
+                //System.out.println("Calling function "+fCallStmt);
                 // Check that the function called is an actual function in the scope
                 // This will be more complicated later on with imports etc.
-                NodeFunction func = program.getFunction(fCallStmt.name.value);
+                NodeFunction func = program.getFunction(fCallStmt);
 
                 // Check that the signature is correct
+                //todo incorporate this into program.getFunction() call
                 if (fCallStmt.args.size() != func.args)
                     throw new ExpressionError("Incorrect number of arguments for function", fCallStmt.name);
 
@@ -556,10 +557,10 @@ public class Interpreter {
                 //System.out.println("Calling function " + fCall.name + " within an expression");
                 // Check that the function called is an actual function in the scope
                 // This will be more complicated later on with imports etc.
-                NodeFunction func = program.getFunction(fCall.name);
+                NodeFunction func = program.getFunction(fCall);
 
                 // Check that the signature is correct
-                if (fCall.argCount != func.args)
+                if (fCall.getArgCount() != func.args)
                     throw new ExpressionError("Incorrect number of arguments for function", fCall.token);
 
                 if (func.returnType.type == TokenType.VOID)

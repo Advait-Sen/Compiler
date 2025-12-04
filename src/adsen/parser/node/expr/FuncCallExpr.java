@@ -12,22 +12,21 @@ import java.util.stream.Collectors;
 public class FuncCallExpr implements NodeExpr {
     public final Token token;
     public final String name;
-    /**
-     * This is for testing purposes, should be the same as {@link FuncCallExpr#argCount}
-     */
-    public int expectedArgCount;
-    public int argCount;
-    public List<NodeExpr> arguments = new ArrayList<>();
+    private int argCount;
+    public final List<NodeExpr> arguments = new ArrayList<>();
 
-    public FuncCallExpr(Token token, int args) {
+    public FuncCallExpr(Token token) {
         this.token = token;
         this.name = token.value;
-        this.expectedArgCount = args;
     }
 
     public void addArgument(NodeExpr arg) {
         arguments.addFirst(arg);
         argCount = arguments.size();
+    }
+
+    public int getArgCount() {
+        return argCount;
     }
 
     @Override

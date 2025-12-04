@@ -1,25 +1,132 @@
 package adsen.parser.node;
 
+import adsen.error.ExpressionError;
+import adsen.parser.node.expr.FuncCallExpr;
+import adsen.parser.node.statement.FunctionCallStatement;
+import adsen.tokeniser.Token;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Supplier;
 
 import static adsen.runtime.Scope.MAIN_FUNCTION;
 
 public class NodeProgram {
 
     /**
-     * Map of function names to functions
+     * Stores functions which are overloaded, which require the signature to be distinguished in order to identify them.
+     * <p>
+     * The first string in the list will be the name of the function, followed by its signature (as strings for simplicity)
      */
-    public final Map<String, NodeFunction> functions = new HashMap<>();
+    private final Map<List<String>, NodeFunction> signatureFunctions = new HashMap<>();
 
-    public NodeFunction getFunction(String name) {
+    /**
+     * Stores functions which are not overloaded (with the assumption that this means most of them
+     */
+    private final Map<String, NodeFunction> functions = new HashMap<>();
+
+    private NodeFunction getFunction(String name, Supplier<List<String>> typeSignatureSupplier, Token token) {
+        if (!hasFunction(name))
+            throw new ExpressionError("No such function '" + name + "'", token);
+
+        //If the function exists and isn't overloaded
+        if (functions.get(name) != null) return functions.get(name);
+
+        List<String> typeSignature = typeSignatureSupplier.get();
+        typeSignature.addFirst(name);
+
+        if (!signatureFunctions.containsKey(typeSignature)) {
+            typeSignature.removeFirst();
+            throw new ExpressionError("No such function '" + name + typeSignature + "'", token);
+        }
+
+        return signatureFunctions.get(typeSignature);
+    }
+
+    private NodeFunction getFunction(String name) {
         if (!functions.containsKey(name))
             throw new RuntimeException("No such function '" + name + "'");
         return functions.get(name);
     }
 
+    public NodeFunction getFunction(FunctionCallStatement fCallStmt) {
+
+        return getFunction(fCallStmt.name.value);
+    }
+
+    public NodeFunction getFunction(FuncCallExpr fCallExpr) {
+        return getFunction(fCallExpr.name);
+    }
+
     public NodeFunction mainFunction() {
         return getFunction(MAIN_FUNCTION);
+    }
+
+    /**
+     * Attempts to add a function directly to {@link NodeProgram#functions}. If the function already exists, then both
+     * get moved into {@link NodeProgram#signatureFunctions}, with only a stub left behind to indicate that the function
+     * exists over there.
+     */
+    public void addFunction(String name, NodeFunction function) {
+        //Simplest scenario, function doesn't exist yet
+        if (!functions.containsKey(name)) {
+            functions.put(name, function);
+            return;
+        }
+
+        //Function's type signature (minus its name in the front)
+        List<String> funcTypeSig = function.getTypeSignature();
+
+        //The function hasn't already been overloaded
+        //Check that the signatures don't match, then put them both in signatureFunctions
+        if (functions.get(name) != null) {
+            NodeFunction other = functions.get(name);
+            List<String> otherTypeSig = other.getTypeSignature();
+
+            if (funcTypeSig.equals(otherTypeSig))
+                throw new ExpressionError("Cannot have multiple functions with the same signature", function.token);
+
+            //We have confirmed that they have different signatures, so we complete the signatures
+            funcTypeSig.addFirst(name);
+            otherTypeSig.addFirst(name);
+
+            signatureFunctions.put(funcTypeSig, function);
+            signatureFunctions.put(otherTypeSig, other);
+
+            //This will tell future functions with this name that the method has already been overloaded
+            functions.put(name, null);
+            return;
+        }
+
+        // If we get here, the function has already been overloaded before
+
+        //Completing the signature
+        funcTypeSig.addFirst(name);
+
+        if (signatureFunctions.containsKey(funcTypeSig))
+            throw new ExpressionError("Cannot have multiple functions with the same signature", function.token);
+
+        signatureFunctions.put(funcTypeSig, function);
+    }
+
+    /**
+     * This works because even if functions have been overloaded, they will still have a {@code null} entry in
+     * {@link NodeProgram#functions}
+     */
+    public boolean hasFunction(String name) {
+        return functions.containsKey(name);
+    }
+
+    public Collection<NodeFunction> getFunctions() {
+        List<NodeFunction> allFunctions = new ArrayList<>();
+        functions.values().stream().filter(Objects::nonNull).forEach(allFunctions::add);
+        allFunctions.addAll(signatureFunctions.values());
+        return allFunctions;
     }
 
     /**

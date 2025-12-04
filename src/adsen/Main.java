@@ -199,7 +199,7 @@ public class Main {
 
             if (VERBOSE_FLAGS.contains("parser")) {
                 System.out.println("\nprogram.functions =");
-                program.functions.values().forEach(f -> {
+                program.getFunctions().forEach(f -> {
                     System.out.println(f.asString());
                     f.getBody().forEach(s -> System.out.println("    " + s.asString()));
                 });

@@ -251,7 +251,7 @@ public class Parser {
                     String[] splitValue = funTok.value.split(" ");
                     funTok.value = splitValue[0];
                     int args = Integer.parseInt(splitValue[1]);
-                    FuncCallExpr func = new FuncCallExpr(funTok, args);
+                    FuncCallExpr func = new FuncCallExpr(funTok);
                     //postfix.add(func);
                     //Popping function arguments from stack into function node expression
                     for (int j = 0; j < args; j++) {
@@ -317,10 +317,6 @@ public class Parser {
 
                     }
 
-                    if(program.functions.containsKey(functionName.value)){ //Will implement overloading later
-                        throw new ExpressionError("Already had function with this name: "+program.functions.get(functionName.value).asString(), functionName);
-                    }
-
                     NodeFunction function = new NodeFunction(returnType, functionName, signature);
 
                     if (peek(1).type != C_OPEN_PAREN)
@@ -328,7 +324,7 @@ public class Parser {
 
                     function.andThen(((ScopeStatement) parseOneStatement(pos + 1)).statements);
 
-                    program.functions.put(function.name, function);
+                    program.addFunction(function.name, function);
                 }
                 default -> throw new ExpressionError("Unexpected token: " + t, t);
             }
