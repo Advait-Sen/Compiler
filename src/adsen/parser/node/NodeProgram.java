@@ -10,7 +10,7 @@ public class NodeProgram {
     /**
      * Map of function names to functions
      */
-    public Map<String, NodeFunction> functions = new HashMap<>();
+    public final Map<String, NodeFunction> functions = new HashMap<>();
 
     public NodeFunction getFunction(String name) {
         if (!functions.containsKey(name))

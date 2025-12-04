@@ -317,6 +317,10 @@ public class Parser {
 
                     }
 
+                    if(program.functions.containsKey(functionName.value)){ //Will implement overloading later
+                        throw new ExpressionError("Already had function with this name: "+program.functions.get(functionName.value).asString(), functionName);
+                    }
+
                     NodeFunction function = new NodeFunction(returnType, functionName, signature);
 
                     if (peek(1).type != C_OPEN_PAREN)
