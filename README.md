@@ -8,14 +8,11 @@ Heavily inspired by this YouTube series which compiles a programming language ca
 
 Currently, a work in progress.
 
-The current working idea for the compiler is for it to compile to C
+The current working idea for the compiler is for it to translate to C
 
-So a program written in Helium will be compiled by this program into a .c file.
-This is a totally intelligent decision, which has nothing to do with the fact that Helium's syntax just so happens to be
-tending towards C syntax, making the translation pretty simple (so far).
-
-More importantly, it means I can avoid having to implement the compilation to machine code, since that part will in
-theory be handled by whichever C compiler is used (provided of course, that I can compile to C properly)
+So a program written in Helium will be translated by this program into a .c file (or multiple).
+This means I can avoid having to implement the compilation to machine code, since that part will in
+theory be handled by whichever C compiler is used (provided of course, that I can translate to C properly)
 
 ## Helium Interpreter
 Seen as though making a compiler is hard, that part is currently on hold, in favour of making an interpreter for the

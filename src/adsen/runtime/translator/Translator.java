@@ -1,4 +1,4 @@
-package adsen.runtime.generator;
+package adsen.runtime.translator;
 
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeProgram;
@@ -10,9 +10,9 @@ import java.util.Stack;
  * Classes which generate assembly from code will inherit from this class.
  * <p>
  * In order to make it easier (and since the language is still pretty simple, a lot of work is standardised
- * This means that classes inheriting from {@link Generator} will simply need to implement the direct assembly-translating methods
+ * This means that classes inheriting from {@link Translator} will simply need to implement the direct assembly-translating methods
  */
-public abstract class Generator {
+public abstract class Translator {
     /**
      * The program from which we are generating assembly
      */
@@ -30,7 +30,7 @@ public abstract class Generator {
      */
     private Set<String> variables;
 
-    public Generator(NodeProgram program) {
+    public Translator(NodeProgram program) {
         this.program = program;
     }
 
