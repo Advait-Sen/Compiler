@@ -5,7 +5,7 @@ import adsen.tokeniser.Token;
 
 import java.util.List;
 
-public class FunctionCallStatement implements NodeStatement {
+public class FunctionCallStatement extends NodeStatement {
 
     public final Token name;
     public final List<NodeExpr> args;

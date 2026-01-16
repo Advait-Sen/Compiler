@@ -34,6 +34,7 @@ public class Keywords {
         put("return", RETURN);
         put("continue", CONTINUE);
         put("break", BREAK);
+        put("import", IMPORT);
     }};
 
     public static Map<String, TokenType> operatorTokens = new HashMap<>();

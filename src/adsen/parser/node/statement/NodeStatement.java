@@ -1,9 +1,11 @@
 package adsen.parser.node.statement;
 
-public interface NodeStatement {
-    String asString();
+public abstract class NodeStatement {
+    public abstract String asString();
     /**
      * String indicating type of statement
      */
-    String typeString();
+    public abstract String typeString();
+
+    //TODO implement execute() function to implement Factory Method design pattern or smth
 }

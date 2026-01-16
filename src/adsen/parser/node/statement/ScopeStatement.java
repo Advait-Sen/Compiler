@@ -1,12 +1,11 @@
 package adsen.parser.node.statement;
 
-import adsen.error.ExpressionError;
 import java.util.List;
 
 /**
  * A scope will be declared by curly brackets surrounding some statements
  */
-public class ScopeStatement implements NodeStatement {
+public class ScopeStatement extends NodeStatement {
     public final List<NodeStatement> statements;
     private boolean isLoop = false;
     public final String name; //If applicable

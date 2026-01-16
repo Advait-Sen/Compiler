@@ -3,7 +3,7 @@ package adsen.parser.node.statement;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class IfStatement implements NodeStatement {
+public class IfStatement extends NodeStatement {
     public final Token token;
     NodeExpr condition;
     NodeStatement thenStatement;
