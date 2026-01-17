@@ -12,7 +12,7 @@ public class ImportData {
     /**
      * The path to the file from which this data was derived
      */
-    private ImportPath importPath;
+    private final ImportPath importPath;
     private final FileType type;
 
     /**

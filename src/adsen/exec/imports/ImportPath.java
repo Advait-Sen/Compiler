@@ -22,7 +22,7 @@ public class ImportPath {
 
     public ImportPath(List<Token> importTokens) {
         token = importTokens.getFirst();
-        path = importTokens.stream().skip(1).limit(importTokens.size() - 1).map(t -> t.value).toList();
+        path = importTokens.stream().skip(1).limit(importTokens.size() - 2).map(t -> t.value).toList();
         file = importTokens.getLast().value;
     }
 

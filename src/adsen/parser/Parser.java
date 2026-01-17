@@ -162,12 +162,6 @@ public class Parser {
 
                     // We just finished the imports
                     if (!importsFinished) {
-                        //TODO find somewhere else to print this
-                        System.out.println("Imports:");
-                        imports.forEach(lt -> {
-                            lt.forEach(tk -> System.out.print("/" + tk.value));
-                            System.out.println(";");
-                        });
                         IMPORT_HANDLER.acceptImports(imports);
                     }
 
@@ -411,7 +405,12 @@ public class Parser {
                     Token forT = t;
                     t = consume();
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
+
                     NodeStatement assigner = parseOneStatement(pos + 1);
+                    if(!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
+                        throw new ExpressionError("Invalid assigner expression in for statement", t);
+                    }
+
                     List<Token> conditionTokens = new ArrayList<>();
 
                     for (t = consume(); isValidExprToken(t); t = consume()) {
@@ -432,6 +431,10 @@ public class Parser {
                     }
 
                     NodeStatement incrementer = parseStatements(pos + 1, 1, closed_bracket_pos, true).getFirst();
+
+                    if(!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
+                        throw new ExpressionError("Invalid incrementer expression in for statement", t);
+                    }
 
                     needSemi = false; //don't need semicolon after the expression
 

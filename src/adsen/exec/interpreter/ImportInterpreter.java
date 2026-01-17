@@ -5,7 +5,6 @@ import adsen.exec.imports.ImportData;
 import adsen.exec.imports.ImportPath;
 import adsen.exec.imports.ImportHandler;
 import adsen.tokeniser.Token;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,7 +18,7 @@ import static adsen.parser.Parser.ROOT_DIRECTORY;
 
 public class ImportInterpreter implements ImportHandler {
 
-
+    //TODO eventually handle duplicate imports
     private final Set<ImportPath> nativeImports = new HashSet<>();
     private final Set<ImportPath> externalImports = new HashSet<>();
 
@@ -47,7 +46,6 @@ public class ImportInterpreter implements ImportHandler {
     public void loadImportData() {
         for (ImportPath importPath : externalImports) {
             String pathString = importPath.path();
-            System.out.println("Attempting to get import data from "+pathString +" \\ "+importPath.file);
             Path fileDirPath = ROOT_DIRECTORY.resolve(pathString);
 
             ImportData importData;
@@ -66,6 +64,7 @@ public class ImportInterpreter implements ImportHandler {
                 } else throw new IOException("Could not find file " + importPath.file);
 
             } catch (IOException ioException) {
+                ioException.printStackTrace();
                 throw new ExpressionError("Could not import " + importPath.file + " from " + pathString + " due to: " + ioException.getMessage(), importPath.token);
             }
 
