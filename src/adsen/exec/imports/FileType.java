@@ -33,4 +33,13 @@ public enum FileType {
         }
         return null;
     }
+
+    /**
+     * Returns the {@link FileType} associated with a file name's ending, or {@null} if it isn't recognised
+     */
+    public static FileType getTypeFromName(String fileName) {
+        String extension = fileName.substring(fileName.indexOf('.')+1);
+
+        return getTypeFromExtension(extension);
+    }
 }

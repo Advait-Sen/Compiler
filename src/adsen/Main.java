@@ -1,6 +1,7 @@
 package adsen;
 
 import adsen.error.ExpressionError;
+import adsen.exec.imports.FileType;
 import adsen.exec.interpreter.ImportInterpreter;
 import adsen.parser.Parser;
 import adsen.parser.HeliumProgram;
@@ -52,10 +53,13 @@ public class Main {
     public static void main(String[] args) {
 
         if (args.length == 0) {
-            throw throwError("Must have at least a file name to compile");
+            throw throwError("Must have at least a file name to execute");
         }
 
         final String fileName = args[0];
+
+        if (FileType.getTypeFromName(fileName) != FileType.STANDARD)
+            throw throwError("Must select a .he file as main file");
 
         VERBOSE_FLAGS = new HashSet<>();
 

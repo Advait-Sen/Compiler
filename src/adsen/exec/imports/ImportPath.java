@@ -9,6 +9,11 @@ import static java.io.File.separator;
  * This class represents a single import string, im preparation to find its location in memory
  */
 public class ImportPath {
+    /**
+     * Used to generate errors
+     */
+    public final Token token;
+
     private final List<String> path;
     /**
      * The name of the file with the Helium code
@@ -16,7 +21,8 @@ public class ImportPath {
     public final String file;
 
     public ImportPath(List<Token> importTokens) {
-        path = importTokens.stream().limit(importTokens.size() - 1).map(t -> t.value).toList();
+        token = importTokens.getFirst();
+        path = importTokens.stream().skip(1).limit(importTokens.size() - 1).map(t -> t.value).toList();
         file = importTokens.getLast().value;
     }
 

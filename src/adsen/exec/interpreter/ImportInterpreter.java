@@ -1,5 +1,6 @@
 package adsen.exec.interpreter;
 
+import adsen.error.ExpressionError;
 import adsen.exec.imports.ImportData;
 import adsen.exec.imports.ImportPath;
 import adsen.exec.imports.ImportHandler;
@@ -49,6 +50,8 @@ public class ImportInterpreter implements ImportHandler {
             System.out.println("Attempting to get import data from "+pathString +" \\ "+importPath.file);
             Path fileDirPath = ROOT_DIRECTORY.resolve(pathString);
 
+            ImportData importData;
+
             try (Stream<Path> pathStream = Files.list(fileDirPath)) {
 
                 Optional<Path> path = pathStream.filter(p -> {
@@ -59,12 +62,14 @@ public class ImportInterpreter implements ImportHandler {
                 }).findFirst();
 
                 if (path.isPresent()) {
-                    externalImportData.add(new ImportData(importPath, path.get()));
+                    importData = new ImportData(importPath, path.get());
                 } else throw new IOException("Could not find file " + importPath.file);
 
             } catch (IOException ioException) {
-                System.out.println("Could not import " + importPath.file + " from " + pathString + " due to: " + ioException.getMessage());
+                throw new ExpressionError("Could not import " + importPath.file + " from " + pathString + " due to: " + ioException.getMessage(), importPath.token);
             }
+
+            externalImportData.add(importData);
         }
     }
 }

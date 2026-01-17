@@ -320,6 +320,8 @@ public class Parser {
 
                     List<Token> importLocation = new ArrayList<>();
 
+                    importLocation.add(t);
+
                     for (Token next = consume(); next.type != SEMICOLON; next = consume()) {
 
                         if (isValidImportToken(next)) {
@@ -346,6 +348,7 @@ public class Parser {
 
                     // We just finished the imports
                     if (!importsFinished) {
+                        //TODO find somewhere else to print this
                         System.out.println("Imports:");
                         imports.forEach(lt -> {
                             lt.forEach(tk -> System.out.print("/" + tk.value));
