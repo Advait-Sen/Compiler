@@ -1,6 +1,7 @@
 package adsen.parser.node;
 
 import adsen.error.ExpressionError;
+import adsen.parser.HeliumProgram;
 import adsen.parser.node.statement.NodeStatement;
 import adsen.tokeniser.Token;
 
@@ -46,7 +47,7 @@ public class NodeFunction {
     }
 
     /**
-     * Intended to be used for storing functions in {@link NodeProgram}
+     * Intended to be used for storing functions in {@link HeliumProgram}
      */
     public List<String> getTypeSignature() {
         List<String> typeSignature = new ArrayList<>();

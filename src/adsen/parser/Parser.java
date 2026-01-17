@@ -5,7 +5,6 @@ import adsen.exec.imports.ImportHandler;
 import adsen.parser.node.expr.FuncCallExpr;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeFunction;
-import adsen.parser.node.NodeProgram;
 import adsen.parser.node.expr.NodeIdentifier;
 import adsen.parser.node.expr.operator.BinaryOperator;
 import adsen.parser.node.expr.operator.Operator;
@@ -57,6 +56,7 @@ public class Parser {
      * Like {@link Parser#IMPORT_HANDLER}, this might also be moved elsewhere in the future
      */
     public static Path ROOT_DIRECTORY;
+
 
     /**
      * List of tokens to turn into AST
@@ -299,8 +299,8 @@ public class Parser {
         return expr;
     }
 
-    public NodeProgram parse() {
-        NodeProgram program = new NodeProgram();
+    public HeliumProgram parse() {
+        HeliumProgram program = new HeliumProgram();
 
         boolean hasImports = false;
         boolean importsFinished = false;
@@ -331,9 +331,9 @@ public class Parser {
                         next = consume();
 
                         //If we reached the end, break
-                        if(next.type==SEMICOLON) break;
+                        if (next.type == SEMICOLON) break;
 
-                        if(next.type!=BINARY_OPERATOR || !next.value.equals("/")) {
+                        if (next.type != BINARY_OPERATOR || !next.value.equals("/")) {
                             throw new ExpressionError("Improper import format, expected '/' here ", next);
                         }
                     }
@@ -347,8 +347,8 @@ public class Parser {
                     // We just finished the imports
                     if (!importsFinished) {
                         System.out.println("Imports:");
-                        imports.forEach(lt->{
-                            lt.forEach(tk-> System.out.print("/"+tk.value));
+                        imports.forEach(lt -> {
+                            lt.forEach(tk -> System.out.print("/" + tk.value));
                             System.out.println(";");
                         });
                         IMPORT_HANDLER.acceptImports(imports);
@@ -395,11 +395,15 @@ public class Parser {
             }
         }
 
+        //TODO figure out better place for these, possibly in HeliumProgram
+        IMPORT_HANDLER.loadNativeImportData();
+        IMPORT_HANDLER.loadImportData();
+
         return program;
     }
 
     /**
-     * Old parse function which returns the {@link NodeProgram} defining the entire program's AST.
+     * Old parse function which returns the {@link HeliumProgram} defining the entire program's AST.
      */
     public List<NodeStatement> parseStatements() {
         return parseStatements(0, tokens.size()); // Statement count will always be less than token list size

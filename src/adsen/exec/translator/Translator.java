@@ -1,7 +1,7 @@
 package adsen.exec.translator;
 
 import adsen.parser.node.expr.NodeExpr;
-import adsen.parser.node.NodeProgram;
+import adsen.parser.HeliumProgram;
 
 import java.util.Set;
 import java.util.Stack;
@@ -16,7 +16,7 @@ public abstract class Translator {
     /**
      * The program from which we are generating assembly
      */
-    public final NodeProgram program;
+    public final HeliumProgram program;
     /**
      * Stack used to keep track of variables and expressions at compiletime
      */
@@ -30,7 +30,7 @@ public abstract class Translator {
      */
     private Set<String> variables;
 
-    public Translator(NodeProgram program) {
+    public Translator(HeliumProgram program) {
         this.program = program;
     }
 

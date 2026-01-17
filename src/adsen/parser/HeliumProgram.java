@@ -1,6 +1,7 @@
-package adsen.parser.node;
+package adsen.parser;
 
 import adsen.error.ExpressionError;
+import adsen.parser.node.NodeFunction;
 import adsen.parser.node.expr.primitives.NodePrimitive;
 import adsen.tokeniser.Token;
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ import java.util.function.Supplier;
 
 import static adsen.exec.Scope.MAIN_FUNCTION;
 
-public class NodeProgram {
+public class HeliumProgram {
 
     /**
      * Stores functions which are overloaded, which require the signature to be distinguished in order to identify them.
@@ -57,8 +58,8 @@ public class NodeProgram {
     }
 
     /**
-     * Attempts to add a function directly to {@link NodeProgram#functions}. If the function already exists, then both
-     * get moved into {@link NodeProgram#signatureFunctions}, with only a stub left behind to indicate that the function
+     * Attempts to add a function directly to {@link HeliumProgram#functions}. If the function already exists, then both
+     * get moved into {@link HeliumProgram#signatureFunctions}, with only a stub left behind to indicate that the function
      * exists over there.
      */
     public void addFunction(String name, NodeFunction function) {
@@ -105,7 +106,7 @@ public class NodeProgram {
 
     /**
      * This works because even if functions have been overloaded, they will still have a {@code null} entry in
-     * {@link NodeProgram#functions}.
+     * {@link HeliumProgram#functions}.
      * <p>
      * Used to be called {@code hasFunction}, but it was always inverted, so IDE recommended inverting it lol
      */

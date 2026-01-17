@@ -4,7 +4,7 @@ import adsen.error.ExpressionError;
 import adsen.parser.node.expr.FuncCallExpr;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeFunction;
-import adsen.parser.node.NodeProgram;
+import adsen.parser.HeliumProgram;
 import adsen.parser.node.expr.NodeIdentifier;
 import adsen.parser.node.expr.operator.BinaryOperator;
 import adsen.parser.node.expr.operator.OperatorType;
@@ -48,7 +48,7 @@ public class Interpreter {
     /**
      * The program to run
      */
-    NodeProgram program;
+    HeliumProgram program;
 
     /**
      * Stack used to keep track of scopes
@@ -64,14 +64,14 @@ public class Interpreter {
         this.statements = program;
     }
 
-    public Interpreter(NodeProgram program) {
+    public Interpreter(HeliumProgram program) {
         this.program = program;
     }
 
 
     /**
      * For when the Interpreter has been initialised with a {@link List}<{@link NodeStatement}>
-     * instead of with {@link NodeProgram}.
+     * instead of with {@link HeliumProgram}.
      *
      * @deprecated This is not to be used, use {@link Interpreter#run()} instead
      */
@@ -95,7 +95,7 @@ public class Interpreter {
     }
 
     /**
-     * For when the Interpreter has been initialised with a {@link NodeProgram}
+     * For when the Interpreter has been initialised with a {@link HeliumProgram}
      */
     public NodePrimitive run() {
         if (program.lacksFunction(MAIN_FUNCTION))
