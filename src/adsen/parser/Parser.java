@@ -1,6 +1,7 @@
 package adsen.parser;
 
 import adsen.error.ExpressionError;
+import adsen.exec.imports.ImportHandler;
 import adsen.parser.node.expr.FuncCallExpr;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeFunction;
@@ -32,6 +33,7 @@ import adsen.tokeniser.Keywords;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +45,19 @@ import static adsen.tokeniser.TokenType.*;
  * Turns list of tokens into Abstract Syntax Tree (AST)
  */
 public class Parser {
+
+    /**
+     * The import handler for this program.
+     * Idk if this should go here, but can't think of any other place to put it, so this will do for now
+     */
+    public static ImportHandler IMPORT_HANDLER;
+
+    /**
+     * The path to the directory containing the main file. This is used for imports.
+     * Like {@link Parser#IMPORT_HANDLER}, this might also be moved elsewhere in the future
+     */
+    public static Path ROOT_DIRECTORY;
+
     /**
      * List of tokens to turn into AST
      */
@@ -100,6 +115,7 @@ public class Parser {
 
     /**
      * Tries to read an expression from token list.
+     * TODO move this into a ShuntingYard class to make this file more readable
      */
     static NodeExpr parseExpr(List<Token> exprTokens) {
         Token t;
@@ -328,8 +344,14 @@ public class Parser {
                 // Anticipating complex types
                 case VOID, PRIMITIVE_TYPE, COMPOUND_TYPE, CLASS_TYPE -> {
 
+                    // We just finished the imports
                     if (!importsFinished) {
-                        //do something with imports
+                        System.out.println("Imports:");
+                        imports.forEach(lt->{
+                            lt.forEach(tk-> System.out.print("/"+tk.value));
+                            System.out.println(";");
+                        });
+                        IMPORT_HANDLER.acceptImports(imports);
                     }
 
                     importsFinished = true;
