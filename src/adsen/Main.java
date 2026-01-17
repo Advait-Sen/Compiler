@@ -140,7 +140,7 @@ public class Main {
         // Old statement-based system
         if (PARSE_STATEMENTS) {
             System.out.println("Initialising old statement-based Parser");
-            Parser parser = new Parser(tokeniser);
+            Parser parser = new Parser(null, tokeniser); //This is officially broken now
 
             List<Statement> program;
             try {
@@ -190,12 +190,13 @@ public class Main {
             //Maybe I'll add a flag to check whether we're importing for interpreting or not? idk
             Parser.IMPORT_HANDLER = new ImportInterpreter();
 
-            System.out.println("Initialising program Parser");
-            Parser parser = new Parser(tokeniser);
+            HeliumProgram program = new HeliumProgram();
 
-            HeliumProgram program;
+            System.out.println("Initialising program Parser");
+            Parser parser = new Parser(program, tokeniser);
+
             try {
-                program = parser.parse();
+                parser.parse();
             } catch (ExpressionError expressionError) {
                 //Not using throwError here, since it's the programmer's fault, not compiler's fault
                 System.out.println("\nError in parsing:");

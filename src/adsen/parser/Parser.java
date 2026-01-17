@@ -55,17 +55,28 @@ public class Parser {
     public final List<Token> tokens;
 
     /**
+     * The program for which this is parsing
+     */
+    public final HeliumProgram program;
+
+    /**
      * Current position within token list
      */
     private int pos = 0;
 
-    public Parser(Tokeniser tokeniser) {
+    public Parser(HeliumProgram program, Tokeniser tokeniser) {
+        this.program = program;
         tokeniser.tokenise();
         this.tokens = Collections.unmodifiableList(tokeniser.tokens());
     }
 
-    public Parser(List<Token> tokens) {
+    private Parser(HeliumProgram program, List<Token> tokens) {
+        this.program = program;
         this.tokens = Collections.unmodifiableList(tokens);
+    }
+
+    private Parser newFromTokenList(List<Token> tokens) {
+        return new Parser(program, tokens);
     }
 
 
@@ -104,9 +115,7 @@ public class Parser {
         return ShuntingYard.parseExpr(exprTokens);
     }
 
-    public HeliumProgram parse() {
-        HeliumProgram program = new HeliumProgram();
-
+    public void parse() {
         boolean hasImports = false;
         boolean importsFinished = false;
 
@@ -200,8 +209,6 @@ public class Parser {
         //TODO figure out better place for these, possibly in HeliumProgram
         IMPORT_HANDLER.loadNativeImportData();
         IMPORT_HANDLER.loadImportData();
-
-        return program;
     }
 
     /**
@@ -332,7 +339,7 @@ public class Parser {
                         scopeTokens.add(t);
                     }
                     //todo check if this causes errors when creating error messages
-                    yield new ScopeStatement(new Parser(scopeTokens).parseStatements(0, tokens.size()));
+                    yield new ScopeStatement(newFromTokenList(scopeTokens).parseStatements(0, tokens.size()));
                 }
                 case IF -> {
                     Token ifT = t;

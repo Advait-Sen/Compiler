@@ -46,17 +46,17 @@ public class ImportInterpreter implements ImportHandler {
     public void loadImportData() {
         for (ImportPath importPath : externalImports) {
             String pathString = importPath.path();
-            Path fileDirPath = ROOT_DIRECTORY.resolve(pathString);
 
             ImportData importData;
 
-            try (Stream<Path> pathStream = Files.list(fileDirPath)) {
+            try (Stream<Path> pathStream = Files.list(ROOT_DIRECTORY.resolve(pathString))) {
 
+                //Inspired by carpet mod's script finding system from /script load
                 Optional<Path> path = pathStream.filter(p -> {
-                    String name = p.getFileName().toString();
-                    String shortName = name.substring(0, name.lastIndexOf('.'));
+                    String fullName = p.getFileName().toString();
+                    String fileName = fullName.substring(0, fullName.lastIndexOf('.'));
 
-                    return shortName.equals(importPath.file);
+                    return fileName.equals(importPath.file);
                 }).findFirst();
 
                 if (path.isPresent()) {
@@ -64,7 +64,6 @@ public class ImportInterpreter implements ImportHandler {
                 } else throw new IOException("Could not find file " + importPath.file);
 
             } catch (IOException ioException) {
-                ioException.printStackTrace();
                 throw new ExpressionError("Could not import " + importPath.file + " from " + pathString + " due to: " + ioException.getMessage(), importPath.token);
             }
 
