@@ -1,6 +1,7 @@
 package adsen;
 
 import adsen.error.ExpressionError;
+import adsen.exec.interpreter.ImportInterpreter;
 import adsen.parser.Parser;
 import adsen.parser.node.NodeProgram;
 import adsen.parser.node.expr.primitives.IntPrimitive;
@@ -11,8 +12,12 @@ import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -92,22 +97,18 @@ public class Main {
 
         System.out.println("Reading from file: " + fileName);
 
-        StringBuilder fileInput = new StringBuilder();
+        String input;
 
         try {
-            BufferedReader bfr = new BufferedReader(new FileReader(fileName));
+            Path mainPath = Paths.get(fileName);
 
-            for (String line = bfr.readLine(); line != null; line = bfr.readLine()) {
-                fileInput.append(line).append('\n');
-            }
+            input = Files.readString(mainPath);
 
-            bfr.close();
+            Parser.ROOT_DIRECTORY = mainPath.getParent();
 
         } catch (IOException e) {
-            throw throwError("Could not read from file " + fileName);
+            throw throwError("Could not read from file " + fileName + " due to: "+e.getMessage());
         }
-
-        String input = fileInput.toString();
 
         if (!VERBOSE_FLAGS.isEmpty()) { //If we have any verbose messages at all, then print out the code
             System.out.println(fileName + ":");
@@ -181,7 +182,13 @@ public class Main {
             }
         }
 
+
+
         if (PARSE_PROGRAM) {
+
+            //This deinitely won't stay here in the future
+            //Maybe I'll add a flag to check whether we're importing for interpreting or not? idk
+            Parser.IMPORT_HANDLER = new ImportInterpreter();
 
             System.out.println("Initialising program Parser");
             Parser parser = new Parser(tokeniser);
