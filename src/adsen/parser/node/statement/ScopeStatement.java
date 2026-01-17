@@ -5,16 +5,16 @@ import java.util.List;
 /**
  * A scope will be declared by curly brackets surrounding some statements
  */
-public class ScopeStatement implements NodeStatement {
-    public final List<NodeStatement> statements;
+public class ScopeStatement implements Statement {
+    public final List<Statement> statements;
     private boolean isLoop = false;
     public final String name; //If applicable
 
-    public ScopeStatement(List<NodeStatement> statements) {
+    public ScopeStatement(List<Statement> statements) {
         this(statements, "");
     }
 
-    public ScopeStatement(List<NodeStatement> statements, String name) {
+    public ScopeStatement(List<Statement> statements, String name) {
         this.statements = statements;
         this.name = name;
     }
@@ -34,7 +34,7 @@ public class ScopeStatement implements NodeStatement {
     @Override
     public String asString() {
         StringBuilder string = new StringBuilder("\n");
-        for (NodeStatement statement : statements) {
+        for (Statement statement : statements) {
             string.append("    ").append(statement.typeString()).append(" : ").append(statement.asString()).append('\n');
         }
 

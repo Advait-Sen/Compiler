@@ -2,7 +2,7 @@ package adsen.parser.node.statement;
 
 import adsen.tokeniser.Token;
 
-public class ContinueStatement implements NodeStatement {
+public class ContinueStatement implements Statement {
     public final Token token;
     public ContinueStatement(Token token){
         this.token = token;

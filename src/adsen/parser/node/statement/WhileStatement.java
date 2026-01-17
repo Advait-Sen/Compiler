@@ -3,12 +3,12 @@ package adsen.parser.node.statement;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class WhileStatement implements NodeStatement {
+public class WhileStatement implements Statement {
     public final Token token;
     NodeExpr loopCondition;
-    NodeStatement executionStatement;
+    Statement executionStatement;
 
-    public WhileStatement(Token token, NodeExpr condition, NodeStatement statement) {
+    public WhileStatement(Token token, NodeExpr condition, Statement statement) {
         this.token = token;
         this.loopCondition = condition;
         this.executionStatement = statement;
@@ -18,7 +18,7 @@ public class WhileStatement implements NodeStatement {
         return loopCondition;
     }
 
-    public NodeStatement statement() {
+    public Statement statement() {
         return executionStatement;
     }
 

@@ -2,7 +2,7 @@ package adsen.parser.node;
 
 import adsen.error.ExpressionError;
 import adsen.parser.HeliumProgram;
-import adsen.parser.node.statement.NodeStatement;
+import adsen.parser.node.statement.Statement;
 import adsen.tokeniser.Token;
 
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class NodeFunction {
      */
     final List<Token> signature;
     public final int args;
-    List<NodeStatement> body = new ArrayList<>();
+    List<Statement> body = new ArrayList<>();
 
     public NodeFunction(Token returnType, Token nameToken, List<Token> signature) {
         this.returnType = returnType;
@@ -34,15 +34,15 @@ public class NodeFunction {
         this.args = signature.size() / 2;
     }
 
-    public void andThen(NodeStatement statement) {
+    public void andThen(Statement statement) {
         body.add(statement);
     }
 
-    public void andThen(List<NodeStatement> statements) {
+    public void andThen(List<Statement> statements) {
         body.addAll(statements);
     }
 
-    public List<NodeStatement> getBody() {
+    public List<Statement> getBody() {
         return body;
     }
 

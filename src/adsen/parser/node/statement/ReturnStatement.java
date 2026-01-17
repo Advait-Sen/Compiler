@@ -6,7 +6,7 @@ import adsen.tokeniser.Token;
 /**
  *  Structurally identical to a {@link ExitStatement}, but it should return a value when used within a function
  */
-public class ReturnStatement implements NodeStatement{
+public class ReturnStatement implements Statement {
     public final Token token;
     NodeExpr expression;
 

@@ -43,7 +43,7 @@ public class Interpreter {
     /**
      * The statements to run
      */
-    List<NodeStatement> statements;
+    List<Statement> statements;
 
     /**
      * The program to run
@@ -60,7 +60,7 @@ public class Interpreter {
      */
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Deprecated()
-    public Interpreter(List<NodeStatement> program) {
+    public Interpreter(List<Statement> program) {
         this.statements = program;
     }
 
@@ -70,7 +70,7 @@ public class Interpreter {
 
 
     /**
-     * For when the Interpreter has been initialised with a {@link List}<{@link NodeStatement}>
+     * For when the Interpreter has been initialised with a {@link List}<{@link Statement}>
      * instead of with {@link HeliumProgram}.
      *
      * @deprecated This is not to be used, use {@link Interpreter#run()} instead
@@ -127,7 +127,7 @@ public class Interpreter {
     /**
      * Executes a generic statement
      */
-    Optional<NodePrimitive> executeStatement(NodeStatement statement) {
+    Optional<NodePrimitive> executeStatement(Statement statement) {
         int pos = scope().getPos(); //Completely unused, not even sure if it's accurate, but eh it does no harm to keep it jic
 
         Optional<NodePrimitive> ret = Optional.empty();
@@ -200,7 +200,7 @@ public class Interpreter {
                 scopeStack.push(newScope);
 
                 for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
-                    NodeStatement scopeNodeStmt = scope().getStatement(j);
+                    Statement scopeNodeStmt = scope().getStatement(j);
                     if (scopeNodeStmt instanceof ContinueStatement continueStmt) {
                         handleContinueStatement(continueStmt);
                     } else if (scopeNodeStmt instanceof BreakStatement breakStmt) {

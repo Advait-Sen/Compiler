@@ -3,15 +3,15 @@ package adsen.parser.node.statement;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class ForStatement implements NodeStatement {
+public class ForStatement implements Statement {
     public final Token token;
 
-    NodeStatement assigner;
+    Statement assigner;
     NodeExpr loopCondition;
-    NodeStatement incrementer;
-    NodeStatement executionStatement;
+    Statement incrementer;
+    Statement executionStatement;
 
-    public ForStatement(Token token, NodeStatement assignment, NodeStatement increment, NodeExpr condition, NodeStatement statement) {
+    public ForStatement(Token token, Statement assignment, Statement increment, NodeExpr condition, Statement statement) {
         this.token = token;
         this.assigner = assignment;
         this.incrementer = increment;
@@ -23,15 +23,15 @@ public class ForStatement implements NodeStatement {
         return loopCondition;
     }
 
-    public NodeStatement getAssigner() {
+    public Statement getAssigner() {
         return assigner;
     }
 
-    public NodeStatement getIncrementer() {
+    public Statement getIncrementer() {
         return incrementer;
     }
 
-    public NodeStatement statement() {
+    public Statement statement() {
         return executionStatement;
     }
 

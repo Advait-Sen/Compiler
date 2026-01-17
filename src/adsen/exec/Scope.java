@@ -2,7 +2,7 @@ package adsen.exec;
 
 import adsen.parser.node.NodeFunction;
 import adsen.parser.node.expr.primitives.NodePrimitive;
-import adsen.parser.node.statement.NodeStatement;
+import adsen.parser.node.statement.Statement;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,13 +17,13 @@ public class Scope {
 
     public final String name;
     final Map<String, NodePrimitive> variables;
-    private final List<NodeStatement> statements;
+    private final List<Statement> statements;
     private int pos;
     private LoopState loopState;
     private final LoopState initialLoopState;
     private final String returnType;
 
-    private Scope(String name, List<NodeStatement> statements, String returnType) {
+    private Scope(String name, List<Statement> statements, String returnType) {
         this.name = name;
         this.variables = new HashMap<>();
         this.statements = statements;
@@ -33,11 +33,11 @@ public class Scope {
         pos = 0;
     }
 
-    private Scope(String name, Scope existing, List<NodeStatement> statements) {
+    private Scope(String name, Scope existing, List<Statement> statements) {
         this(name, existing, statements, existing.isLoop());
     }
 
-    private Scope(String name, Scope existing, List<NodeStatement> statements, boolean isLoop) {
+    private Scope(String name, Scope existing, List<Statement> statements, boolean isLoop) {
         this.name = name;
         this.variables = new HashMap<>(existing.variables);
         this.statements = statements; //Statements are part of new scope code
@@ -47,15 +47,15 @@ public class Scope {
         pos = 0;
     }
 
-    public static Scope empty(String name, List<NodeStatement> statements, String returnType) {
+    public static Scope empty(String name, List<Statement> statements, String returnType) {
         return new Scope(name, statements,returnType);
     }
 
-    public static Scope fromPrevious(String name, Scope existing, List<NodeStatement> statements) {
+    public static Scope fromPrevious(String name, Scope existing, List<Statement> statements) {
         return new Scope(name, existing, statements);
     }
 
-    public static Scope fromPreviousWithLoop(String name, Scope existing, List<NodeStatement> statements) {
+    public static Scope fromPreviousWithLoop(String name, Scope existing, List<Statement> statements) {
         return new Scope(name, existing, statements, true);
     }
 
@@ -84,12 +84,12 @@ public class Scope {
         return returnType;
     }
 
-    public NodeStatement getStatement(int i) {
+    public Statement getStatement(int i) {
         pos = i;
         return statements.get(i);
     }
 
-    public List<NodeStatement> getStatements() {
+    public List<Statement> getStatements() {
         return statements;
     }
 

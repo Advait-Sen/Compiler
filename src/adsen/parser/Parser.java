@@ -2,18 +2,11 @@ package adsen.parser;
 
 import adsen.error.ExpressionError;
 import adsen.exec.imports.ImportHandler;
-import adsen.parser.node.expr.FuncCallExpr;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeFunction;
 import adsen.parser.node.expr.NodeIdentifier;
-import adsen.parser.node.expr.operator.BinaryOperator;
 import adsen.parser.node.expr.operator.Operator;
 import adsen.parser.node.expr.operator.OperatorType;
-import adsen.parser.node.expr.operator.UnaryOperator;
-import adsen.parser.node.expr.primitives.BoolPrimitive;
-import adsen.parser.node.expr.primitives.CharPrimitive;
-import adsen.parser.node.expr.primitives.FloatPrimitive;
-import adsen.parser.node.expr.primitives.IntPrimitive;
 import adsen.parser.node.statement.AssignStatement;
 import adsen.parser.node.statement.BreakStatement;
 import adsen.parser.node.statement.ContinueStatement;
@@ -23,7 +16,7 @@ import adsen.parser.node.statement.ForStatement;
 import adsen.parser.node.statement.FunctionCallStatement;
 import adsen.parser.node.statement.IfStatement;
 import adsen.parser.node.statement.IncrementStatement;
-import adsen.parser.node.statement.NodeStatement;
+import adsen.parser.node.statement.Statement;
 import adsen.parser.node.statement.ReturnStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
@@ -36,7 +29,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Stack;
 
 import static adsen.tokeniser.TokenType.*;
 
@@ -216,27 +208,27 @@ public class Parser {
     /**
      * Old parse function which returns the {@link HeliumProgram} defining the entire program's AST.
      */
-    public List<NodeStatement> parseStatements() {
+    public List<Statement> parseStatements() {
         return parseStatements(0, tokens.size()); // Statement count will always be less than token list size
     }
 
     /**
      * Method which returns the next parsed statement, since it seems to be such a popular request
      */
-    NodeStatement parseOneStatement(int startPos) {
+    Statement parseOneStatement(int startPos) {
         return parseStatements(startPos, 1).getFirst();
     }
 
-    List<NodeStatement> parseStatements(int startPos, int statementCount) {
+    List<Statement> parseStatements(int startPos, int statementCount) {
         return parseStatements(startPos, statementCount, tokens.size(), false); //By default, looking at all the tokens
     }
 
-    List<NodeStatement> parseStatements(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
-        List<NodeStatement> statements = new ArrayList<>();
+    List<Statement> parseStatements(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
+        List<Statement> statements = new ArrayList<>();
         int endPos = pos + tokenCount;
         for (pos = startPos; hasNext() && pos < endPos && statements.size() < statementCount; pos++) {
             Token t = peek();
-            NodeStatement statement;
+            Statement statement;
             //If we don't need the semicolon at the end, then don't look for it (eg. in for statement)
             boolean needSemi = !ignoreSemi; //used for if, else, while etc.
 
@@ -362,12 +354,12 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement thenStatement = parseOneStatement(pos + 1);
+                    Statement thenStatement = parseOneStatement(pos + 1);
 
                     t = peek(1); //don't consume unless needed
 
                     if (t.type == ELSE) { //Parsing else statement right here
-                        NodeStatement elseStatement = parseOneStatement(pos + 2);
+                        Statement elseStatement = parseOneStatement(pos + 2);
 
                         yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
                     }
@@ -393,7 +385,7 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement executionStatement = parseOneStatement(pos + 1);
+                    Statement executionStatement = parseOneStatement(pos + 1);
 
                     if (executionStatement instanceof ScopeStatement scope) {
                         scope.setLoop();
@@ -406,7 +398,7 @@ public class Parser {
                     t = consume();
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
 
-                    NodeStatement assigner = parseOneStatement(pos + 1);
+                    Statement assigner = parseOneStatement(pos + 1);
                     if(!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
                         throw new ExpressionError("Invalid assigner expression in for statement", t);
                     }
@@ -430,7 +422,7 @@ public class Parser {
                         conditionTokens.add(t);
                     }
 
-                    NodeStatement incrementer = parseStatements(pos + 1, 1, closed_bracket_pos, true).getFirst();
+                    Statement incrementer = parseStatements(pos + 1, 1, closed_bracket_pos, true).getFirst();
 
                     if(!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
                         throw new ExpressionError("Invalid incrementer expression in for statement", t);
@@ -438,7 +430,7 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    NodeStatement executionStatement = parseOneStatement(pos + 1);
+                    Statement executionStatement = parseOneStatement(pos + 1);
 
                     if (executionStatement instanceof ScopeStatement scope) {
                         scope.setLoop();
