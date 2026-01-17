@@ -7,7 +7,7 @@ import adsen.parser.Parser;
 import adsen.parser.HeliumProgram;
 import adsen.parser.node.expr.primitives.IntPrimitive;
 import adsen.parser.node.expr.primitives.NodePrimitive;
-import adsen.parser.node.statement.Statement;
+import adsen.parser.statement.Statement;
 import adsen.exec.interpreter.Interpreter;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;

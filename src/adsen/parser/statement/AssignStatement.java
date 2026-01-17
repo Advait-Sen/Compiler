@@ -1,15 +1,15 @@
-package adsen.parser.node.statement;
+package adsen.parser.statement;
 
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.expr.NodeIdentifier;
 import adsen.tokeniser.Token;
 
-public class DeclareStatement implements Statement {
+public class AssignStatement implements Statement {
     NodeIdentifier identifier;
     Token declarer;
     NodeExpr expression;
 
-    public DeclareStatement(NodeIdentifier identifier, Token declarer, NodeExpr expr) {
+    public AssignStatement(NodeIdentifier identifier, Token declarer, NodeExpr expr) {
         this.identifier = identifier;
         this.declarer = declarer;
         this.expression = expr;
@@ -25,11 +25,11 @@ public class DeclareStatement implements Statement {
 
     @Override
     public String asString() {
-        return String.join(" ", "let", identifier.asString(), declarer.value, expression.asString());
+        return String.join(" ", identifier.asString(), declarer.value, expression.asString());
     }
 
     @Override
     public String typeString() {
-        return "declaration";
+        return "assignment";
     }
 }

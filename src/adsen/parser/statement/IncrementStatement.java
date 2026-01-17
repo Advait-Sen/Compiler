@@ -1,4 +1,4 @@
-package adsen.parser.node.statement;
+package adsen.parser.statement;
 
 import adsen.error.ExpressionError;
 import adsen.parser.node.expr.NodeIdentifier;

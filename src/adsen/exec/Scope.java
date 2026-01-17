@@ -2,7 +2,7 @@ package adsen.exec;
 
 import adsen.parser.node.NodeFunction;
 import adsen.parser.node.expr.primitives.NodePrimitive;
-import adsen.parser.node.statement.Statement;
+import adsen.parser.statement.Statement;
 
 import java.util.Collections;
 import java.util.HashMap;

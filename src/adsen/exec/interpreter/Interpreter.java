@@ -10,7 +10,7 @@ import adsen.parser.node.expr.operator.BinaryOperator;
 import adsen.parser.node.expr.operator.OperatorType;
 import adsen.parser.node.expr.operator.UnaryOperator;
 import adsen.parser.node.expr.primitives.*;
-import adsen.parser.node.statement.*;
+import adsen.parser.statement.*;
 import adsen.exec.Context;
 import adsen.exec.Scope;
 import adsen.tokeniser.Token;

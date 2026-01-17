@@ -2,7 +2,7 @@ package adsen.parser.node;
 
 import adsen.error.ExpressionError;
 import adsen.parser.HeliumProgram;
-import adsen.parser.node.statement.Statement;
+import adsen.parser.statement.Statement;
 import adsen.tokeniser.Token;
 
 import java.util.ArrayList;
