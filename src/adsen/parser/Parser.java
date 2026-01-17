@@ -28,6 +28,7 @@ import adsen.parser.node.statement.ReturnStatement;
 import adsen.parser.node.statement.ScopeStatement;
 import adsen.parser.node.statement.StaticDeclareStatement;
 import adsen.parser.node.statement.WhileStatement;
+import adsen.tokeniser.Keywords;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
 
@@ -285,12 +286,54 @@ public class Parser {
     public NodeProgram parse() {
         NodeProgram program = new NodeProgram();
 
+        boolean hasImports = false;
+        boolean importsFinished = false;
+
+        List<List<Token>> imports = new ArrayList<>();
+
         for (pos = 0; pos < tokens.size(); pos++) {
             Token t = tokens.get(pos);
 
             switch (t.type) {
+                case IMPORT -> {
+                    hasImports = true;
+                    // If we've seen imports after function declarations
+                    if (importsFinished) {
+                        throw new ExpressionError("Unexpected import, should have occurred earlier", t);
+                    }
+
+                    List<Token> importLocation = new ArrayList<>();
+
+                    for (Token next = consume(); next.type != SEMICOLON; next = consume()) {
+
+                        if (isValidImportToken(next)) {
+                            importLocation.add(next);
+                        } else {
+                            throw new ExpressionError("Unexpected token in import", next);
+                        }
+
+                        next = consume();
+
+                        //If we reached the end, break
+                        if(next.type==SEMICOLON) break;
+
+                        if(next.type!=BINARY_OPERATOR || !next.value.equals("/")) {
+                            throw new ExpressionError("Improper import format, expected '/' here ", next);
+                        }
+                    }
+
+                    imports.add(importLocation);
+                }
+
                 // Anticipating complex types
                 case VOID, PRIMITIVE_TYPE, COMPOUND_TYPE, CLASS_TYPE -> {
+
+                    if (!importsFinished) {
+                        //do something with imports
+                    }
+
+                    importsFinished = true;
+
                     Token returnType = t;
                     Token functionName = consume();
                     if (functionName.type != FUNCTION)
@@ -623,6 +666,11 @@ public class Parser {
                     false; //Simpler to go by exclusion, it seems
             default -> true;
         };
+    }
+
+    //Since imports could contain keywords
+    static boolean isValidImportToken(Token token) {
+        return token.type == VARIABLE || Keywords.tokeniserKeywords.containsKey(token.value);
     }
 
     boolean hasNext() {
