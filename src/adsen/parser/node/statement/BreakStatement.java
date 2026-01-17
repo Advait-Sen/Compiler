@@ -2,7 +2,7 @@ package adsen.parser.node.statement;
 
 import adsen.tokeniser.Token;
 
-public class BreakStatement extends NodeStatement{
+public class BreakStatement implements NodeStatement{
     public final Token token;
     public BreakStatement(Token token){
         this.token = token;

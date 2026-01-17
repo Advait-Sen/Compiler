@@ -4,7 +4,7 @@ import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.expr.NodeIdentifier;
 import adsen.tokeniser.Token;
 
-public class AssignStatement extends NodeStatement {
+public class AssignStatement implements NodeStatement {
     NodeIdentifier identifier;
     Token declarer;
     NodeExpr expression;

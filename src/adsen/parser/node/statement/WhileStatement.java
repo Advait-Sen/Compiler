@@ -3,7 +3,7 @@ package adsen.parser.node.statement;
 import adsen.parser.node.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class WhileStatement extends NodeStatement {
+public class WhileStatement implements NodeStatement {
     public final Token token;
     NodeExpr loopCondition;
     NodeStatement executionStatement;

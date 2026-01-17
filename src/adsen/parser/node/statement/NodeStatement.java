@@ -1,11 +1,12 @@
 package adsen.parser.node.statement;
 
-public abstract class NodeStatement {
-    public abstract String asString();
+//So apparently this was the Command pattern all along
+public interface NodeStatement {
+    String asString();
+
     /**
      * String indicating type of statement
      */
-    public abstract String typeString();
+    String typeString();
 
-    //TODO implement execute() function to implement Factory Method design pattern or smth
 }
