@@ -1,13 +1,20 @@
 package adsen.exec.interpreter;
 
+import adsen.exec.imports.ImportData;
 import adsen.exec.imports.ImportPath;
 import adsen.exec.imports.ImportHandler;
 import adsen.tokeniser.Token;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
+
+import static adsen.parser.Parser.ROOT_DIRECTORY;
 
 public class ImportInterpreter implements ImportHandler {
 
@@ -15,10 +22,12 @@ public class ImportInterpreter implements ImportHandler {
     private final Set<ImportPath> nativeImports = new HashSet<>();
     private final Set<ImportPath> externalImports = new HashSet<>();
 
+    private final Set<ImportData> externalImportData = new HashSet<>();
+
     @Override
     public void acceptImports(List<List<Token>> importTokens) {
-        importTokens.stream().map(ImportPath::new).forEach(ip->{
-            if(ip.isNative()) nativeImports.add(ip);
+        importTokens.stream().map(ImportPath::new).forEach(ip -> {
+            if (ip.isNative()) nativeImports.add(ip);
             else externalImports.add(ip);
         });
     }
@@ -36,27 +45,25 @@ public class ImportInterpreter implements ImportHandler {
     @Override
     public void loadImportData() {
         for (ImportPath importPath : externalImports) {
-            try {
-                String pathString = importPath.path();
-                File directory = new File(pathString);
+            String pathString = importPath.path();
+            System.out.println("Attempting to get import data from "+pathString +" \\ "+importPath.file);
+            Path fileDirPath = ROOT_DIRECTORY.resolve(pathString);
 
-                File[] files;
+            try (Stream<Path> pathStream = Files.list(fileDirPath)) {
 
-                //I have never used Java files before in my life. Is that obvious?
-                if(!directory.isDirectory() || (files = directory.listFiles())==null || files.length==0){
-                    throw new IOException("Found nothing at '"+pathString+"'");
-                }
+                Optional<Path> path = pathStream.filter(p -> {
+                    String name = p.getFileName().toString();
+                    String shortName = name.substring(0, name.lastIndexOf('.'));
 
-                boolean foundFile = false;
+                    return shortName.equals(importPath.file);
+                }).findFirst();
 
-                for (int i = 0; i < files.length && !foundFile; i++) {
-                    File file = files[i];
-
-                }
-
+                if (path.isPresent()) {
+                    externalImportData.add(new ImportData(importPath, path.get()));
+                } else throw new IOException("Could not find file " + importPath.file);
 
             } catch (IOException ioException) {
-                System.out.println("Could not import "+importPath.file +" due to:" + ioException.getMessage());
+                System.out.println("Could not import " + importPath.file + " from " + pathString + " due to: " + ioException.getMessage());
             }
         }
     }

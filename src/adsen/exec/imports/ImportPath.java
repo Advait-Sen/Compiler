@@ -3,6 +3,8 @@ package adsen.exec.imports;
 import adsen.tokeniser.Token;
 import java.util.List;
 
+import static java.io.File.separator;
+
 /**
  * This class represents a single import string, im preparation to find its location in memory
  */
@@ -23,6 +25,10 @@ public class ImportPath {
     }
 
     public String path() {
-        return "/" + path.stream().reduce((s1, s2) -> s1 + "/" + s2).orElse("");
+        return path.stream().reduce((s1, s2) -> s1 + separator + s2).orElse("");
+    }
+
+    public String toString() {
+        return path() + separator + file;
     }
 }
