@@ -3,7 +3,6 @@ package adsen.parser;
 import adsen.error.ExpressionError;
 import adsen.exec.imports.ImportHandler;
 import adsen.parser.node.expr.NodeExpr;
-import adsen.parser.node.NodeFunction;
 import adsen.parser.node.expr.NodeIdentifier;
 import adsen.parser.node.expr.operator.Operator;
 import adsen.parser.node.expr.operator.OperatorType;
@@ -185,7 +184,7 @@ public class Parser {
 
                     }
 
-                    NodeFunction function = new NodeFunction(returnType, functionName, signature);
+                    HeliumFunction function = new HeliumFunction(returnType, functionName, signature);
 
                     if (peek(1).type != C_OPEN_PAREN)
                         throw new ExpressionError("Expected '{' after function declaration", peek(1));

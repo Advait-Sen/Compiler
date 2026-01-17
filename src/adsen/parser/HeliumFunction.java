@@ -1,14 +1,13 @@
-package adsen.parser.node;
+package adsen.parser;
 
 import adsen.error.ExpressionError;
-import adsen.parser.HeliumProgram;
 import adsen.parser.statement.Statement;
 import adsen.tokeniser.Token;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class NodeFunction {
+public class HeliumFunction {
     public final Token returnType;
     public final Token token;
     public final String name;
@@ -22,7 +21,7 @@ public class NodeFunction {
     public final int args;
     List<Statement> body = new ArrayList<>();
 
-    public NodeFunction(Token returnType, Token nameToken, List<Token> signature) {
+    public HeliumFunction(Token returnType, Token nameToken, List<Token> signature) {
         this.returnType = returnType;
         this.token = nameToken;
         this.name = nameToken.value;

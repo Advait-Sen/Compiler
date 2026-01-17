@@ -3,7 +3,7 @@ package adsen.exec.interpreter;
 import adsen.error.ExpressionError;
 import adsen.parser.node.expr.FuncCallExpr;
 import adsen.parser.node.expr.NodeExpr;
-import adsen.parser.node.NodeFunction;
+import adsen.parser.HeliumFunction;
 import adsen.parser.HeliumProgram;
 import adsen.parser.node.expr.NodeIdentifier;
 import adsen.parser.node.expr.operator.BinaryOperator;
@@ -101,7 +101,7 @@ public class Interpreter {
         if (program.lacksFunction(MAIN_FUNCTION))
             throw new RuntimeException("Program does not contain main function");
 
-        NodeFunction mainFunction = program.mainFunction();
+        HeliumFunction mainFunction = program.mainFunction();
 
         scopeStack = new Stack<>();
         scopeStack.push(Scope.fromFunction(mainFunction));
@@ -297,7 +297,7 @@ public class Interpreter {
                     typeSignature.add(argValue);
                 }
 
-                NodeFunction func = program.getFunction(fCallStmt.name, typeSignature);
+                HeliumFunction func = program.getFunction(fCallStmt.name, typeSignature);
 
                 for (int i = 0; i < typeSignature.size(); i++) {
                     arguments.put(func.getSignature().get(i * 2 + 1).value, typeSignature.get(i));
@@ -548,7 +548,7 @@ public class Interpreter {
                     typeSignature.add(argValue);
                 }
 
-                NodeFunction func = program.getFunction(fCall.token, typeSignature);
+                HeliumFunction func = program.getFunction(fCall.token, typeSignature);
 
                 if (func.returnType.type == TokenType.VOID)
                     throw new ExpressionError("Invalid return type, cannot have void return type here", fCall.token);

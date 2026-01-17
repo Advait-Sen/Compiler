@@ -1,7 +1,6 @@
 package adsen.parser;
 
 import adsen.error.ExpressionError;
-import adsen.parser.node.NodeFunction;
 import adsen.parser.node.expr.primitives.NodePrimitive;
 import adsen.tokeniser.Token;
 import java.util.ArrayList;
@@ -22,14 +21,14 @@ public class HeliumProgram {
      * <p>
      * The first string in the list will be the name of the function, followed by its signature (as strings for simplicity)
      */
-    private final Map<List<String>, NodeFunction> signatureFunctions = new HashMap<>();
+    private final Map<List<String>, HeliumFunction> signatureFunctions = new HashMap<>();
 
     /**
      * Stores functions which are not overloaded (with the assumption that this means most of them
      */
-    private final Map<String, NodeFunction> functions = new HashMap<>();
+    private final Map<String, HeliumFunction> functions = new HashMap<>();
 
-    private NodeFunction getFunction(String name, Supplier<List<String>> typeSignatureSupplier, Token token) {
+    private HeliumFunction getFunction(String name, Supplier<List<String>> typeSignatureSupplier, Token token) {
         if (lacksFunction(name))
             throw new ExpressionError("No such function '" + name + "'", token);
 
@@ -47,13 +46,13 @@ public class HeliumProgram {
         return signatureFunctions.get(typeSignature);
     }
 
-    public NodeFunction getFunction(Token functionNameToken, List<NodePrimitive> argValues) {
+    public HeliumFunction getFunction(Token functionNameToken, List<NodePrimitive> argValues) {
         Supplier<List<String>> typeSignatureSupplier = () -> argValues.stream().map(NodePrimitive::getTypeString).toList();
 
         return getFunction(functionNameToken.value, typeSignatureSupplier, functionNameToken);
     }
 
-    public NodeFunction mainFunction() {
+    public HeliumFunction mainFunction() {
         return getFunction(MAIN_FUNCTION, Collections::emptyList, null);
     }
 
@@ -62,7 +61,7 @@ public class HeliumProgram {
      * get moved into {@link HeliumProgram#signatureFunctions}, with only a stub left behind to indicate that the function
      * exists over there.
      */
-    public void addFunction(String name, NodeFunction function) {
+    public void addFunction(String name, HeliumFunction function) {
         //Simplest scenario, function doesn't exist yet
         if (!functions.containsKey(name)) {
             functions.put(name, function);
@@ -75,7 +74,7 @@ public class HeliumProgram {
         //The function hasn't already been overloaded
         //Check that the signatures don't match, then put them both in signatureFunctions
         if (functions.get(name) != null) {
-            NodeFunction other = functions.get(name);
+            HeliumFunction other = functions.get(name);
             List<String> otherTypeSig = other.getTypeSignature();
 
             if (funcTypeSig.equals(otherTypeSig))
@@ -114,8 +113,8 @@ public class HeliumProgram {
         return !functions.containsKey(name);
     }
 
-    public Collection<NodeFunction> getFunctions() {
-        List<NodeFunction> allFunctions = new ArrayList<>();
+    public Collection<HeliumFunction> getFunctions() {
+        List<HeliumFunction> allFunctions = new ArrayList<>();
         functions.values().stream().filter(Objects::nonNull).forEach(allFunctions::add);
         allFunctions.addAll(signatureFunctions.values());
         return allFunctions;
@@ -127,6 +126,6 @@ public class HeliumProgram {
      * In future will contain boilerplate, imports, defines, etc.
      */
     public String asString() {
-        return functions.values().stream().map(NodeFunction::asString).reduce("", (s1, s2) -> s1 + "\n\n" + s2);
+        return functions.values().stream().map(HeliumFunction::asString).reduce("", (s1, s2) -> s1 + "\n\n" + s2);
     }
 }

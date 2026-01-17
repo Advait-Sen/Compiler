@@ -1,6 +1,6 @@
 package adsen.exec;
 
-import adsen.parser.node.NodeFunction;
+import adsen.parser.HeliumFunction;
 import adsen.parser.node.expr.primitives.NodePrimitive;
 import adsen.parser.statement.Statement;
 
@@ -63,14 +63,14 @@ public class Scope {
      * Returns a blank {@link Scope} given a function with no arguments.
      * Mostly only used for main function in the beginning
      */
-    public static Scope fromFunction(NodeFunction func) {
+    public static Scope fromFunction(HeliumFunction func) {
         return fromFunction(func, Collections.emptyMap());
     }
 
     /**
      * Returns a blank {@link Scope} from a function.
      */
-    public static Scope fromFunction(NodeFunction func, Map<String, NodePrimitive> arguments) {
+    public static Scope fromFunction(HeliumFunction func, Map<String, NodePrimitive> arguments) {
         if (arguments.size() != func.args)
             throw new RuntimeException("Incorrect number of arguments, expected " + func.args + ", found " + arguments.size());
 
