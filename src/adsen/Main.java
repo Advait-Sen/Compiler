@@ -6,7 +6,7 @@ import adsen.parser.node.NodeProgram;
 import adsen.parser.node.expr.primitives.IntPrimitive;
 import adsen.parser.node.expr.primitives.NodePrimitive;
 import adsen.parser.node.statement.NodeStatement;
-import adsen.runtime.interpreter.Interpreter;
+import adsen.exec.interpreter.Interpreter;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
 

@@ -1,4 +1,4 @@
-package adsen.runtime.translator;
+package adsen.exec.translator;
 
 import adsen.parser.node.expr.NodeExpr;
 import adsen.parser.node.NodeProgram;

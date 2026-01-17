@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import static adsen.runtime.Scope.MAIN_FUNCTION;
+import static adsen.exec.Scope.MAIN_FUNCTION;
 
 public class NodeProgram {
 

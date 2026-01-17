@@ -1,4 +1,4 @@
-package adsen.runtime.interpreter;
+package adsen.exec.interpreter;
 
 import adsen.error.ExpressionError;
 import adsen.parser.node.expr.FuncCallExpr;
@@ -11,8 +11,8 @@ import adsen.parser.node.expr.operator.OperatorType;
 import adsen.parser.node.expr.operator.UnaryOperator;
 import adsen.parser.node.expr.primitives.*;
 import adsen.parser.node.statement.*;
-import adsen.runtime.Context;
-import adsen.runtime.Scope;
+import adsen.exec.Context;
+import adsen.exec.Scope;
 import adsen.tokeniser.Token;
 
 import adsen.tokeniser.TokenType;
@@ -29,8 +29,8 @@ import java.util.function.IntPredicate;
 import java.util.function.LongBinaryOperator;
 import java.util.function.Supplier;
 
-import static adsen.runtime.Context.*;
-import static adsen.runtime.Scope.MAIN_FUNCTION;
+import static adsen.exec.Context.*;
+import static adsen.exec.Scope.MAIN_FUNCTION;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling.
