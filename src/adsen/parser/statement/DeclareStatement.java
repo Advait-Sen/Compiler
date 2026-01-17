@@ -1,7 +1,7 @@
 package adsen.parser.statement;
 
-import adsen.parser.node.expr.NodeExpr;
-import adsen.parser.node.expr.NodeIdentifier;
+import adsen.parser.expr.NodeExpr;
+import adsen.parser.expr.NodeIdentifier;
 import adsen.tokeniser.Token;
 
 public class DeclareStatement implements Statement {

@@ -1,6 +1,6 @@
-package adsen.parser.node.expr.primitives;
+package adsen.parser.expr.primitives;
 
-import adsen.parser.node.expr.NodeExpr;
+import adsen.parser.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
 public abstract sealed class NodePrimitive implements NodeExpr permits IntPrimitive, CharPrimitive, FloatPrimitive, BoolPrimitive {

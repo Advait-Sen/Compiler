@@ -1,7 +1,7 @@
 package adsen.parser;
 
 import adsen.error.ExpressionError;
-import adsen.parser.node.expr.primitives.NodePrimitive;
+import adsen.parser.expr.primitives.NodePrimitive;
 import adsen.tokeniser.Token;
 import java.util.ArrayList;
 import java.util.Collection;

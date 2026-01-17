@@ -1,8 +1,8 @@
 package adsen.tokeniser;
 
 import adsen.error.ExpressionError;
-import adsen.parser.node.expr.operator.Operator;
-import adsen.parser.node.expr.operator.OperatorType;
+import adsen.parser.expr.operator.Operator;
+import adsen.parser.expr.operator.OperatorType;
 
 import java.util.ArrayList;
 import java.util.List;

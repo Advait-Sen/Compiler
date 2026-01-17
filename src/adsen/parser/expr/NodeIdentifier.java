@@ -1,4 +1,4 @@
-package adsen.parser.node.expr;
+package adsen.parser.expr;
 
 import adsen.error.ExpressionError;
 import adsen.tokeniser.Token;

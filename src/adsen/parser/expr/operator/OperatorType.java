@@ -1,9 +1,9 @@
-package adsen.parser.node.expr.operator;
+package adsen.parser.expr.operator;
 
 import adsen.tokeniser.Keywords;
 import adsen.tokeniser.TokenType;
 
-import static adsen.parser.node.expr.operator.Operator.operatorType;
+import static adsen.parser.expr.operator.Operator.operatorType;
 import static adsen.tokeniser.TokenType.*;
 
 public enum OperatorType {

@@ -1,4 +1,4 @@
-package adsen.parser.node.expr;
+package adsen.parser.expr;
 
 import adsen.tokeniser.Token;
 

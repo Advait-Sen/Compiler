@@ -2,10 +2,10 @@ package adsen.parser;
 
 import adsen.error.ExpressionError;
 import adsen.exec.imports.ImportHandler;
-import adsen.parser.node.expr.NodeExpr;
-import adsen.parser.node.expr.NodeIdentifier;
-import adsen.parser.node.expr.operator.Operator;
-import adsen.parser.node.expr.operator.OperatorType;
+import adsen.parser.expr.NodeExpr;
+import adsen.parser.expr.NodeIdentifier;
+import adsen.parser.expr.operator.Operator;
+import adsen.parser.expr.operator.OperatorType;
 import adsen.parser.statement.AssignStatement;
 import adsen.parser.statement.BreakStatement;
 import adsen.parser.statement.ContinueStatement;

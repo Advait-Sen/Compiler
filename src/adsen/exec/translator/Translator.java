@@ -1,6 +1,6 @@
 package adsen.exec.translator;
 
-import adsen.parser.node.expr.NodeExpr;
+import adsen.parser.expr.NodeExpr;
 import adsen.parser.HeliumProgram;
 
 import java.util.Set;

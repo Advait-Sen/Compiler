@@ -1,9 +1,9 @@
 package adsen.parser.statement;
 
 import adsen.error.ExpressionError;
-import adsen.parser.node.expr.NodeIdentifier;
-import adsen.parser.node.expr.operator.Operator;
-import adsen.parser.node.expr.operator.OperatorType;
+import adsen.parser.expr.NodeIdentifier;
+import adsen.parser.expr.operator.Operator;
+import adsen.parser.expr.operator.OperatorType;
 import adsen.tokeniser.Token;
 
 /**

@@ -1,7 +1,7 @@
 package adsen.exec;
 
 import adsen.parser.HeliumFunction;
-import adsen.parser.node.expr.primitives.NodePrimitive;
+import adsen.parser.expr.primitives.NodePrimitive;
 import adsen.parser.statement.Statement;
 
 import java.util.Collections;

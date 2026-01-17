@@ -1,15 +1,19 @@
 package adsen.exec.interpreter;
 
 import adsen.error.ExpressionError;
-import adsen.parser.node.expr.FuncCallExpr;
-import adsen.parser.node.expr.NodeExpr;
+import adsen.parser.expr.FuncCallExpr;
+import adsen.parser.expr.NodeExpr;
 import adsen.parser.HeliumFunction;
 import adsen.parser.HeliumProgram;
-import adsen.parser.node.expr.NodeIdentifier;
-import adsen.parser.node.expr.operator.BinaryOperator;
-import adsen.parser.node.expr.operator.OperatorType;
-import adsen.parser.node.expr.operator.UnaryOperator;
-import adsen.parser.node.expr.primitives.*;
+import adsen.parser.expr.NodeIdentifier;
+import adsen.parser.expr.operator.BinaryOperator;
+import adsen.parser.expr.operator.OperatorType;
+import adsen.parser.expr.operator.UnaryOperator;
+import adsen.parser.expr.primitives.BoolPrimitive;
+import adsen.parser.expr.primitives.CharPrimitive;
+import adsen.parser.expr.primitives.FloatPrimitive;
+import adsen.parser.expr.primitives.IntPrimitive;
+import adsen.parser.expr.primitives.NodePrimitive;
 import adsen.parser.statement.*;
 import adsen.exec.Context;
 import adsen.exec.Scope;
