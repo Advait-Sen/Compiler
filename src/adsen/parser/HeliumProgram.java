@@ -61,7 +61,9 @@ public class HeliumProgram {
      * get moved into {@link HeliumProgram#signatureFunctions}, with only a stub left behind to indicate that the function
      * exists over there.
      */
-    public void addFunction(String name, HeliumFunction function) {
+    public void addFunction(HeliumFunction function) {
+        String name = function.name;
+
         //Simplest scenario, function doesn't exist yet
         if (!functions.containsKey(name)) {
             functions.put(name, function);

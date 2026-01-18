@@ -112,6 +112,8 @@ public class Parser {
                 throw new ExpressionError("Expected ';' after expression", t);
         }
 
+        if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse expression", t);
+
         return ShuntingYard.parseExpr(exprTokens);
     }
 
@@ -161,7 +163,7 @@ public class Parser {
                 case VOID, PRIMITIVE_TYPE, COMPOUND_TYPE, CLASS_TYPE -> {
 
                     // We just finished the imports
-                    if (!importsFinished) {
+                    if (hasImports && !importsFinished) {
                         IMPORT_HANDLER.acceptImports(imports);
                     }
 
@@ -200,7 +202,7 @@ public class Parser {
 
                     function.andThen(((ScopeStatement) parseOneStatement(pos + 1)).statements);
 
-                    program.addFunction(function.name, function);
+                    program.addFunction(function);
                 }
                 default -> throw new ExpressionError("Unexpected token: " + t, t);
             }
@@ -364,7 +366,8 @@ public class Parser {
 
                     t = peek(1); //don't consume unless needed
 
-                    if (t.type == ELSE) { //Parsing else statement right here
+                    //Adding null check in case the if is the last thing in the function, meaning there's nothing else afterwards
+                    if (t!= null && t.type == ELSE) { //Parsing else statement right here
                         Statement elseStatement = parseOneStatement(pos + 2);
 
                         yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
@@ -405,7 +408,7 @@ public class Parser {
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
 
                     Statement assigner = parseOneStatement(pos + 1);
-                    if(!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
+                    if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
                         throw new ExpressionError("Invalid assigner expression in for statement", t);
                     }
 
@@ -430,7 +433,7 @@ public class Parser {
 
                     Statement incrementer = parseStatements(pos + 1, 1, closed_bracket_pos, true).getFirst();
 
-                    if(!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
+                    if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
                         throw new ExpressionError("Invalid incrementer expression in for statement", t);
                     }
 

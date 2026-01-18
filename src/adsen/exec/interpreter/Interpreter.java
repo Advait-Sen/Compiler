@@ -313,7 +313,11 @@ public class Interpreter {
 
                 for (int j = 0; j < newScope.getStatements().size() && ret.isEmpty(); j++) {
                     ret = executeStatement(j);
-                }//todo handle what happens if ret is not empty
+                }
+                //TODO this is where the distincton between an exit statement and return statement should be. But currently, no such distinction exists
+                if(ret.isPresent()){
+                    ret = Optional.empty(); //Discarding the return value, since it shouldn't matter
+                }
 
                 scopeStack.pop();
             }
