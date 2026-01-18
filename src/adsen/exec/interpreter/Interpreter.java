@@ -134,13 +134,12 @@ public class Interpreter {
     Optional<NodePrimitive> executeStatement(Statement statement) {
         int pos = scope().getPos(); //Completely unused, not even sure if it's accurate, but eh it does no harm to keep it jic
 
-        //TODO rename this variable to something mroe descriptive
-        Optional<NodePrimitive> ret = Optional.empty();
+        Optional<NodePrimitive> returnValue = Optional.empty();
 
         switch (statement) {
             //Todo decide whether this should be a hard exit from all execution, or just remove this
             //Cos rn it works like an unsafe (not type-checked) version of return
-            case ExitStatement exit -> ret = Optional.of(evaluateExpr(exit.expr()));
+            case ExitStatement exit -> returnValue = Optional.of(evaluateExpr(exit.expr()));
 
             case DeclareStatement declare -> {
                 NodeIdentifier identifier = declare.identifier();
@@ -204,14 +203,14 @@ public class Interpreter {
 
                 scopeStack.push(newScope);
 
-                for (int j = 0; j < scope.statements.size() && ret.isEmpty(); j++) {
+                for (int j = 0; j < scope.statements.size() && returnValue.isEmpty(); j++) {
                     Statement scopeNodeStmt = scope().getStatement(j);
                     if (scopeNodeStmt instanceof ContinueStatement continueStmt) {
                         handleContinueStatement(continueStmt);
                     } else if (scopeNodeStmt instanceof BreakStatement breakStmt) {
                         handleBreakStatement(breakStmt);
                     } else { //Not gonna execute break and continue statements, since they do nothing and skip the rest of the statements in the scope
-                        ret = executeStatement(j);
+                        returnValue = executeStatement(j);
                     }
 
                     if (scope().isLoopContinued() || scope().isLoopBroken()) {
@@ -251,14 +250,14 @@ public class Interpreter {
                 BoolPrimitive run = evaluateExprBool(ifStmt.getCondition());
 
                 if (run.getValue()) {
-                    ret = executeStatement(ifStmt.thenStatement());
+                    returnValue = executeStatement(ifStmt.thenStatement());
                 } else if (ifStmt.hasElse()) {
-                    ret = executeStatement(ifStmt.elseStatement());
+                    returnValue = executeStatement(ifStmt.elseStatement());
                 }
             }
             case WhileStatement whileStmt -> {
-                while (evaluateExprBool(whileStmt.condition()).getValue() && ret.isEmpty()) {
-                    ret = executeStatement(whileStmt.statement());
+                while (evaluateExprBool(whileStmt.condition()).getValue() && returnValue.isEmpty()) {
+                    returnValue = executeStatement(whileStmt.statement());
 
                     //Idk what to do with the return value of this method
                     scope().returnFromContinue();
@@ -271,10 +270,10 @@ public class Interpreter {
             case ForStatement forStmt -> {
 
                 for (executeStatement(forStmt.getAssigner());
-                     evaluateExprBool(forStmt.condition()).getValue() && ret.isEmpty();
+                     evaluateExprBool(forStmt.condition()).getValue() && returnValue.isEmpty();
                      executeStatement(forStmt.getIncrementer())) {
 
-                    ret = executeStatement(forStmt.statement());
+                    returnValue = executeStatement(forStmt.statement());
 
                     //Idk what to do with the return value of this method
                     scope().returnFromContinue();
@@ -312,9 +311,9 @@ public class Interpreter {
 
                 scopeStack.push(newScope);
                 ReturnStatement funcRet = null;
-                for (int j = 0; j < newScope.getStatements().size() && ret.isEmpty(); j++) {
-                    ret = executeStatement(j);
-                    // This returns in case the return statement was empty, otherwise ret would be populated and we'd leave anyways
+                for (int j = 0; j < newScope.getStatements().size() && returnValue.isEmpty(); j++) {
+                    returnValue = executeStatement(j);
+                    // This returns in case the return statement was empty, otherwise returnValue would be populated and we'd leave anyways
                     if (scope().getStatement(j) instanceof ReturnStatement) {
                         funcRet = (ReturnStatement) scope().getStatement(j);
                         break;
@@ -325,14 +324,14 @@ public class Interpreter {
                 //Otherwise, place the error at the function itself
                 Token errorToken = funcRet == null ? func.token : funcRet.token;
                 //TODO this is where the distinction between an exit statement and return statement should be. But currently, no such distinction exists, beyond exit statements being plainly dysfunctional
-                if (ret.isPresent()) {
-                    NodePrimitive value = ret.get();
+                if (returnValue.isPresent()) {
+                    NodePrimitive value = returnValue.get();
 
                     if (!value.getTypeString().equals(func.returnType.value))
                         throw new ExpressionError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + value.getTypeString() + "' instead",
                                 errorToken);
 
-                    ret = Optional.empty(); //Discarding the return value, since it shouldn't matter
+                    returnValue = Optional.empty(); //Discarding the return value, since it shouldn't matter
                 } else {
                     //Did we return nothing from a function that was expecting something?
                     //The return value would have been discarded anyway, but it is still a type error
@@ -356,7 +355,7 @@ public class Interpreter {
                         // We were expecting something from this function, not void
                         throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope().name + "', got '" + TokenType.VOID.name().toLowerCase() + "' instead", retStmt.token);
                     }
-                    ret = Optional.empty();
+                    returnValue = Optional.empty();
                     break;
                 }
 
@@ -365,7 +364,7 @@ public class Interpreter {
                 if (!retValue.getTypeString().equals(scope.getReturnType()))
                     throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope.name + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
 
-                ret = Optional.of(retValue);
+                returnValue = Optional.of(retValue);
             }
 
             case ContinueStatement continueStmt -> handleContinueStatement(continueStmt);
@@ -375,7 +374,7 @@ public class Interpreter {
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
         }
 
-        return ret;
+        return returnValue;
     }
 
     private Scope scope() {
@@ -604,18 +603,18 @@ public class Interpreter {
 
                 scopeStack.push(newScope);
 
-                Optional<NodePrimitive> ret = Optional.empty();
+                Optional<NodePrimitive> returnValue = Optional.empty();
 
-                for (int j = 0; j < newScope.getStatements().size() && ret.isEmpty(); j++) {
-                    ret = executeStatement(j);
+                for (int j = 0; j < newScope.getStatements().size() && returnValue.isEmpty(); j++) {
+                    returnValue = executeStatement(j);
                 }
 
                 scopeStack.pop();
 
-                if (ret.isEmpty())
+                if (returnValue.isEmpty())
                     throw new ExpressionError("Did not return a value from function '" + fCall.name + "'", fCall.token);
 
-                yield ret.get();
+                yield returnValue.get();
             }
 
             //This branch should only happen when we hit a new NodeExpr that hasn't been handled yet

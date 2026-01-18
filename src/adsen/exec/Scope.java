@@ -15,6 +15,8 @@ public class Scope {
      */
     public static final String MAIN_FUNCTION = "main";
 
+    //TODO I'm using this as the name of the current function, but that doesn't work in a scope within the function
+    //So I'll have a separate variable for the scope's function name, which will change from function to function
     public final String name;
     final Map<String, NodePrimitive> variables;
     private final List<Statement> statements;
@@ -71,6 +73,7 @@ public class Scope {
      * Returns a blank {@link Scope} from a function.
      */
     public static Scope fromFunction(HeliumFunction func, Map<String, NodePrimitive> arguments) {
+        //TODO Check this before we call this function, since that way we can call proper errors
         if (arguments.size() != func.args)
             throw new RuntimeException("Incorrect number of arguments, expected " + func.args + ", found " + arguments.size());
 

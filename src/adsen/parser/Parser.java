@@ -339,6 +339,26 @@ public class Parser {
                     List<Token> scopeTokens = new ArrayList<>();
                     int c_bracket_counter = 1; //we have seen one open curly bracket
 
+                    /*
+                    TODO Use scope depth int variable to keep track of scopes, instead of reading through the entire scope's tokens first
+                    That would require major refactoring of this class, but it's the only way to scale this project and
+                    actually allow for large Helium files to exist
+                    The idea is that instead of tallying up the tokens in a scope and sending them off to a new Parser
+                    object to be processed, we simply increment a curly bracket counter here. Increment it each time we
+                    see an open curly bracket, close it each time we close one, etc.
+                    And we also store the statements by their layer, probably in a Stack, but idk exactly.
+                    So when we find a curly bracket, we can take all the preceding statements until the previous curly
+                    bracket, then enclose them into a scope, and stick that onto the statements list for the previous
+                    scope depth / open curly bracket.
+                    Scope depth would be initialised to 0 at the beginning of a function, and then checked to see if it's
+                    still 0 at the end. If it isn't then that'll be a fun headache, either for me or the programmer, idk.
+
+                    Maybe use a Stack<List<NodeStatement>>, where each time we push a new List onto the stack, then always
+                    add to the list at the top of the stack. Then we pop it off, insert it into a new ScopeStatement, and
+                    shove that onto the list that's now at the top of the stack.
+                    So instead of having an int declaring depth, we combine depth-checking with adding statements.
+                    I'm a genius!
+                    */
                     for (t = consume(); c_bracket_counter != 0 || t.type != C_CLOSE_PAREN; t = consume()) {
                         if (t.type == C_OPEN_PAREN) c_bracket_counter++;
                         if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
@@ -371,7 +391,7 @@ public class Parser {
                     t = peek(1); //don't consume unless needed
 
                     //Adding null check in case the if is the last thing in the function, meaning there's nothing else afterwards
-                    if (t!= null && t.type == ELSE) { //Parsing else statement right here
+                    if (t != null && t.type == ELSE) { //Parsing else statement right here
                         Statement elseStatement = parseOneStatement(pos + 2);
 
                         yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
