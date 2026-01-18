@@ -134,6 +134,7 @@ public class Interpreter {
     Optional<NodePrimitive> executeStatement(Statement statement) {
         int pos = scope().getPos(); //Completely unused, not even sure if it's accurate, but eh it does no harm to keep it jic
 
+        //TODO rename this variable to something mroe descriptive
         Optional<NodePrimitive> ret = Optional.empty();
 
         switch (statement) {
@@ -310,13 +311,36 @@ public class Interpreter {
                 Scope newScope = Scope.fromFunction(func, arguments);
 
                 scopeStack.push(newScope);
-
+                ReturnStatement funcRet = null;
                 for (int j = 0; j < newScope.getStatements().size() && ret.isEmpty(); j++) {
                     ret = executeStatement(j);
+                    // This returns in case the return statement was empty, otherwise ret would be populated and we'd leave anyways
+                    if (scope().getStatement(j) instanceof ReturnStatement) {
+                        funcRet = (ReturnStatement) scope().getStatement(j);
+                        break;
+                    }
                 }
-                //TODO this is where the distincton between an exit statement and return statement should be. But currently, no such distinction exists
-                if(ret.isPresent()){
+
+                //If there was a return statement (and an error), the following errors will be generated there
+                //Otherwise, place the error at the function itself
+                Token errorToken = funcRet == null ? func.token : funcRet.token;
+                //TODO this is where the distinction between an exit statement and return statement should be. But currently, no such distinction exists, beyond exit statements being plainly dysfunctional
+                if (ret.isPresent()) {
+                    NodePrimitive value = ret.get();
+
+                    if (!value.getTypeString().equals(func.returnType.value))
+                        throw new ExpressionError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + value.getTypeString() + "' instead",
+                                errorToken);
+
                     ret = Optional.empty(); //Discarding the return value, since it shouldn't matter
+                } else {
+                    //Did we return nothing from a function that was expecting something?
+                    //The return value would have been discarded anyway, but it is still a type error
+
+                    if (!func.returnType.type.equals(TokenType.VOID))
+                        throw new ExpressionError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + TokenType.VOID.name().toLowerCase() + "' instead",
+                                errorToken
+                        );
                 }
 
                 scopeStack.pop();
@@ -326,10 +350,20 @@ public class Interpreter {
                 Scope scope = scope();
                 //System.out.println("Returning from " + scope.name);
 
+                //If the return statement is empty, we don't expect a result
+                if (retStmt.empty) {
+                    if (!scope.getReturnType().equalsIgnoreCase(TokenType.VOID.name())) {
+                        // We were expecting something from this function, not void
+                        throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope().name + "', got '" + TokenType.VOID.name().toLowerCase() + "' instead", retStmt.token);
+                    }
+                    ret = Optional.empty();
+                    break;
+                }
+
                 NodePrimitive retValue = evaluateExpr(retStmt.expr());
 
                 if (!retValue.getTypeString().equals(scope.getReturnType()))
-                    throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope.name + "', got '" + retValue.getTypeString() + "' instead", retValue.getToken());
+                    throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope.name + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
 
                 ret = Optional.of(retValue);
             }
@@ -351,15 +385,16 @@ public class Interpreter {
     private void handleContinueStatement(ContinueStatement continueStmt) {
         if (scope().isLoop()) {
             if (!scope().continueLoop())
-                throw new ExpressionError("Unexpected 'continue', should not have reached this point", continueStmt.token);
+                throw new ExpressionError("Unexpected 'continue', loop might already have been continued or broken", continueStmt.token);
 
         } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
     }
 
     private void handleBreakStatement(BreakStatement breakStmt) {
+        //This will eventually handle switch statements ig, though if it's too much of a mess I'll just use a different keyword or smth
         if (scope().isLoop()) {
             if (!scope().breakLoop())
-                throw new ExpressionError("Unexpected 'break', should not have reached this point", breakStmt.token);
+                throw new ExpressionError("Unexpected 'break', loop might already have been continued or broken", breakStmt.token);
 
         } else throw new ExpressionError("Unexpected 'break' outside of loop", breakStmt.token);
     }
@@ -559,7 +594,7 @@ public class Interpreter {
                 HeliumFunction func = program.getFunction(fCall.token, typeSignature);
 
                 if (func.returnType.type == TokenType.VOID)
-                    throw new ExpressionError("Invalid return type, cannot have void return type here", fCall.token);
+                    throw new ExpressionError("Tried to use void function in an expression", fCall.token);
 
                 for (int i = 0; i < typeSignature.size(); i++) {
                     arguments.put(func.getSignature().get(i * 2 + 1).value, typeSignature.get(i));

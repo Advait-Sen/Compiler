@@ -112,7 +112,8 @@ public class Parser {
                 throw new ExpressionError("Expected ';' after expression", t);
         }
 
-        if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse expression", t);
+        //This is only acceptable with an empty return statement, which is a case we handle before reaching this point
+        if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse empty expression", t);
 
         return ShuntingYard.parseExpr(exprTokens);
     }
@@ -247,7 +248,10 @@ public class Parser {
                 }
                 case RETURN -> { //Return statement
                     consume(); //Consume return token
-                    yield new ReturnStatement(t, parseExpr(ignoreSemi, endPos));
+                    if (peek().type == SEMICOLON)
+                        yield new ReturnStatement(t, null);
+
+                    else yield new ReturnStatement(t, parseExpr(ignoreSemi, endPos));
                 }
 
                 case CONTINUE -> { //Continue statement
