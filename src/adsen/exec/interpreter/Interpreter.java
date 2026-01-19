@@ -426,7 +426,6 @@ public class Interpreter {
         */
 
         //todo add a new NodePrimitive type of pointer, which will point to complex objects
-        //Todo add function call expr or something, which will allow for use of functions in expressions
 
         NodePrimitive retVal = switch (expr) {
             case NodePrimitive nodePrimitive -> nodePrimitive;
@@ -647,7 +646,7 @@ public class Interpreter {
             //noinspection UnnecessaryDefault since it might be necessary in the future
             default ->
                     throw new ExpressionError("Don't know how we got here, found unknown evaluation context", retVal.getToken());
-        }).copy(); //todo check later if this copy breaks things
+        }).copy(); //todo check later if this copy breaks things with classes
     }
 
 

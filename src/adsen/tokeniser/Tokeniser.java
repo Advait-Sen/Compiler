@@ -190,6 +190,7 @@ public class Tokeniser {
 
                     consume(); //Consume the / at the end of the block comment
 
+                    //TODO fix bug that means if the */ are the last characters in a file, we don't recognise them for some reason
                     if (!hasNext(1)) { //Reached end of file without seeing '*/'
                         throw new ExpressionError("Unclosed block comment", token);
                     }
