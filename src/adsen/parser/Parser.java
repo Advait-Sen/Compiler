@@ -28,6 +28,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Stack;
+import java.util.function.Function;
 
 import static adsen.tokeniser.TokenType.*;
 
@@ -60,6 +62,12 @@ public class Parser {
     public final HeliumProgram program;
 
     /**
+     * Experimental new way of storing statements in order to simplify and optimise scope creation.
+     * TODO add helper functions to access top of stack later on when code gets repetetive
+     */
+    private final Stack<ParserScope> parserScopes = new Stack<>();
+
+    /**
      * Current position within token list
      */
     private int pos = 0;
@@ -81,7 +89,8 @@ public class Parser {
 
 
     /**
-     * Tries to read an expression from {@link Parser#tokens} list
+     * Gathers tokens for a possible expression, before sending them off to {@link ShuntingYard#parseExpr} to get
+     * evaluated into a {@link NodeExpr}
      *
      * @param ignoreSemi Allows to ignore final semicolon if not required
      * @param endPos     End index until which to read tokens
@@ -92,6 +101,7 @@ public class Parser {
 
         List<Token> exprTokens = new ArrayList<>();
 
+        //TODO figure out when this happens
         if (tokens == -1) {
             for (t = peek(); hasNext() && isValidExprToken(peek()); t = consume()) {
                 exprTokens.add(t);
@@ -191,7 +201,7 @@ public class Parser {
                                 if (t.type != COMMA) throw new ExpressionError("Expected ','", t);
 
                             } else throw new ExpressionError("Expected variable", t);
-
+                            //This might have to go, or maybe just change, once classes become a thing
                         } else throw new ExpressionError("Expected type", t);
 
                     }
@@ -201,7 +211,9 @@ public class Parser {
                     if (peek(1).type != C_OPEN_PAREN)
                         throw new ExpressionError("Expected '{' after function declaration", peek(1));
 
-                    function.andThen(((ScopeStatement) parseOneStatement(pos + 1)).statements);
+                    parserScopes.push(new ParserScope());
+                    parseFunction(pos + 1);
+                    function.andThen(parserScopes.pop().statements);
 
                     program.addFunction(function);
                 }
@@ -217,41 +229,38 @@ public class Parser {
     /**
      * Old parse function which returns the {@link HeliumProgram} defining the entire program's AST.
      */
+    @Deprecated
     public List<Statement> parseStatements() {
-        return parseStatements(0, tokens.size()); // Statement count will always be less than token list size
+        return null;
     }
 
-    /**
-     * Method which returns the next parsed statement, since it seems to be such a popular request
-     */
-    Statement parseOneStatement(int startPos) {
-        return parseStatements(startPos, 1).getFirst();
-    }
+    List<Statement> parseFunction(int startPos) {
 
-    List<Statement> parseStatements(int startPos, int statementCount) {
-        return parseStatements(startPos, statementCount, tokens.size(), false); //By default, looking at all the tokens
-    }
+        //IDK maybe remove these
+        int tokenCount = tokens.size(), statementCount = tokens.size();
 
-    List<Statement> parseStatements(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
-        List<Statement> statements = new ArrayList<>();
+        //For when we're evaluating only a certain number of tokens at a time
         int endPos = pos + tokenCount;
-        for (pos = startPos; hasNext() && pos < endPos && statements.size() < statementCount; pos++) {
+
+
+        //Empty case is for the beginning of functions
+        for (pos = startPos; hasNext() && pos < endPos && parserScopes.firstElement().statements.isEmpty(); pos++) {
             Token t = peek();
             Statement statement;
-            //If we don't need the semicolon at the end, then don't look for it (eg. in for statement)
-            boolean needSemi = !ignoreSemi; //used for if, else, while etc.
+            //If we don't need the semicolon at the end, then don't look for it (eg. in for statement incrementer)
+            boolean needSemi = true; //used for if, else, while etc.
 
             statement = switch (t.type) {
                 case EXIT -> { //Exit statement
                     consume(); //Consume exit token
-                    yield new ExitStatement(t, parseExpr(ignoreSemi, endPos));
+                    yield new ExitStatement(t, parseExpr(false, endPos));
                 }
                 case RETURN -> { //Return statement
                     consume(); //Consume return token
                     if (peek().type == SEMICOLON)
                         yield new ReturnStatement(t, null);
 
-                    else yield new ReturnStatement(t, parseExpr(ignoreSemi, endPos));
+                    else yield new ReturnStatement(t, parseExpr(false, endPos));
                 }
 
                 case CONTINUE -> { //Continue statement
@@ -277,7 +286,7 @@ public class Parser {
 
                     consume(); //Consuming declarer operation
 
-                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr(ignoreSemi, endPos));
+                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr(false, endPos));
                 }
                 case LET -> { // Normal declaration
                     Token identifier = consume(); //Consuming 'let' keyword
@@ -292,7 +301,7 @@ public class Parser {
 
                     consume(); //Consuming declarer operation
 
-                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr(ignoreSemi, endPos));
+                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr(false, endPos));
                 }
                 case UNARY_OPERATOR -> {
                     OperatorType opType = Operator.operatorType.get(t.value);
@@ -326,18 +335,10 @@ public class Parser {
 
                     consume(); //Consuming assigner operation
 
-                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr(ignoreSemi, endPos));
+                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr(false, endPos));
                 }
                 case C_OPEN_PAREN -> { //New scope
                     needSemi = false;
-
-                    if (peek(1).type == C_CLOSE_PAREN) { //Special case for empty scope
-                        consume();//consuming closed curly bracket
-                        yield new ScopeStatement(Collections.emptyList());
-                    }
-
-                    List<Token> scopeTokens = new ArrayList<>();
-                    int c_bracket_counter = 1; //we have seen one open curly bracket
 
                     /*
                     TODO Use scope depth int variable to keep track of scopes, instead of reading through the entire scope's tokens first
@@ -359,14 +360,26 @@ public class Parser {
                     So instead of having an int declaring depth, we combine depth-checking with adding statements.
                     I'm a genius!
                     */
-                    for (t = consume(); c_bracket_counter != 0 || t.type != C_CLOSE_PAREN; t = consume()) {
-                        if (t.type == C_OPEN_PAREN) c_bracket_counter++;
-                        if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
-                        scopeTokens.add(t);
-                    }
-                    //todo check if this causes errors when creating error messages
-                    yield new ScopeStatement(newFromTokenList(scopeTokens).parseStatements(0, tokens.size()));
+                    //Everything from now on will be statements in the new scope
+                    parserScopes.push(new ParserScope());
+
+                    System.out.println("Created new scope (" + parserScopes.size() + ")");
+
+                    yield null;
                 }
+
+                case C_CLOSE_PAREN -> {
+                    System.out.println("Closed scope (" + parserScopes.size() + ")");
+                    needSemi = false;
+                    ParserScope popped = parserScopes.pop();
+                    if (!popped.statementRequests.isEmpty()) {
+                        throw new ExpressionError("Still had statement requests in scope", t);
+                    }
+                    List<Statement> scopeStatments = popped.statements;
+
+                    yield new ScopeStatement(scopeStatments);
+                }
+
                 case IF -> {
                     Token ifT = t;
                     t = consume();
@@ -386,19 +399,29 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Statement thenStatement = parseOneStatement(pos + 1);
+                    Function<Statement, Statement> thenGetter = (thenStatement) -> {
+                        return new IfStatement(ifT, ifExpr, thenStatement);
+                    };
+                    parserScopes.peek().statementRequests.push(thenGetter);
 
-                    t = peek(1); //don't consume unless needed
+                    System.out.println("Pushed an if onto the request stack");
 
-                    //Adding null check in case the if is the last thing in the function, meaning there's nothing else afterwards
-                    if (t != null && t.type == ELSE) { //Parsing else statement right here
-                        Statement elseStatement = parseOneStatement(pos + 2);
-
-                        yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
-                    }
-
-                    yield new IfStatement(ifT, ifExpr, thenStatement);
+                    yield null;
                 }
+                case ELSE -> {
+                    if (parserScopes.peek().statements.getLast() instanceof IfStatement ifStmt) {
+                        parserScopes.peek().statements.removeLast();
+                        Token elseToken = t;
+                        Function<Statement, Statement> elseGetter = (elseStatement) -> {
+                            return new IfStatement(ifStmt.token, ifStmt.getCondition(), ifStmt.thenStatement(), elseToken, elseStatement);
+                        };
+                        parserScopes.peek().statementRequests.push(elseGetter);
+                    } else {
+                        throw new ExpressionError("Must have an if preceding else statement", t);
+                    }
+                    yield null;
+                }
+                /* temporarily disabling while and for statements
                 case WHILE -> {
                     Token whileT = t;
                     t = consume();
@@ -471,6 +494,7 @@ public class Parser {
 
                     yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
                 }
+                 */
                 case FUNCTION -> { //Function call
                     Token fCallTok = t;
                     t = consume();
@@ -517,17 +541,28 @@ public class Parser {
                 default -> throw new ExpressionError("Unknown statement", t);
             };
 
-
+            //This will change when I reimplement for statement
             if (needSemi && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
-            statements.add(statement);
+            if (statement != null) {
+                System.out.println("Formed a statement: " + statement.asString() + " at scope depth: " + parserScopes.size());
+
+                //If there are no if, while, etc. that want a statement
+                if (parserScopes.peek().statementRequests.isEmpty()) {
+                    System.out.println("That was directly added onto the statement stack");
+                } else {
+                    statement = parserScopes.peek().statementRequests.pop().apply(statement);
+                    System.out.println("That was consumed by a request, producing: " + statement.asString());
+                }
+                parserScopes.peek().statements.add(statement);
+            }
         }
 
         pos--;  // decrementing to the last valid token
-
-        return statements;
+        System.out.println("Finished with statementStack having a depth of: " + parserScopes.size() + "\n\n");
+        return parserScopes.peek().statements;
     }
 
     //Preparing for shunting yard
@@ -565,4 +600,9 @@ public class Parser {
         pos++;
         return peek();
     }
+}
+
+class ParserScope {
+    public final List<Statement> statements = new ArrayList<>();
+    public final Stack<Function<Statement, Statement>> statementRequests = new Stack<>();
 }
