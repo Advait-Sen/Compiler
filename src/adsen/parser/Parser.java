@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
 
+import static adsen.Main.VERBOSE_FLAGS;
 import static adsen.tokeniser.TokenType.*;
 
 /**
@@ -212,9 +213,8 @@ public class Parser {
                         throw new ExpressionError("Expected '{' after function declaration", peek(1));
 
                     parserScopes.push(new ParserScope());
-                    parseFunction(pos + 1);
-                    function.andThen(parserScopes.pop().statements);
-
+                    function.andThen(parseFunction(pos + 1));
+                    parserScopes.pop();
                     program.addFunction(function);
                 }
                 default -> throw new ExpressionError("Unexpected token: " + t, t);
@@ -363,13 +363,10 @@ public class Parser {
                     //Everything from now on will be statements in the new scope
                     parserScopes.push(new ParserScope());
 
-                    System.out.println("Created new scope (" + parserScopes.size() + ")");
-
                     yield null;
                 }
 
                 case C_CLOSE_PAREN -> {
-                    System.out.println("Closed scope (" + parserScopes.size() + ")");
                     needSemi = false;
                     ParserScope popped = parserScopes.pop();
                     if (!popped.statementRequests.isEmpty()) {
@@ -404,8 +401,6 @@ public class Parser {
                         return new IfStatement(ifT, ifExpr, thenStatement);
                     };
                     parserScopes.peek().statementRequests.push(thenGetter);
-
-                    System.out.println("Pushed an if onto the request stack");
 
                     yield null;
                 }
@@ -553,28 +548,44 @@ public class Parser {
             }
 
             if (statement != null) {
-                System.out.println("Formed a statement: " + statement.asString() + " at scope depth: " + parserScopes.size());
+                if (VERBOSE_FLAGS.contains("parser"))
+                    System.out.println("Formed a statement: " + statement.asString() + " at scope depth: " + parserScopes.size());
 
                 //If there are no if, while, etc. that want a statement
-                if (parserScopes.peek().statementRequests.isEmpty()) {
-                    System.out.println("That was directly added onto the statement stack");
+                if (parserScopes.peek().statementRequests.isEmpty() && VERBOSE_FLAGS.contains("parser")) {
+                    System.out.println("That was directly added onto the statement stack\n");
                 } else {
                     statement = parserScopes.peek().statementRequests.pop().apply(statement);
-                    System.out.println("That was consumed by a request, producing: " + statement.asString());
+                    if (VERBOSE_FLAGS.contains("parser"))
+                        System.out.println("That was consumed by a request, producing: " + statement.asString()+"\n");
                 }
                 parserScopes.peek().statements.add(statement);
             }
         }
 
         pos--;  // decrementing to the last valid token
-        System.out.println("Finished with statementStack having a depth of: " + parserScopes.size() + "\n\n");
-        //TODO make sure this is a scope statement, and return its contents instead
-        if(parserScopes.isEmpty()) {
+
+        Statement funcScope;
+        ParserScope firstScope;
+        if (parserScopes.isEmpty()) {
             throw new ExpressionError("Empty parser scope, how did we get here?", null);
-        } else if (parserScopes.size()>1) {
+        } else if (parserScopes.size() > 1) {
+
             throw new ExpressionError("Didn't pop scopes correctly", parserScopes.peek().statements.getFirst().primaryToken());
+        } else if ((firstScope = parserScopes.peek()).statements.isEmpty()) {
+
+            throw new ExpressionError("Didn't close function properly", tokens.getLast());
+
+        } else if (firstScope.statements.size() > 1) {
+
+            throw new ExpressionError("Too many statements, impossible to reach this point", null);
+
+        } else if (!((funcScope = firstScope.statements.getFirst()) instanceof ScopeStatement)) {
+            throw new ExpressionError("Incorrect function declaration", funcScope.primaryToken());
+
+        } else {
+            return ((ScopeStatement) funcScope).statements;
         }
-        return parserScopes.peek().statements;
     }
 
     //Preparing for shunting yard
