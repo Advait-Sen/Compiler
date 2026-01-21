@@ -449,53 +449,70 @@ public class Parser {
                     parserScopes.peek().statementRequests.push(whileRequest);
                     yield null;
                 }
-                /* temporarily disabling for statements
-                case FOR -> { //Todo add proper checks for assigner and incrementer being assignment statements
+
+                case FOR -> {
                     Token forT = t;
                     t = consume();
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
 
-                    Statement assigner = parseOneStatement(pos + 1);
-                    if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
-                        throw new ExpressionError("Invalid assigner expression in for statement", t);
-                    }
+                    //Todo add proper checks for assigner and incrementer being assignment statements
+                    Function<Statement, Statement> assignerRequest = (assigner) -> {
+                        if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
+                            throw new ExpressionError("Invalid assigner expression in for statement", assigner.primaryToken());
+                        }
+                        List<Token> conditionTokens = new ArrayList<>();
+                        Token _t;
 
-                    List<Token> conditionTokens = new ArrayList<>();
+                        for (_t = consume(); isValidExprToken(_t); _t = consume()) {
+                            conditionTokens.add(_t);
+                        }
 
-                    for (t = consume(); isValidExprToken(t); t = consume()) {
-                        conditionTokens.add(t);
-                    }
+                        if (_t.type != SEMICOLON) throw new ExpressionError("Invalid token", _t);
 
-                    if (t.type != SEMICOLON) throw new ExpressionError("Invalid token", t);
+                        NodeExpr forCondition = ShuntingYard.parseExpr(conditionTokens);
+                        return new ForStatement(forT, assigner, forCondition);
+                    };
 
-                    NodeExpr forCondition = ShuntingYard.parseExpr(conditionTokens);
+                    Function<Statement, Statement> incrementerRequest = (incrementer) -> {
 
-                    int closed_bracket_pos;
-                    int bracket_counter = 1; //we have seen one open bracket
+                        Statement stmt;
+                        if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
+                            parserScopes.peek().statements.removeLast();
+                            if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
+                                throw new ExpressionError("Invalid incrementer expression in for statement", stmt.primaryToken());
+                            }
+                            ((ForStatement) stmt).addIncrementer(incrementer);
 
-                    for (closed_bracket_pos = 1; bracket_counter != 0; closed_bracket_pos++) {
-                        if (peek(closed_bracket_pos).type == OPEN_PAREN) bracket_counter++;
-                        if (peek(closed_bracket_pos + 1).type == CLOSE_PAREN) bracket_counter--;
-                        conditionTokens.add(t);
-                    }
+                            return stmt;
+                        } else {
+                            throw new ExpressionError("Expected for statement", stmt.primaryToken());
+                        }
+                    };
 
-                    Statement incrementer = parseStatements(pos + 1, 1, closed_bracket_pos, true).getFirst();
-
-                    if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
-                        throw new ExpressionError("Invalid incrementer expression in for statement", t);
-                    }
+                    Function<Statement, Statement> executionStatementRequest = (execStatement) -> {
+                        Statement stmt;
+                        if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
+                            parserScopes.peek().statements.removeLast();
+                            if (execStatement instanceof ScopeStatement scope) {
+                                scope.setLoop();
+                            }
+                            ((ForStatement) stmt).addStatement(execStatement);
+                            return stmt;
+                        } else {
+                            throw new ExpressionError("Expected for statement", stmt.primaryToken());
+                        }
+                    };
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Statement executionStatement = parseOneStatement(pos + 1);
+                    //Push them in reverse order, since top of the stack is read first
+                    parserScopes.peek().statementRequests.push(executionStatementRequest);
+                    parserScopes.peek().statementRequests.push(incrementerRequest);
+                    parserScopes.peek().statementRequests.push(assignerRequest);
 
-                    if (executionStatement instanceof ScopeStatement scope) {
-                        scope.setLoop();
-                    }
-
-                    yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
+                    yield null;
                 }
-                 */
+
                 case FUNCTION -> { //Function call
                     Token fCallTok = t;
                     t = consume();
@@ -544,7 +561,10 @@ public class Parser {
 
             //This will change when I reimplement for statement
             if (needSemi && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
-                throw new ExpressionError("Must have ';' after statement", peek());
+                if(peek().type == CLOSE_PAREN) //TODO remove this once i implement StatementRequest object
+                    System.out.println("This is after the increment statement: "+peek().value);
+                else
+                    throw new ExpressionError("Must have ';' after statement", peek());
             }
 
             if (statement != null) {
@@ -557,7 +577,7 @@ public class Parser {
                 } else {
                     statement = parserScopes.peek().statementRequests.pop().apply(statement);
                     if (VERBOSE_FLAGS.contains("parser"))
-                        System.out.println("That was consumed by a request, producing: " + statement.asString()+"\n");
+                        System.out.println("That was consumed by a request, producing: " + statement.asString() + "\n");
                 }
                 parserScopes.peek().statements.add(statement);
             }
@@ -628,4 +648,27 @@ public class Parser {
 class ParserScope {
     public final List<Statement> statements = new ArrayList<>();
     public final Stack<Function<Statement, Statement>> statementRequests = new Stack<>();
+}
+
+
+class StatementRequest {
+    final Function<Statement, Statement> request;
+    final boolean needSemi;
+
+    private StatementRequest(boolean needSemi, Function<Statement, Statement> request) {
+        this.needSemi = needSemi;
+        this.request = request;
+    }
+
+    public static StatementRequest get(Function<Statement, Statement> request) {
+        return new StatementRequest(true, request);
+    }
+
+    public static StatementRequest withoutSemi(Function<Statement, Statement> request) {
+        return new StatementRequest(false, request);
+    }
+
+    Statement apply(Statement statement) {
+        return request.apply(statement);
+    }
 }
