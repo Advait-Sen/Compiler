@@ -1,5 +1,6 @@
 package adsen.parser.statement;
 
+import adsen.tokeniser.Token;
 import java.util.List;
 
 /**
@@ -9,14 +10,16 @@ public class ScopeStatement implements Statement {
     public final List<Statement> statements;
     private boolean isLoop = false;
     public final String name; //If applicable
+    public final Token token;
 
-    public ScopeStatement(List<Statement> statements) {
-        this(statements, "");
+    public ScopeStatement(List<Statement> statements, Token closeToken) {
+        this(statements, "", closeToken);
     }
 
-    public ScopeStatement(List<Statement> statements, String name) {
+    public ScopeStatement(List<Statement> statements, String name, Token closeToken) {
         this.statements = statements;
         this.name = name;
+        this.token = closeToken;
     }
 
     public void setLoop() {
@@ -44,5 +47,10 @@ public class ScopeStatement implements Statement {
     @Override
     public String typeString() {
         return "scope (" + (isNamed() ? name + ", " : "") + statements.size() + ")";
+    }
+
+    @Override
+    public Token primaryToken() {
+        return token;
     }
 }

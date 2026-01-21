@@ -26,4 +26,9 @@ public class ExitStatement implements Statement {
     public String typeString() {
         return "exit";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
 }

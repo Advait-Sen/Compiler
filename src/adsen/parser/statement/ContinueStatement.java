@@ -17,4 +17,9 @@ public class ContinueStatement implements Statement {
     public String typeString() {
         return "continue";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
 }

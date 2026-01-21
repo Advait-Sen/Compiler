@@ -53,4 +53,9 @@ public class IfStatement implements Statement {
     public String typeString() {
         return "if";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
 }

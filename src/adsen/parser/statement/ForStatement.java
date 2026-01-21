@@ -44,4 +44,9 @@ public class ForStatement implements Statement {
     public String typeString() {
         return "for";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
 }

@@ -237,13 +237,13 @@ public class Parser {
     List<Statement> parseFunction(int startPos) {
 
         //IDK maybe remove these
-        int tokenCount = tokens.size(), statementCount = tokens.size();
+        int tokenCount = tokens.size();
 
         //For when we're evaluating only a certain number of tokens at a time
         int endPos = pos + tokenCount;
 
 
-        //Empty case is for the beginning of functions
+        //Empty case is to ensure we only grab one statement from a function (a scope statement whose contents we steal)
         for (pos = startPos; hasNext() && pos < endPos && parserScopes.firstElement().statements.isEmpty(); pos++) {
             Token t = peek();
             Statement statement;
@@ -377,7 +377,7 @@ public class Parser {
                     }
                     List<Statement> scopeStatments = popped.statements;
 
-                    yield new ScopeStatement(scopeStatments);
+                    yield new ScopeStatement(scopeStatments, t);
                 }
 
                 case IF -> {
@@ -569,6 +569,11 @@ public class Parser {
         pos--;  // decrementing to the last valid token
         System.out.println("Finished with statementStack having a depth of: " + parserScopes.size() + "\n\n");
         //TODO make sure this is a scope statement, and return its contents instead
+        if(parserScopes.isEmpty()) {
+            throw new ExpressionError("Empty parser scope, how did we get here?", null);
+        } else if (parserScopes.size()>1) {
+            throw new ExpressionError("Didn't pop scopes correctly", parserScopes.peek().statements.getFirst().primaryToken());
+        }
         return parserScopes.peek().statements;
     }
 

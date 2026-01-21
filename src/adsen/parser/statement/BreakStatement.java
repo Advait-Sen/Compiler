@@ -17,4 +17,9 @@ public class BreakStatement implements Statement {
     public String typeString() {
         return "continue";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
 }

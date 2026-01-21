@@ -30,4 +30,9 @@ public class ReturnStatement implements Statement {
     public String typeString() {
         return "return";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
 }

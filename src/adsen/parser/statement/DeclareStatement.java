@@ -32,4 +32,9 @@ public class DeclareStatement implements Statement {
     public String typeString() {
         return "declaration";
     }
+
+    @Override
+    public Token primaryToken() {
+        return declarer;
+    }
 }

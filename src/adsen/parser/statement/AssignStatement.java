@@ -32,4 +32,9 @@ public class AssignStatement implements Statement {
     public String typeString() {
         return "assignment";
     }
+
+    @Override
+    public Token primaryToken() {
+        return declarer;
+    }
 }

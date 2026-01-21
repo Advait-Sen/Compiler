@@ -31,4 +31,9 @@ public class WhileStatement implements Statement {
     public String typeString() {
         return "while";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
 }

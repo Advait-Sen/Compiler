@@ -5,6 +5,7 @@ import adsen.tokeniser.Token;
 
 import java.util.List;
 
+//TODO see what turning this into a record class means
 public class FunctionCallStatement implements Statement {
 
     public final Token name;
@@ -33,5 +34,10 @@ public class FunctionCallStatement implements Statement {
     @Override
     public String typeString() {
         return "function_call";
+    }
+
+    @Override
+    public Token primaryToken() {
+        return name;
     }
 }
