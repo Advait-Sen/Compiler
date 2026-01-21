@@ -397,9 +397,9 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Function<Statement, Statement> thenGetter = (thenStatement) -> {
+                    StatementRequest thenGetter = StatementRequest.get((thenStatement) -> {
                         return new IfStatement(ifT, ifExpr, thenStatement);
-                    };
+                    });
                     parserScopes.peek().statementRequests.push(thenGetter);
 
                     yield null;
@@ -408,9 +408,9 @@ public class Parser {
                     if (parserScopes.peek().statements.getLast() instanceof IfStatement ifStmt) {
                         parserScopes.peek().statements.removeLast();
                         Token elseToken = t;
-                        Function<Statement, Statement> elseGetter = (elseStatement) -> {
+                        StatementRequest elseGetter = StatementRequest.get((elseStatement) -> {
                             return new IfStatement(ifStmt.token, ifStmt.getCondition(), ifStmt.thenStatement(), elseToken, elseStatement);
-                        };
+                        });
                         parserScopes.peek().statementRequests.push(elseGetter);
                     } else {
                         throw new ExpressionError("Must have an if preceding else statement", t);
@@ -438,13 +438,13 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Function<Statement, Statement> whileRequest = (executionStatement) -> {
+                    StatementRequest whileRequest = StatementRequest.get((executionStatement) -> {
                         if (executionStatement instanceof ScopeStatement scope) {
                             scope.setLoop();
                         }
 
                         return new WhileStatement(whileT, whileCondition, executionStatement);
-                    };
+                    });
 
                     parserScopes.peek().statementRequests.push(whileRequest);
                     yield null;
@@ -456,7 +456,7 @@ public class Parser {
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
 
                     //Todo add proper checks for assigner and incrementer being assignment statements
-                    Function<Statement, Statement> assignerRequest = (assigner) -> {
+                    StatementRequest assignerRequest = StatementRequest.get((assigner) -> {
                         if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
                             throw new ExpressionError("Invalid assigner expression in for statement", assigner.primaryToken());
                         }
@@ -471,9 +471,9 @@ public class Parser {
 
                         NodeExpr forCondition = ShuntingYard.parseExpr(conditionTokens);
                         return new ForStatement(forT, assigner, forCondition);
-                    };
+                    });
 
-                    Function<Statement, Statement> incrementerRequest = (incrementer) -> {
+                    StatementRequest incrementerRequest = StatementRequest.withoutSemi((incrementer) -> {
 
                         Statement stmt;
                         if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
@@ -487,9 +487,9 @@ public class Parser {
                         } else {
                             throw new ExpressionError("Expected for statement", stmt.primaryToken());
                         }
-                    };
+                    });
 
-                    Function<Statement, Statement> executionStatementRequest = (execStatement) -> {
+                    StatementRequest executionStatementRequest = StatementRequest.get((execStatement) -> {
                         Statement stmt;
                         if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
                             parserScopes.peek().statements.removeLast();
@@ -501,7 +501,7 @@ public class Parser {
                         } else {
                             throw new ExpressionError("Expected for statement", stmt.primaryToken());
                         }
-                    };
+                    });
 
                     needSemi = false; //don't need semicolon after the expression
 
@@ -559,12 +559,9 @@ public class Parser {
                 default -> throw new ExpressionError("Unknown statement", t);
             };
 
-            //This will change when I reimplement for statement
-            if (needSemi && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
-                if(peek().type == CLOSE_PAREN) //TODO remove this once i implement StatementRequest object
-                    System.out.println("This is after the increment statement: "+peek().value);
-                else
-                    throw new ExpressionError("Must have ';' after statement", peek());
+            // Must end statements with semicolon
+            if (needSemi && !(hasNext() && peek().type == SEMICOLON) && (!parserScopes.peek().statementRequests.isEmpty() && parserScopes.peek().statementRequests.peek().needSemi)) {
+                throw new ExpressionError("Must have ';' after statement", peek());
             }
 
             if (statement != null) {
@@ -647,7 +644,7 @@ public class Parser {
 
 class ParserScope {
     public final List<Statement> statements = new ArrayList<>();
-    public final Stack<Function<Statement, Statement>> statementRequests = new Stack<>();
+    public final Stack<StatementRequest> statementRequests = new Stack<>();
 }
 
 
