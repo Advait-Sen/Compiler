@@ -393,6 +393,7 @@ public class Parser {
                         conditionTokens.add(t);
                     }
 
+                    //This means we broke out of the loop due to a bad token
                     if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
 
                     NodeExpr ifExpr = ShuntingYard.parseExpr(conditionTokens);
@@ -421,7 +422,7 @@ public class Parser {
                     }
                     yield null;
                 }
-                /* temporarily disabling while and for statements
+
                 case WHILE -> {
                     Token whileT = t;
                     t = consume();
@@ -435,20 +436,25 @@ public class Parser {
                         conditionTokens.add(t);
                     }
 
+                    //This means we broke out of the loop due to a bad token
                     if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
 
                     NodeExpr whileCondition = ShuntingYard.parseExpr(conditionTokens);
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Statement executionStatement = parseOneStatement(pos + 1);
+                    Function<Statement, Statement> whileRequest = (executionStatement) -> {
+                        if (executionStatement instanceof ScopeStatement scope) {
+                            scope.setLoop();
+                        }
 
-                    if (executionStatement instanceof ScopeStatement scope) {
-                        scope.setLoop();
-                    }
+                        return new WhileStatement(whileT, whileCondition, executionStatement);
+                    };
 
-                    yield new WhileStatement(whileT, whileCondition, executionStatement);
+                    parserScopes.peek().statementRequests.push(whileRequest);
+                    yield null;
                 }
+                /* temporarily disabling for statements
                 case FOR -> { //Todo add proper checks for assigner and incrementer being assignment statements
                     Token forT = t;
                     t = consume();
@@ -562,6 +568,7 @@ public class Parser {
 
         pos--;  // decrementing to the last valid token
         System.out.println("Finished with statementStack having a depth of: " + parserScopes.size() + "\n\n");
+        //TODO make sure this is a scope statement, and return its contents instead
         return parserScopes.peek().statements;
     }
 
