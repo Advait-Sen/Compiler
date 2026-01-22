@@ -2,7 +2,7 @@ package adsen.exec;
 
 import adsen.parser.HeliumFunction;
 import adsen.parser.expr.primitives.NodePrimitive;
-import adsen.parser.statement.Statement;
+import adsen.parser.statement.HeliumStatement;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,13 +19,13 @@ public class Scope {
     //So I'll have a separate variable for the scope's function name, which will change from function to function
     public final String name;
     final Map<String, NodePrimitive> variables;
-    private final List<Statement> statements;
+    private final List<HeliumStatement> statements;
     private int pos;
     private LoopState loopState;
     private final LoopState initialLoopState;
     private final String returnType;
 
-    private Scope(String name, List<Statement> statements, String returnType) {
+    private Scope(String name, List<HeliumStatement> statements, String returnType) {
         this.name = name;
         this.variables = new HashMap<>();
         this.statements = statements;
@@ -35,11 +35,11 @@ public class Scope {
         pos = 0;
     }
 
-    private Scope(String name, Scope existing, List<Statement> statements) {
+    private Scope(String name, Scope existing, List<HeliumStatement> statements) {
         this(name, existing, statements, existing.isLoop());
     }
 
-    private Scope(String name, Scope existing, List<Statement> statements, boolean isLoop) {
+    private Scope(String name, Scope existing, List<HeliumStatement> statements, boolean isLoop) {
         this.name = name;
         this.variables = new HashMap<>(existing.variables);
         this.statements = statements; //Statements are part of new scope code
@@ -49,15 +49,15 @@ public class Scope {
         pos = 0;
     }
 
-    public static Scope empty(String name, List<Statement> statements, String returnType) {
+    public static Scope empty(String name, List<HeliumStatement> statements, String returnType) {
         return new Scope(name, statements,returnType);
     }
 
-    public static Scope fromPrevious(String name, Scope existing, List<Statement> statements) {
+    public static Scope fromPrevious(String name, Scope existing, List<HeliumStatement> statements) {
         return new Scope(name, existing, statements);
     }
 
-    public static Scope fromPreviousWithLoop(String name, Scope existing, List<Statement> statements) {
+    public static Scope fromPreviousWithLoop(String name, Scope existing, List<HeliumStatement> statements) {
         return new Scope(name, existing, statements, true);
     }
 
@@ -87,12 +87,12 @@ public class Scope {
         return returnType;
     }
 
-    public Statement getStatement(int i) {
+    public HeliumStatement getStatement(int i) {
         pos = i;
         return statements.get(i);
     }
 
-    public List<Statement> getStatements() {
+    public List<HeliumStatement> getStatements() {
         return statements;
     }
 

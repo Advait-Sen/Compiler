@@ -3,7 +3,7 @@ package adsen.parser.statement;
 import adsen.parser.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class ExitStatement implements Statement {
+public class ExitStatement implements HeliumStatement {
     public final Token token;
 
     public ExitStatement(Token exit, NodeExpr expr) {

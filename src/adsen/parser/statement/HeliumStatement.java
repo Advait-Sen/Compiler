@@ -3,7 +3,7 @@ package adsen.parser.statement;
 import adsen.tokeniser.Token;
 
 //So apparently this was the Command pattern all along
-public interface Statement {
+public interface HeliumStatement {
     String asString();
 
     /**

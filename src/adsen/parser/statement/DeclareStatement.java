@@ -4,7 +4,7 @@ import adsen.parser.expr.NodeExpr;
 import adsen.parser.expr.NodeIdentifier;
 import adsen.tokeniser.Token;
 
-public class DeclareStatement implements Statement {
+public class DeclareStatement implements HeliumStatement {
     NodeIdentifier identifier;
     Token declarer;
     NodeExpr expression;

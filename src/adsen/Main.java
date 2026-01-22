@@ -7,7 +7,7 @@ import adsen.parser.Parser;
 import adsen.parser.HeliumProgram;
 import adsen.parser.expr.primitives.IntPrimitive;
 import adsen.parser.expr.primitives.NodePrimitive;
-import adsen.parser.statement.Statement;
+import adsen.parser.statement.HeliumStatement;
 import adsen.exec.interpreter.Interpreter;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
@@ -142,7 +142,7 @@ public class Main {
             System.out.println("Initialising old statement-based Parser");
             Parser parser = new Parser(null, tokeniser); //This is officially broken now
 
-            List<Statement> program;
+            List<HeliumStatement> program;
             try {
                 program = parser.parseStatements();
             } catch (ExpressionError expressionError) {
@@ -155,7 +155,7 @@ public class Main {
 
             if (VERBOSE_FLAGS.contains("parser")) {
                 System.out.println("\nprogram.asStringOld() =");
-                for (Statement statement : program) {
+                for (HeliumStatement statement : program) {
                     System.out.println(statement.typeString() + " : " + statement.asString());
                 }
             }

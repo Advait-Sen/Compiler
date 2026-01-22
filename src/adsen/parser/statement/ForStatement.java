@@ -4,20 +4,20 @@ import adsen.error.ExpressionError;
 import adsen.parser.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class ForStatement implements Statement {
+public class ForStatement implements HeliumStatement {
     public final Token token;
 
-    Statement assigner;
+    HeliumStatement assigner;
     NodeExpr loopCondition;
-    Statement incrementer;
-    Statement executionStatement;
+    HeliumStatement incrementer;
+    HeliumStatement executionStatement;
     /**
      * Ever since new parsing method, this is needed to keep track of the status of the for loop, since the assigner,
      * incrementer and statement are added separately
      */
     CreationStatus status;
 
-    public ForStatement(Token token, Statement assignment, NodeExpr condition) {
+    public ForStatement(Token token, HeliumStatement assignment, NodeExpr condition) {
         this.token = token;
         this.assigner = assignment;
         this.loopCondition = condition;
@@ -28,15 +28,15 @@ public class ForStatement implements Statement {
         return loopCondition;
     }
 
-    public Statement getAssigner() {
+    public HeliumStatement getAssigner() {
         return assigner;
     }
 
-    public Statement getIncrementer() {
+    public HeliumStatement getIncrementer() {
         return incrementer;
     }
 
-    public Statement statement() {
+    public HeliumStatement statement() {
         return executionStatement;
     }
 
@@ -63,7 +63,7 @@ public class ForStatement implements Statement {
         return token;
     }
 
-    public void addIncrementer(Statement increment) {
+    public void addIncrementer(HeliumStatement increment) {
         if (status == CreationStatus.ASSIGNER) {
             incrementer = increment;
             status = CreationStatus.INCREMENTER;
@@ -72,7 +72,7 @@ public class ForStatement implements Statement {
         }
     }
 
-    public void addStatement(Statement statement) {
+    public void addStatement(HeliumStatement statement) {
         if (status == CreationStatus.INCREMENTER) {
             executionStatement = statement;
             status = CreationStatus.COMPLETED;

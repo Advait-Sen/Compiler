@@ -6,17 +6,17 @@ import java.util.List;
 /**
  * A scope will be declared by curly brackets surrounding some statements
  */
-public class ScopeStatement implements Statement {
-    public final List<Statement> statements;
+public class ScopeStatement implements HeliumStatement {
+    public final List<HeliumStatement> statements;
     private boolean isLoop = false;
     public final String name; //If applicable
     public final Token token;
 
-    public ScopeStatement(List<Statement> statements, Token closeToken) {
+    public ScopeStatement(List<HeliumStatement> statements, Token closeToken) {
         this(statements, "", closeToken);
     }
 
-    public ScopeStatement(List<Statement> statements, String name, Token closeToken) {
+    public ScopeStatement(List<HeliumStatement> statements, String name, Token closeToken) {
         this.statements = statements;
         this.name = name;
         this.token = closeToken;
@@ -37,7 +37,7 @@ public class ScopeStatement implements Statement {
     @Override
     public String asString() {
         StringBuilder string = new StringBuilder("\n");
-        for (Statement statement : statements) {
+        for (HeliumStatement statement : statements) {
             string.append("    ").append(statement.typeString()).append(" : ").append(statement.asString()).append('\n');
         }
 

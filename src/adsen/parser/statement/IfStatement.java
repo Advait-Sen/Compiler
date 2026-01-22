@@ -3,16 +3,16 @@ package adsen.parser.statement;
 import adsen.parser.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class IfStatement implements Statement {
+public class IfStatement implements HeliumStatement {
     public final Token token;
     NodeExpr condition;
-    Statement thenStatement;
+    HeliumStatement thenStatement;
 
     public final Token elseToken;
-    Statement elseStatement;
+    HeliumStatement elseStatement;
 
 
-    public IfStatement(Token token, NodeExpr condition, Statement statement) {
+    public IfStatement(Token token, NodeExpr condition, HeliumStatement statement) {
         this.token = token;
         this.condition = condition;
         this.thenStatement = statement;
@@ -20,7 +20,7 @@ public class IfStatement implements Statement {
         this.elseStatement = null;
     }
 
-    public IfStatement(Token token, NodeExpr condition, Statement statement, Token elseToken, Statement elseStatement) {
+    public IfStatement(Token token, NodeExpr condition, HeliumStatement statement, Token elseToken, HeliumStatement elseStatement) {
         this.token = token;
         this.condition = condition;
         this.thenStatement = statement;
@@ -32,11 +32,11 @@ public class IfStatement implements Statement {
         return this.condition;
     }
 
-    public Statement thenStatement() {
+    public HeliumStatement thenStatement() {
         return this.thenStatement;
     }
 
-    public Statement elseStatement() {
+    public HeliumStatement elseStatement() {
         return this.elseStatement;
     }
 

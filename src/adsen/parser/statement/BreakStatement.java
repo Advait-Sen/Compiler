@@ -2,7 +2,7 @@ package adsen.parser.statement;
 
 import adsen.tokeniser.Token;
 
-public class BreakStatement implements Statement {
+public class BreakStatement implements HeliumStatement {
     public final Token token;
     public BreakStatement(Token token){
         this.token = token;

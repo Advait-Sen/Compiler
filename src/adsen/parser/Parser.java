@@ -15,7 +15,7 @@ import adsen.parser.statement.ForStatement;
 import adsen.parser.statement.FunctionCallStatement;
 import adsen.parser.statement.IfStatement;
 import adsen.parser.statement.IncrementStatement;
-import adsen.parser.statement.Statement;
+import adsen.parser.statement.HeliumStatement;
 import adsen.parser.statement.ReturnStatement;
 import adsen.parser.statement.ScopeStatement;
 import adsen.parser.statement.StaticDeclareStatement;
@@ -230,11 +230,11 @@ public class Parser {
      * Old parse function which returns the {@link HeliumProgram} defining the entire program's AST.
      */
     @Deprecated
-    public List<Statement> parseStatements() {
+    public List<HeliumStatement> parseStatements() {
         return null;
     }
 
-    List<Statement> parseFunction(int startPos) {
+    List<HeliumStatement> parseFunction(int startPos) {
 
         //IDK maybe remove these
         int tokenCount = tokens.size();
@@ -246,7 +246,7 @@ public class Parser {
         //Empty case is to ensure we only grab one statement from a function (a scope statement whose contents we steal)
         for (pos = startPos; hasNext() && pos < endPos && parserScopes.firstElement().statements.isEmpty(); pos++) {
             Token t = peek();
-            Statement statement;
+            HeliumStatement statement;
             //If we don't need the semicolon at the end, then don't look for it (eg. in for statement incrementer)
             boolean needSemi = true; //used for if, else, while etc.
 
@@ -372,7 +372,7 @@ public class Parser {
                     if (!popped.statementRequests.isEmpty()) {
                         throw new ExpressionError("Still had statement requests in scope", t);
                     }
-                    List<Statement> scopeStatments = popped.statements;
+                    List<HeliumStatement> scopeStatments = popped.statements;
 
                     yield new ScopeStatement(scopeStatments, t);
                 }
@@ -475,7 +475,7 @@ public class Parser {
 
                     StatementRequest incrementerRequest = StatementRequest.withoutSemi((incrementer) -> {
 
-                        Statement stmt;
+                        HeliumStatement stmt;
                         if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
                             parserScopes.peek().statements.removeLast();
                             if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
@@ -490,7 +490,7 @@ public class Parser {
                     });
 
                     StatementRequest executionStatementRequest = StatementRequest.get((execStatement) -> {
-                        Statement stmt;
+                        HeliumStatement stmt;
                         if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
                             parserScopes.peek().statements.removeLast();
                             if (execStatement instanceof ScopeStatement scope) {
@@ -582,7 +582,7 @@ public class Parser {
 
         pos--;  // decrementing to the last valid token
 
-        Statement funcScope;
+        HeliumStatement funcScope;
         ParserScope firstScope;
         if (parserScopes.isEmpty()) {
             throw new ExpressionError("Empty parser scope, how did we get here?", null);
@@ -643,29 +643,29 @@ public class Parser {
 }
 
 class ParserScope {
-    public final List<Statement> statements = new ArrayList<>();
+    public final List<HeliumStatement> statements = new ArrayList<>();
     public final Stack<StatementRequest> statementRequests = new Stack<>();
 }
 
 
 class StatementRequest {
-    final Function<Statement, Statement> request;
+    final Function<HeliumStatement, HeliumStatement> request;
     final boolean needSemi;
 
-    private StatementRequest(boolean needSemi, Function<Statement, Statement> request) {
+    private StatementRequest(boolean needSemi, Function<HeliumStatement, HeliumStatement> request) {
         this.needSemi = needSemi;
         this.request = request;
     }
 
-    public static StatementRequest get(Function<Statement, Statement> request) {
+    public static StatementRequest get(Function<HeliumStatement, HeliumStatement> request) {
         return new StatementRequest(true, request);
     }
 
-    public static StatementRequest withoutSemi(Function<Statement, Statement> request) {
+    public static StatementRequest withoutSemi(Function<HeliumStatement, HeliumStatement> request) {
         return new StatementRequest(false, request);
     }
 
-    Statement apply(Statement statement) {
+    HeliumStatement apply(HeliumStatement statement) {
         return request.apply(statement);
     }
 }
