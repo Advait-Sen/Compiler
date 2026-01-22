@@ -6,20 +6,7 @@ import adsen.parser.expr.NodeExpr;
 import adsen.parser.expr.NodeIdentifier;
 import adsen.parser.expr.operator.Operator;
 import adsen.parser.expr.operator.OperatorType;
-import adsen.parser.statement.AssignStatement;
-import adsen.parser.statement.BreakStatement;
-import adsen.parser.statement.ContinueStatement;
-import adsen.parser.statement.DeclareStatement;
-import adsen.parser.statement.ExitStatement;
-import adsen.parser.statement.ForStatement;
-import adsen.parser.statement.FunctionCallStatement;
-import adsen.parser.statement.IfStatement;
-import adsen.parser.statement.IncrementStatement;
-import adsen.parser.statement.HeliumStatement;
-import adsen.parser.statement.ReturnStatement;
-import adsen.parser.statement.ScopeStatement;
-import adsen.parser.statement.StaticDeclareStatement;
-import adsen.parser.statement.WhileStatement;
+import adsen.parser.statement.*;
 import adsen.tokeniser.Keywords;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
@@ -397,21 +384,18 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    StatementRequest thenGetter = StatementRequest.get((thenStatement) -> {
-                        return new IfStatement(ifT, ifExpr, thenStatement);
-                    });
-                    parserScopes.peek().statementRequests.push(thenGetter);
+                    addRequest((thenStatement) -> new IfStatement(ifT, ifExpr, thenStatement));
 
                     yield null;
                 }
                 case ELSE -> {
-                    if (parserScopes.peek().statements.getLast() instanceof IfStatement ifStmt) {
-                        parserScopes.peek().statements.removeLast();
+                    if (scope().statements.getLast() instanceof IfStatement ifStmt) {
+                        scope().statements.removeLast();
                         Token elseToken = t;
-                        StatementRequest elseGetter = StatementRequest.get((elseStatement) -> {
-                            return new IfStatement(ifStmt.token, ifStmt.getCondition(), ifStmt.thenStatement(), elseToken, elseStatement);
-                        });
-                        parserScopes.peek().statementRequests.push(elseGetter);
+                        addRequest((elseStatement) ->
+                                new IfStatement(ifStmt.token, ifStmt.getCondition(), ifStmt.thenStatement(), elseToken, elseStatement)
+                        );
+
                     } else {
                         throw new ExpressionError("Must have an if preceding else statement", t);
                     }
@@ -438,7 +422,7 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    StatementRequest whileRequest = StatementRequest.get((executionStatement) -> {
+                    addRequest((executionStatement) -> {
                         if (executionStatement instanceof ScopeStatement scope) {
                             scope.setLoop();
                         }
@@ -446,7 +430,6 @@ public class Parser {
                         return new WhileStatement(whileT, whileCondition, executionStatement);
                     });
 
-                    parserScopes.peek().statementRequests.push(whileRequest);
                     yield null;
                 }
 
@@ -456,6 +439,8 @@ public class Parser {
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
 
                     //Todo add proper checks for assigner and incrementer being assignment statements
+                    //LOL can't even remember what this to-do was about, but I'm afraid to remove it
+
                     StatementRequest assignerRequest = StatementRequest.get((assigner) -> {
                         if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
                             throw new ExpressionError("Invalid assigner expression in for statement", assigner.primaryToken());
@@ -474,10 +459,9 @@ public class Parser {
                     });
 
                     StatementRequest incrementerRequest = StatementRequest.withoutSemi((incrementer) -> {
-
                         HeliumStatement stmt;
-                        if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
-                            parserScopes.peek().statements.removeLast();
+                        if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
+                            scope().statements.removeLast();
                             if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
                                 throw new ExpressionError("Invalid incrementer expression in for statement", stmt.primaryToken());
                             }
@@ -491,8 +475,8 @@ public class Parser {
 
                     StatementRequest executionStatementRequest = StatementRequest.get((execStatement) -> {
                         HeliumStatement stmt;
-                        if ((stmt = parserScopes.peek().statements.getLast()) instanceof ForStatement) {
-                            parserScopes.peek().statements.removeLast();
+                        if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
+                            scope().statements.removeLast();
                             if (execStatement instanceof ScopeStatement scope) {
                                 scope.setLoop();
                             }
@@ -506,9 +490,9 @@ public class Parser {
                     needSemi = false; //don't need semicolon after the expression
 
                     //Push them in reverse order, since top of the stack is read first
-                    parserScopes.peek().statementRequests.push(executionStatementRequest);
-                    parserScopes.peek().statementRequests.push(incrementerRequest);
-                    parserScopes.peek().statementRequests.push(assignerRequest);
+                    addRequest(executionStatementRequest);
+                    addRequest(incrementerRequest);
+                    addRequest(assignerRequest);
 
                     yield null;
                 }
@@ -560,7 +544,7 @@ public class Parser {
             };
 
             // Must end statements with semicolon
-            if (needSemi && !(hasNext() && peek().type == SEMICOLON) && (!parserScopes.peek().statementRequests.isEmpty() && parserScopes.peek().statementRequests.peek().needSemi)) {
+            if (needSemi && !(hasNext() && peek().type == SEMICOLON) && (!scope().statementRequests.isEmpty() && scope().statementRequests.peek().needSemi)) {
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
@@ -569,14 +553,14 @@ public class Parser {
                     System.out.println("Formed a statement: " + statement.asString() + " at scope depth: " + parserScopes.size());
 
                 //If there are no if, while, etc. that want a statement
-                if (parserScopes.peek().statementRequests.isEmpty() && VERBOSE_FLAGS.contains("parser")) {
+                if (scope().statementRequests.isEmpty() && VERBOSE_FLAGS.contains("parser")) {
                     System.out.println("That was directly added onto the statement stack\n");
                 } else {
-                    statement = parserScopes.peek().statementRequests.pop().apply(statement);
+                    statement = scope().statementRequests.pop().apply(statement);
                     if (VERBOSE_FLAGS.contains("parser"))
                         System.out.println("That was consumed by a request, producing: " + statement.asString() + "\n");
                 }
-                parserScopes.peek().statements.add(statement);
+                scope().statements.add(statement);
             }
         }
 
@@ -588,8 +572,8 @@ public class Parser {
             throw new ExpressionError("Empty parser scope, how did we get here?", null);
         } else if (parserScopes.size() > 1) {
 
-            throw new ExpressionError("Didn't pop scopes correctly", parserScopes.peek().statements.getFirst().primaryToken());
-        } else if ((firstScope = parserScopes.peek()).statements.isEmpty()) {
+            throw new ExpressionError("Didn't pop scopes correctly", scope().statements.getFirst().primaryToken());
+        } else if ((firstScope = scope()).statements.isEmpty()) {
 
             throw new ExpressionError("Didn't close function properly", tokens.getLast());
 
@@ -639,6 +623,18 @@ public class Parser {
     Token consume() {
         pos++;
         return peek();
+    }
+
+    ParserScope scope() {
+        return parserScopes.peek();
+    }
+
+    void addRequest(StatementRequest request) {
+        scope().statementRequests.push(request);
+    }
+
+    void addRequest(Function<HeliumStatement, HeliumStatement> request) {
+        addRequest(StatementRequest.get(request));
     }
 }
 
