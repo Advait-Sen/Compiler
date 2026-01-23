@@ -390,12 +390,13 @@ public class Parser {
                 }
                 case ELSE -> {
                     if (scope().statements.getLast() instanceof IfStatement ifStmt) {
-                        scope().statements.removeLast();
+                        scope().statements.removeLast();//todo allow to avoid removing and re-adding same element
                         Token elseToken = t;
-                        addRequest((elseStatement) ->
-                                new IfStatement(ifStmt.token, ifStmt.getCondition(), ifStmt.thenStatement(), elseToken, elseStatement)
-                        );
-
+                        addRequest((elseStatement) -> {
+                            ifStmt.addElse(elseToken, elseStatement);
+                            return ifStmt;
+                        });
+                        needSemi = false;
                     } else {
                         throw new ExpressionError("Must have an if preceding else statement", t);
                     }

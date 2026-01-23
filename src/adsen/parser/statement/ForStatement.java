@@ -15,13 +15,12 @@ public class ForStatement implements HeliumStatement {
      * Ever since new parsing method, this is needed to keep track of the status of the for loop, since the assigner,
      * incrementer and statement are added separately
      */
-    CreationStatus status;
+    ForCreationStatus status = ForCreationStatus.ASSIGNER;
 
     public ForStatement(Token token, HeliumStatement assignment, NodeExpr condition) {
         this.token = token;
         this.assigner = assignment;
         this.loopCondition = condition;
-        this.status = CreationStatus.ASSIGNER;
     }
 
     public NodeExpr condition() {
@@ -64,18 +63,18 @@ public class ForStatement implements HeliumStatement {
     }
 
     public void addIncrementer(HeliumStatement increment) {
-        if (status == CreationStatus.ASSIGNER) {
+        if (status == ForCreationStatus.ASSIGNER) {
             incrementer = increment;
-            status = CreationStatus.INCREMENTER;
+            status = ForCreationStatus.INCREMENTER;
         } else {
             throw new ExpressionError("Incorrect for loop formation, found incrementer in the wrong place", token);
         }
     }
 
     public void addStatement(HeliumStatement statement) {
-        if (status == CreationStatus.INCREMENTER) {
+        if (status == ForCreationStatus.INCREMENTER) {
             executionStatement = statement;
-            status = CreationStatus.COMPLETED;
+            status = ForCreationStatus.COMPLETED;
         } else {
             throw new ExpressionError("Incorrect for loop formation, found statement in the wrong place", token);
         }
@@ -83,7 +82,7 @@ public class ForStatement implements HeliumStatement {
 
 }
 
-enum CreationStatus {
+enum ForCreationStatus {
     ASSIGNER,
     INCREMENTER,
     COMPLETED

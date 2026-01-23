@@ -1,5 +1,6 @@
 package adsen.parser.statement;
 
+import adsen.error.ExpressionError;
 import adsen.parser.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
@@ -8,24 +9,16 @@ public class IfStatement implements HeliumStatement {
     NodeExpr condition;
     HeliumStatement thenStatement;
 
-    public final Token elseToken;
-    HeliumStatement elseStatement;
+    Token elseToken = null;
+    HeliumStatement elseStatement = null;
+
+    IfCreationStatus status = IfCreationStatus.IF;
 
 
     public IfStatement(Token token, NodeExpr condition, HeliumStatement statement) {
         this.token = token;
         this.condition = condition;
         this.thenStatement = statement;
-        this.elseToken = null;
-        this.elseStatement = null;
-    }
-
-    public IfStatement(Token token, NodeExpr condition, HeliumStatement statement, Token elseToken, HeliumStatement elseStatement) {
-        this.token = token;
-        this.condition = condition;
-        this.thenStatement = statement;
-        this.elseToken = elseToken;
-        this.elseStatement = elseStatement;
     }
 
     public NodeExpr getCondition() {
@@ -41,7 +34,7 @@ public class IfStatement implements HeliumStatement {
     }
 
     public boolean hasElse() {
-        return elseToken != null;
+        return status == IfCreationStatus.ELSE;
     }
 
     @Override
@@ -58,4 +51,19 @@ public class IfStatement implements HeliumStatement {
     public Token primaryToken() {
         return token;
     }
+
+    public void addElse(Token elseToken, HeliumStatement elseStatement) {
+        if(status == IfCreationStatus.IF) {
+            this.elseToken = elseToken;
+            this.elseStatement = elseStatement;
+            this.status = IfCreationStatus.ELSE;
+        } else {
+            throw new ExpressionError("Already added an else to this if statement", elseToken);
+        }
+    }
+}
+
+enum IfCreationStatus {
+    IF,
+    ELSE
 }
