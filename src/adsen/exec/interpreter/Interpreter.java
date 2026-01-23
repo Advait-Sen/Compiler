@@ -285,7 +285,7 @@ public class Interpreter {
 
                 // Removing for loop variable
                 // If scope already contained a variable with that name, then the statement won't have executed properly
-                // So no need to worry about possibly removing an important variable
+                // So no need to worry about possibly removing an existing variable
                 if (forStmt.getAssigner() instanceof DeclareStatement declare) {
                     scope().removeVariable(declare.identifier().asString());
                 }
@@ -494,6 +494,7 @@ public class Interpreter {
                 Token errorTok = new Token(binOp.asString(), binOp.type().type);
 
                 //Don't keep the error as a variable since it causes expressions to be evaluated that we might not want evaluated
+                //Although this way might cause some stuff to get evaluated twice, which is also bad
                 Supplier<ExpressionError> errorCreator = () -> new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, evaluateExpr(binOp.left()).getTypeString(), evaluateExpr(binOp.right()).getTypeString()), errorTok);
 
 

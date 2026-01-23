@@ -77,12 +77,12 @@ public class Tokeniser {
             token.linepos = linepos;
 
             // Int literal, Float literal (even .456), Hex literal (0xab3c)
-            if (isDigit(c) || (c == '.') && isDigit(peek(1))) {
+            if (isDigit(c) || (c == '.' && isDigit(peek(1)))) {
                 boolean isFloat = false;
                 boolean isHex = c == '0' && hasNext() && peek(1) == 'x';
 
                 // While there are more characters to read,
-                // and, the next character is a hex digit, decimal point, or regular digit
+                // and the next character is a hex digit, decimal point, or regular digit
                 while (hasNext() && (isHex && isHexDigit(c) || !isFloat && c == '.' || isDigit(c))) {
                     token.append(c);
 
@@ -116,7 +116,7 @@ public class Tokeniser {
 
                     //Check for end of literal
                     if (isStr && c == '"' || !isStr && c == '\'') {
-                        break;
+                        break; //Todo replace with condition check to avoid break
                     }
                     //Checking for and handling escape characters
                     if (c == '\\') {
@@ -163,7 +163,7 @@ public class Tokeniser {
                 pos--; //Because the last consume() overshoots by one
                 colpos--;
 
-                // If we haven't already mapped a token type (so 'true', 'false', 'int', 'exit',
+                // If we haven't already mapped a token type (so 'true', 'false', 'int', 'exit', etc.)
                 // then it's an identifier, i.e. a function or variable name (so far)
                 token.type = tokeniserKeywords.getOrDefault(token.value, IDENTIFIER);
             } else
@@ -218,7 +218,7 @@ public class Tokeniser {
             } else if (c == ')') { //Closed parentheses pop off the stack, and if they don't match, we've got a problem
                 token.type = CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty() || !parens.pop().value.equals("(")) {
+                if (parens.empty() || !parens.pop().value.equals("(")) {//Todo check TokenType for these instead of string
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == ']') {
