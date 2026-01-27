@@ -345,8 +345,7 @@ public class Parser {
 
                 case IF -> {
                     Token ifT = t;
-                    t = consume();
-                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after if", t);
+                    consume(); //Consuming if token
 
                     NodeExpr ifExpr = parseExpr(true);
 
@@ -373,21 +372,9 @@ public class Parser {
 
                 case WHILE -> {
                     Token whileT = t;
-                    t = consume();
-                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after while", t);
-                    List<Token> conditionTokens = new ArrayList<>();
-                    int bracket_counter = 1; //we have seen one open bracket
+                    consume(); // Consuming while token
 
-                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t); t = consume()) {
-                        if (t.type == OPEN_PAREN) bracket_counter++;
-                        if (peek(1).type == CLOSE_PAREN) bracket_counter--;
-                        conditionTokens.add(t);
-                    }
-
-                    //This means we broke out of the loop due to a bad token
-                    if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
-
-                    NodeExpr whileCondition = ShuntingYard.parseExpr(conditionTokens);
+                    NodeExpr whileCondition = parseExpr(true);
 
                     needSemi = false; //don't need semicolon after the expression
 
