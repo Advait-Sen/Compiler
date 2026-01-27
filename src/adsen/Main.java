@@ -7,7 +7,7 @@ import adsen.parser.Parser;
 import adsen.parser.HeliumProgram;
 import adsen.parser.expr.primitives.IntPrimitive;
 import adsen.parser.expr.primitives.NodePrimitive;
-import adsen.parser.statement.Statement;
+import adsen.parser.statement.HeliumStatement;
 import adsen.exec.interpreter.Interpreter;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
@@ -23,19 +23,15 @@ import java.util.List;
 import java.util.Set;
 
 @SuppressWarnings({"FieldCanBeLocal", "SpellCheckingInspection"})
-public class Main {
+public class Main { //TODO rename this to Helium
     public static RuntimeException throwError(String message) {
         return new RuntimeException(message);
     }
     //Todo rename adsen to adsen.helium
     /**
-     * Flag for parsing function
+     * Flag to parse
      */
     private static boolean PARSE_PROGRAM;
-    /**
-     * Flag saying whether we are parsing statements
-     */
-    private static boolean PARSE_STATEMENTS;
     /**
      * Flag to interpret
      */
@@ -86,13 +82,9 @@ public class Main {
             Set<String> compilerArgs = Set.of(Arrays.copyOfRange(args, 1, args.length));
 
             PARSE_PROGRAM = !(compilerArgs.contains("-noparse") || compilerArgs.contains("-np"));
-            PARSE_STATEMENTS = compilerArgs.contains("-statements") || compilerArgs.contains("-s");
             INTERPRET = compilerArgs.contains("-interpret") || compilerArgs.contains("-i");
             COMPILE = compilerArgs.contains("-compile") || compilerArgs.contains("-c");
         }
-        if (PARSE_PROGRAM && PARSE_STATEMENTS)
-            throw throwError("Invalid flags, cannot set parser for program and statement at the same time");
-
         if (INTERPRET && COMPILE)
             throw throwError("Invalid flags, cannot compile and interpret at the same time");
 
@@ -137,56 +129,9 @@ public class Main {
             System.out.println(); //Extra newline for separation
         }
 
-        // Old statement-based system
-        if (PARSE_STATEMENTS) {
-            System.out.println("Initialising old statement-based Parser");
-            Parser parser = new Parser(null, tokeniser); //This is officially broken now
-
-            List<Statement> program;
-            try {
-                program = parser.parseStatements();
-            } catch (ExpressionError expressionError) {
-                //Not using throwError here, since it's the programmer's fault, not compiler's fault
-                System.out.println("Error in old parsing:");
-                System.out.println(expressionError.getMessage());
-                System.exit(-1);
-                return;
-            }
-
-            if (VERBOSE_FLAGS.contains("parser")) {
-                System.out.println("\nprogram.asStringOld() =");
-                for (Statement statement : program) {
-                    System.out.println(statement.typeString() + " : " + statement.asString());
-                }
-            }
-
-            //Run interpreter
-            if (INTERPRET) {
-                //noinspection removal
-                Interpreter interpreter = new Interpreter(program);
-                NodePrimitive exitValue;
-
-                try {
-                    //noinspection deprecation
-                    exitValue = interpreter.runStatements();
-                } catch (ExpressionError error) {
-                    System.out.println(error.getMessage());
-                    exitValue = IntPrimitive.of(-1);
-                }
-
-                if (VERBOSE_FLAGS.contains("interpreter")) {
-                    System.out.println("\nProgram variables:");
-                    interpreter.variables().forEach((s, np) -> System.out.println(s + ": " + np.asString()));
-                }
-
-                System.out.println("\nProcess finished with exit value " + exitValue.asString());
-            }
-        }
-
-
         if (PARSE_PROGRAM) {
 
-            //This deinitely won't stay here in the future
+            //This definitely won't stay here in the future
             //Maybe I'll add a flag to check whether we're importing for interpreting or not? idk
             Parser.IMPORT_HANDLER = new ImportInterpreter();
 

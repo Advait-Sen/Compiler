@@ -1,7 +1,7 @@
 package adsen.parser;
 
 import adsen.error.ExpressionError;
-import adsen.parser.statement.Statement;
+import adsen.parser.statement.HeliumStatement;
 import adsen.tokeniser.Token;
 
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ public class HeliumFunction {
      */
     final List<Token> signature;
     public final int args;
-    List<Statement> body = new ArrayList<>();
+    List<HeliumStatement> body = new ArrayList<>();
 
     public HeliumFunction(Token returnType, Token nameToken, List<Token> signature) {
         this.returnType = returnType;
@@ -33,15 +33,15 @@ public class HeliumFunction {
         this.args = signature.size() / 2;
     }
 
-    public void andThen(Statement statement) {
+    public void andThen(HeliumStatement statement) {
         body.add(statement);
     }
 
-    public void andThen(List<Statement> statements) {
+    public void andThen(List<HeliumStatement> statements) {
         body.addAll(statements);
     }
 
-    public List<Statement> getBody() {
+    public List<HeliumStatement> getBody() {
         return body;
     }
 

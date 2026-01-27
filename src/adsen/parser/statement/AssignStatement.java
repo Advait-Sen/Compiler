@@ -4,7 +4,7 @@ import adsen.parser.expr.NodeExpr;
 import adsen.parser.expr.NodeIdentifier;
 import adsen.tokeniser.Token;
 
-public class AssignStatement implements Statement {
+public class AssignStatement implements HeliumStatement {
     NodeIdentifier identifier;
     Token declarer;
     NodeExpr expression;
@@ -31,5 +31,10 @@ public class AssignStatement implements Statement {
     @Override
     public String typeString() {
         return "assignment";
+    }
+
+    @Override
+    public Token primaryToken() {
+        return declarer;
     }
 }
