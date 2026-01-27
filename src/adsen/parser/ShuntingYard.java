@@ -209,10 +209,6 @@ public class ShuntingYard {
         if (astStack.size() > 1) //todo error messages which allow to get the whole expression code block
             throw new ExpressionError("Invalid expression", exprTokens.getFirst());
 
-        //This should only happen in case of an empty return statement, but we can't rly check that here;
-        if(astStack.isEmpty())
-            return null;
-
         expr = astStack.firstElement();
 
         return expr;

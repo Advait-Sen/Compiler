@@ -71,21 +71,39 @@ public class Parser {
         this.tokens = Collections.unmodifiableList(tokens);
     }
 
+    NodeExpr parseExpr() {
+        return parseExpr(false);
+    }
 
     /**
      * Gathers tokens for a possible expression, before sending them off to {@link ShuntingYard#parseExpr} to get
      * evaluated into a {@link NodeExpr}
+     *
+     * @param inBrackets Whether the expression is enclosed in a pair of brackets (for an if or while statement)
      */
-    NodeExpr parseExpr() {
-        Token t;
-
+    NodeExpr parseExpr(boolean inBrackets) {
         List<Token> exprTokens = new ArrayList<>();
 
-        for (t = peek(); hasNext() && isValidExprToken(peek()); t = consume()) {
+        Token t = peek();
+        int depth = 0;
+        if (inBrackets) {
+            if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '('", t);
+        }
+
+        for (; hasNext() && isValidExprToken(peek()) && !(inBrackets && depth == 1 && t.type == CLOSE_PAREN); t = consume()) {
+            if (t.type == OPEN_PAREN) depth++;
+            if (t.type == CLOSE_PAREN) depth--;
             exprTokens.add(t);
         }
 
-        if (t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", t);
+        if (inBrackets) {
+            if (t.type != CLOSE_PAREN) throw new ExpressionError("Expected ')' after expression", t);
+
+            // Adding final closed bracket to the expression
+            if(depth == 1) exprTokens.add(t);
+        }
+
+        if (t.type != SEMICOLON && !inBrackets) throw new ExpressionError("Expected ';' after expression", t);
 
         //This is only acceptable with an empty return statement, which is a case we handle before reaching this point
         if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse empty expression", t);
@@ -190,24 +208,15 @@ public class Parser {
         IMPORT_HANDLER.loadImportData();
     }
 
-    /**
-     * Old parse function which returns the {@link HeliumProgram} defining the entire program's AST.
-     */
-    @Deprecated
-    public List<HeliumStatement> parseStatements() {
-        return null;
-    }
-
     List<HeliumStatement> parseFunction(int startPos) {
 
         //Empty case is to ensure we only grab one statement from a function (a scope statement whose contents we steal)
         for (pos = startPos; hasNext() && parserScopes.firstElement().statements.isEmpty(); pos++) {
             Token t = peek();
-            HeliumStatement statement;
             //If we don't need the semicolon at the end, then don't look for it (eg. in for statement incrementer)
             boolean needSemi = true; //used for if, else, while etc.
 
-            statement = switch (t.type) {
+            HeliumStatement statement = switch (t.type) {
                 case EXIT -> { //Exit statement
                     consume(); //Consume exit token
                     yield new ExitStatement(t, parseExpr());
@@ -317,7 +326,7 @@ public class Parser {
                     So instead of having an int declaring depth, we combine depth-checking with adding statements.
                     I'm a genius!
                     */
-                    //Everything from now on will be statements in the new scope
+                    //From now on we will read statements into the new scope
                     parserScopes.push(new ParserScope());
 
                     yield null;
@@ -338,19 +347,8 @@ public class Parser {
                     Token ifT = t;
                     t = consume();
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after if", t);
-                    List<Token> conditionTokens = new ArrayList<>();
-                    int bracket_counter = 1; //we have seen one open bracket
 
-                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t); t = consume()) {
-                        if (t.type == OPEN_PAREN) bracket_counter++;
-                        if (peek(1).type == CLOSE_PAREN) bracket_counter--;
-                        conditionTokens.add(t);
-                    }
-
-                    //This means we broke out of the loop due to a bad token
-                    if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
-
-                    NodeExpr ifExpr = ShuntingYard.parseExpr(conditionTokens);
+                    NodeExpr ifExpr = parseExpr(true);
 
                     needSemi = false; //don't need semicolon after the expression
 
@@ -536,6 +534,8 @@ public class Parser {
         }
 
         pos--;  // decrementing to the last valid token
+
+        //Finishing up the function
 
         HeliumStatement funcScope;
         ParserScope firstScope;
