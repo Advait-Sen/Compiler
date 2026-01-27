@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
 
-import static adsen.helium.Main.VERBOSE_FLAGS;
+import static adsen.helium.Helium.VERBOSE_FLAGS;
 import static adsen.helium.tokeniser.TokenType.*;
 
 /**
