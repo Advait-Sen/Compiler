@@ -98,17 +98,16 @@ public class Tokeniser {
 
                 token.type = isHex ? HEX_LITERAL : (isFloat ? FLOAT_LITERAL : INT_LITERAL);
 
-            } else
-
-            //Char or Str literal
-            if (c == '\'' || c == '"') {
+            } else if (c == '\'' || c == '"') {//Char or Str literal
                 boolean isStr = c == '"';
                 token.type = isStr ? STR_LITERAL : CHAR_LITERAL;
 
+                boolean reachedEnd = false;
+
                 //Basically just grabbing all the characters that follow until the closure of the string or char
-                while (hasNext()) {
+                while (!reachedEnd && hasNext()) {
                     c = consume();
-                    if(c == '\n'){
+                    if (c == '\n') {
                         //Incrementing line number after a newline
                         colpos = 0;
                         linepos++;
@@ -116,10 +115,9 @@ public class Tokeniser {
 
                     //Check for end of literal
                     if (isStr && c == '"' || !isStr && c == '\'') {
-                        break; //Todo replace with condition check to avoid break
-                    }
-                    //Checking for and handling escape characters
-                    if (c == '\\') {
+                        reachedEnd = true;
+
+                    } else if (c == '\\') { //Checking for and handling escape characters
                         c = consume();
 
                         token.append(switch (c) { //Flexing new Java syntax
@@ -127,7 +125,7 @@ public class Tokeniser {
                             case 't' -> '\t';
                             case '\\' -> '\\';
                             case '"' -> '"'; //Allow to escape " in characters (so '\"') even tho it's unnecessary
-                            case '\'' -> '\''; //And same deal with "\'" in strings, todo add compiletime warnings about this
+                            case '\'' -> '\''; //And same deal with "\'" in strings
                             default -> {
                                 token.append("\\" + c);
                                 throw new ExpressionError("Invalid escape 'character '\\" + c + "'", token);
@@ -150,10 +148,7 @@ public class Tokeniser {
                 if (!hasNext())
                     throw new ExpressionError("Did not terminate " + (isStr ? "string" : "char"), token);
 
-            } else
-
-            //Identifiers, Bools, Keywords, basically any word
-            if (Character.isLetter(c) || c == '_') {
+            } else if (Character.isLetter(c) || c == '_') {//Identifiers, Bools, Keywords, basically any word
 
                 while (hasNext() && (Character.isLetterOrDigit(c) || c == '_')) {
                     token.append(c);
@@ -166,10 +161,10 @@ public class Tokeniser {
                 // If we haven't already mapped a token type (so 'true', 'false', 'int', 'exit', etc.)
                 // then it's an identifier, i.e. a function or variable name (so far)
                 token.type = tokeniserKeywords.getOrDefault(token.value, IDENTIFIER);
-            } else
 
-            //Checking for comments (not division)
-            if (c == '/' && (peek(1)=='/' || peek(1)=='*')) {
+            } else if (c == '/' && (peek(1) == '/' || peek(1) == '*')) {
+                //Checking for comments
+
                 c = consume();
                 if (c == '/') { //Line comment, consume until end of line
                     while (c != '\n') {
@@ -179,25 +174,25 @@ public class Tokeniser {
                     colpos = 0;
                     linepos++;
                 } else if (c == '*') { //Block comment, consume until '*/'
+                    boolean commentFinished = false;
+
                     do {
                         c = consume();
-                        if(c == '\n') {
+                        if (c == '\n') {
                             //Incrementing the line after the end of the line
                             colpos = 0;
                             linepos++;
                         }
-                    } while (hasNext(1) && !(c == '*' && peek(1) == '/'));
+                        if (c == '*' && peek(1) == '/') commentFinished = true;
+
+                    } while (hasNext(1) && !commentFinished);
+
+                    if (!commentFinished) throw new ExpressionError("Unclosed block comment", token);
 
                     consume(); //Consume the / at the end of the block comment
-
-                    //TODO fix bug that means if the */ are the last characters in a file, we don't recognise them for some reason
-                    if (!hasNext(1)) { //Reached end of file without seeing '*/'
-                        throw new ExpressionError("Unclosed block comment", token);
-                    }
                 }
-            } else
-            //Grabbing special characters that have their own tokens
-            if (c == ';') {
+
+            } else if (c == ';') { //Grabbing special characters that have their own tokens
                 token.type = SEMICOLON;
                 token.append(c);
             } else if (c == ',') {
@@ -218,19 +213,19 @@ public class Tokeniser {
             } else if (c == ')') { //Closed parentheses pop off the stack, and if they don't match, we've got a problem
                 token.type = CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty() || !parens.pop().value.equals("(")) {//Todo check TokenType for these instead of string
+                if (parens.empty() || parens.pop().type != OPEN_PAREN) {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == ']') {
                 token.type = SQ_CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty() || !parens.pop().value.equals("[")) {
+                if (parens.empty() || parens.pop().type != SQ_OPEN_PAREN) {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else if (c == '}') {
                 token.type = C_CLOSE_PAREN;
                 token.append(c);
-                if (parens.empty() || !parens.pop().value.equals("{")) {
+                if (parens.empty() || parens.pop().type != C_OPEN_PAREN) {
                     throw new ExpressionError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
