@@ -51,7 +51,7 @@ public class Parser {
 
     /**
      * Experimental new way of storing statements in order to simplify and optimise scope creation.
-     * TODO add helper functions to access top of stack later on when code gets repetetive
+     * TODO add helper functions to access top of stack later on when code gets repetitive
      */
     private final Stack<ParserScope> parserScopes = new Stack<>();
 
@@ -71,44 +71,21 @@ public class Parser {
         this.tokens = Collections.unmodifiableList(tokens);
     }
 
-    private Parser newFromTokenList(List<Token> tokens) {
-        return new Parser(program, tokens);
-    }
-
 
     /**
      * Gathers tokens for a possible expression, before sending them off to {@link ShuntingYard#parseExpr} to get
      * evaluated into a {@link NodeExpr}
-     *
-     * @param ignoreSemi Allows to ignore final semicolon if not required
-     * @param endPos     End index until which to read tokens
      */
-    NodeExpr parseExpr(boolean ignoreSemi, int endPos) {
+    NodeExpr parseExpr() {
         Token t;
-        int tokens = endPos - pos;
 
         List<Token> exprTokens = new ArrayList<>();
 
-        //TODO figure out when this happens
-        if (tokens == -1) {
-            for (t = peek(); hasNext() && isValidExprToken(peek()); t = consume()) {
-                exprTokens.add(t);
-            }
-        } else {
-            t = peek();
-            for (int i = 0; (i < tokens) && isValidExprToken(peek()); t = consume()) {
-                exprTokens.add(t);
-                i++;
-            }
+        for (t = peek(); hasNext() && isValidExprToken(peek()); t = consume()) {
+            exprTokens.add(t);
         }
 
-        if (!ignoreSemi) {
-            if (!hasNext())
-                throw new ExpressionError("Expected ';' after expression", exprTokens.getLast());
-
-            if (t.type != SEMICOLON)
-                throw new ExpressionError("Expected ';' after expression", t);
-        }
+        if (t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", t);
 
         //This is only acceptable with an empty return statement, which is a case we handle before reaching this point
         if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse empty expression", t);
@@ -223,15 +200,8 @@ public class Parser {
 
     List<HeliumStatement> parseFunction(int startPos) {
 
-        //IDK maybe remove these
-        int tokenCount = tokens.size();
-
-        //For when we're evaluating only a certain number of tokens at a time
-        int endPos = pos + tokenCount;
-
-
         //Empty case is to ensure we only grab one statement from a function (a scope statement whose contents we steal)
-        for (pos = startPos; hasNext() && pos < endPos && parserScopes.firstElement().statements.isEmpty(); pos++) {
+        for (pos = startPos; hasNext() && parserScopes.firstElement().statements.isEmpty(); pos++) {
             Token t = peek();
             HeliumStatement statement;
             //If we don't need the semicolon at the end, then don't look for it (eg. in for statement incrementer)
@@ -240,14 +210,14 @@ public class Parser {
             statement = switch (t.type) {
                 case EXIT -> { //Exit statement
                     consume(); //Consume exit token
-                    yield new ExitStatement(t, parseExpr(false, endPos));
+                    yield new ExitStatement(t, parseExpr());
                 }
                 case RETURN -> { //Return statement
                     consume(); //Consume return token
                     if (peek().type == SEMICOLON)
                         yield new ReturnStatement(t, null);
 
-                    else yield new ReturnStatement(t, parseExpr(false, endPos));
+                    else yield new ReturnStatement(t, parseExpr());
                 }
 
                 case CONTINUE -> { //Continue statement
@@ -273,7 +243,7 @@ public class Parser {
 
                     consume(); //Consuming declarer operation
 
-                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr(false, endPos));
+                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
                 }
                 case LET -> { // Normal declaration
                     Token identifier = consume(); //Consuming 'let' keyword
@@ -288,7 +258,7 @@ public class Parser {
 
                     consume(); //Consuming declarer operation
 
-                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr(false, endPos));
+                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
                 }
                 case UNARY_OPERATOR -> {
                     OperatorType opType = Operator.operatorType.get(t.value);
@@ -297,14 +267,14 @@ public class Parser {
                         throw new ExpressionError("Not a statement", t);
                     }
 
-                    Token ident = consume(); //Consuming incrementor
+                    Token identifier = consume(); //Consuming incrementor
 
-                    if (ident.type != VARIABLE) {
-                        throw new ExpressionError("Expected an identifier after " + t.value, ident);
+                    if (identifier.type != VARIABLE) {
+                        throw new ExpressionError("Expected a variable after " + t.value, identifier);
                     }
                     consume(); //Consuming identifier
 
-                    yield new IncrementStatement(new NodeIdentifier(ident), t, true);
+                    yield new IncrementStatement(new NodeIdentifier(identifier), t, true);
                 }
                 case VARIABLE -> { // Variable assignment
 
@@ -322,7 +292,7 @@ public class Parser {
 
                     consume(); //Consuming assigner operation
 
-                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr(false, endPos));
+                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
                 }
                 case C_OPEN_PAREN -> { //New scope
                     needSemi = false;
