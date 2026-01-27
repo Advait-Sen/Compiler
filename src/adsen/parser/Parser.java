@@ -100,7 +100,7 @@ public class Parser {
             if (t.type != CLOSE_PAREN) throw new ExpressionError("Expected ')' after expression", t);
 
             // Adding final closed bracket to the expression
-            if(depth == 1) exprTokens.add(t);
+            if (depth == 1) exprTokens.add(t);
         }
 
         if (t.type != SEMICOLON && !inBrackets) throw new ExpressionError("Expected ';' after expression", t);
@@ -401,16 +401,14 @@ public class Parser {
                         if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
                             throw new ExpressionError("Invalid assigner expression in for statement", assigner.primaryToken());
                         }
-                        List<Token> conditionTokens = new ArrayList<>();
-                        Token _t;
 
-                        for (_t = consume(); isValidExprToken(_t); _t = consume()) {
-                            conditionTokens.add(_t);
-                        }
+                        Token _t = peek();
+                        if (_t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", _t);
 
-                        if (_t.type != SEMICOLON) throw new ExpressionError("Invalid token", _t);
+                        consume(); //consuming semicolon
 
-                        NodeExpr forCondition = ShuntingYard.parseExpr(conditionTokens);
+                        NodeExpr forCondition = parseExpr();
+
                         return new ForStatement(forT, assigner, forCondition);
                     });
 
