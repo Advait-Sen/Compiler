@@ -28,7 +28,7 @@ import adsen.helium.parser.statement.ReturnStatement;
 import adsen.helium.parser.statement.ScopeStatement;
 import adsen.helium.parser.statement.StaticDeclareStatement;
 import adsen.helium.parser.statement.WhileStatement;
-import adsen.parser.statement.*;
+import adsen.helium.parser.statement.*;
 import adsen.helium.exec.Context;
 import adsen.helium.exec.Scope;
 import adsen.helium.tokeniser.Token;
