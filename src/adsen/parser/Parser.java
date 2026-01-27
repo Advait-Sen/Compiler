@@ -7,7 +7,6 @@ import adsen.parser.expr.NodeIdentifier;
 import adsen.parser.expr.operator.Operator;
 import adsen.parser.expr.operator.OperatorType;
 import adsen.parser.statement.*;
-import adsen.tokeniser.Keywords;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
 
@@ -64,11 +63,6 @@ public class Parser {
         this.program = program;
         tokeniser.tokenise();
         this.tokens = Collections.unmodifiableList(tokeniser.tokens());
-    }
-
-    private Parser(HeliumProgram program, List<Token> tokens) {
-        this.program = program;
-        this.tokens = Collections.unmodifiableList(tokens);
     }
 
     NodeExpr parseExpr() {
@@ -235,34 +229,34 @@ public class Parser {
                 case BREAK -> new BreakStatement(t);
 
                 case PRIMITIVE_TYPE -> { //Static declaration
-                    Token identifier = next;
+                    // 'next' holds the name of the identifier
 
-                    if (identifier.type != VARIABLE)
-                        throw new ExpressionError("Must have a variable name after '" + t.value + "'", identifier);
+                    if (next.type != VARIABLE)
+                        throw new ExpressionError("Must have a variable name after '" + t.value + "'", next);
 
                     Token declarer = consume(); //Consuming identifier
 
                     if (peek().type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after '" + identifier.value + "'", declarer);
+                        throw new ExpressionError("Expected a declaration after '" + next.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
-                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
+                    yield new StaticDeclareStatement(t, new NodeIdentifier(next), declarer, parseExpr());
                 }
                 case LET -> { // Normal declaration
-                    Token identifier = next;
+                    // 'next' holds the name of the identifier
 
-                    if (identifier.type != VARIABLE)
-                        throw new ExpressionError("Must have an identifier after 'let'", identifier);
+                    if (next.type != VARIABLE)
+                        throw new ExpressionError("Must have an identifier after 'let'", next);
 
                     Token declarer = consume(); //Consuming identifier
 
                     if (declarer.type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after '" + identifier.value + "'", declarer);
+                        throw new ExpressionError("Expected a declaration after '" + next.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
-                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr());
+                    yield new DeclareStatement(new NodeIdentifier(next), declarer, parseExpr());
                 }
                 case UNARY_OPERATOR -> {
                     OperatorType opType = Operator.operatorType.get(t.value);
@@ -271,31 +265,31 @@ public class Parser {
                         throw new ExpressionError("Not a statement", t);
                     }
 
-                    Token identifier = next;
+                    // 'next' holds the name of the identifier
 
-                    if (identifier.type != VARIABLE) {
-                        throw new ExpressionError("Expected a variable after " + t.value, identifier);
+                    if (next.type != VARIABLE) {
+                        throw new ExpressionError("Expected a variable after " + t.value, next);
                     }
                     consume(); //Consuming identifier
 
-                    yield new IncrementStatement(new NodeIdentifier(identifier), t, true);
+                    yield new IncrementStatement(new NodeIdentifier(next), t, true);
                 }
                 case VARIABLE -> { // Variable assignment
-                    Token declarer = next; //Consuming identifier
+                    // 'next' holds the name of the declaration operation or incrementer
 
                     //Could be increment or decrement
                     //Checking that the next token is a semicolon (single statement) or closed parenthesis (for loop incrementer)
-                    if (declarer.type == UNARY_OPERATOR && (peek(1).type == SEMICOLON || peek(1).type == CLOSE_PAREN)) {
+                    if (next.type == UNARY_OPERATOR && (peek(1).type == SEMICOLON || peek(1).type == CLOSE_PAREN)) {
                         consume();//Consuming incrementor
-                        yield new IncrementStatement(new NodeIdentifier(t), declarer, false);
+                        yield new IncrementStatement(new NodeIdentifier(t), next, false);
                     }
 
-                    if (declarer.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
-                        throw new ExpressionError("Expected an assignment after '" + t.value + "'", declarer);
+                    if (next.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
+                        throw new ExpressionError("Expected an assignment after '" + t.value + "'", next);
 
                     consume(); //Consuming assigner operation
 
-                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
+                    yield new AssignStatement(new NodeIdentifier(t), next, parseExpr());
                 }
                 case C_OPEN_PAREN -> { //New scope
                     pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
