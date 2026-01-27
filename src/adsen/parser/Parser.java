@@ -27,7 +27,7 @@ public class Parser {
 
     /**
      * The import handler for this program.
-     * Idk if this should go here, but can't think of any other place to put it, so this will do for now
+     * IDK if this should go here, but can't think of any other place to put it, so this will do for now
      */
     public static ImportHandler IMPORT_HANDLER;
 
@@ -208,8 +208,9 @@ public class Parser {
         //Empty case is to ensure we only grab one statement from a function (a scope statement whose contents we steal)
         for (pos = startPos; hasNext() && parserScopes.firstElement().statements.isEmpty(); pos++) {
             Token t = peek();
-            //If we don't need the semicolon at the end, then don't look for it (eg. in for statement incrementer)
-            boolean needSemi = true; //used for if, else, while etc.
+
+            //If we don't need the semicolon at the end, then don't look for it (e.g. in for statement incrementer)
+            boolean needSemi = true; //used for if, else, while, etc.
 
             // Consuming token to jump to the next one, since all statements need it
             Token next = consume();
@@ -308,9 +309,8 @@ public class Parser {
                     if (!popped.statementRequests.isEmpty()) {
                         throw new ExpressionError("Still had statement requests in scope", t);
                     }
-                    List<HeliumStatement> scopeStatments = popped.statements;
 
-                    yield new ScopeStatement(scopeStatments, t);
+                    yield new ScopeStatement(popped.statements, t);
                 }
 
                 case IF -> {
