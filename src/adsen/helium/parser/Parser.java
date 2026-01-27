@@ -63,8 +63,7 @@ public class Parser {
     public final HeliumProgram program;
 
     /**
-     * Experimental new way of storing statements in order to simplify and optimise scope creation.
-     * TODO add helper functions to access top of stack later on when code gets repetitive
+     * Stores statements by scopes, simplifying scope creation. A nice reminder of an amazing development sidequest
      */
     private final Stack<ParserScope> parserScopes = new Stack<>();
 
@@ -341,11 +340,10 @@ public class Parser {
                 case ELSE -> {
                     pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     if (scope().statements.getLast() instanceof IfStatement ifStmt) {
-                        scope().statements.removeLast();//todo allow to avoid removing and re-adding same element
                         Token elseToken = t;
                         addRequest((elseStatement) -> {
                             ifStmt.addElse(elseToken, elseStatement);
-                            return ifStmt;
+                            return null;
                         });
                         needSemi = false;
                     } else {
@@ -398,13 +396,12 @@ public class Parser {
                     StatementRequest incrementerRequest = StatementRequest.withoutSemi((incrementer) -> {
                         HeliumStatement stmt;
                         if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
-                            scope().statements.removeLast();
                             if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
                                 throw new ExpressionError("Invalid incrementer expression in for statement", stmt.primaryToken());
                             }
                             ((ForStatement) stmt).addIncrementer(incrementer);
 
-                            return stmt;
+                            return null;
                         } else {
                             throw new ExpressionError("Expected for statement", stmt.primaryToken());
                         }
@@ -413,12 +410,11 @@ public class Parser {
                     StatementRequest executionStatementRequest = StatementRequest.get((execStatement) -> {
                         HeliumStatement stmt;
                         if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
-                            scope().statements.removeLast();
                             if (execStatement instanceof ScopeStatement scope) {
                                 scope.setLoop();
                             }
                             ((ForStatement) stmt).addStatement(execStatement);
-                            return stmt;
+                            return null;
                         } else {
                             throw new ExpressionError("Expected for statement", stmt.primaryToken());
                         }
@@ -494,10 +490,15 @@ public class Parser {
                     System.out.println("That was directly added onto the statement stack\n");
                 } else {
                     statement = scope().statementRequests.pop().apply(statement);
+
                     if (VERBOSE_FLAGS.contains("parser"))
-                        System.out.println("That was consumed by a request, producing: " + statement.asString() + "\n");
+                        System.out.println("That was consumed by a request, producing: " + (statement == null ? scope().statements.getLast() : statement).asString() + "\n");
                 }
-                scope().statements.add(statement);
+
+                // This being null here means request modified an existing statement instead of producing a new one
+                if (statement != null) {
+                    scope().statements.add(statement);
+                }
             }
         }
 
