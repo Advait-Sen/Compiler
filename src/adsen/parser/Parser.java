@@ -86,11 +86,12 @@ public class Parser {
 
         Token t = peek();
         int depth = 0;
+
         if (inBrackets) {
             if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '('", t);
         }
 
-        for (; hasNext() && isValidExprToken(peek()) && !(inBrackets && depth == 1 && t.type == CLOSE_PAREN); t = consume()) {
+        for (; hasNext() && peek().isValidExprToken() && !(inBrackets && depth == 1 && t.type == CLOSE_PAREN); t = consume()) {
             if (t.type == OPEN_PAREN) depth++;
             if (t.type == CLOSE_PAREN) depth--;
             exprTokens.add(t);
@@ -100,10 +101,10 @@ public class Parser {
             if (t.type != CLOSE_PAREN) throw new ExpressionError("Expected ')' after expression", t);
 
             // Adding final closed bracket to the expression
+            // Not checking for depth not being 1, since we already know that parentheses are matched by this point
             if (depth == 1) exprTokens.add(t);
-        }
 
-        if (t.type != SEMICOLON && !inBrackets) throw new ExpressionError("Expected ';' after expression", t);
+        } else if (t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", t);
 
         //This is only acceptable with an empty return statement, which is a case we handle before reaching this point
         if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse empty expression", t);
@@ -134,7 +135,7 @@ public class Parser {
 
                     for (Token next = consume(); next.type != SEMICOLON; next = consume()) {
 
-                        if (isValidImportToken(next)) {
+                        if (next.isValidImportToken()) {
                             importLocation.add(next);
                         } else {
                             throw new ExpressionError("Unexpected token in import", next);
@@ -543,20 +544,6 @@ public class Parser {
         } else {
             return ((ScopeStatement) funcScope).statements;
         }
-    }
-
-    //Preparing for shunting yard
-    static boolean isValidExprToken(Token token) {
-        return switch (token.type) {
-            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN, WHILE, FOR, CONTINUE ->
-                    false; //Simpler to go by exclusion, it seems
-            default -> true;
-        };
-    }
-
-    //Since imports could contain keywords
-    static boolean isValidImportToken(Token token) {
-        return token.type == VARIABLE || Keywords.tokeniserKeywords.containsKey(token.value);
     }
 
     boolean hasNext() {

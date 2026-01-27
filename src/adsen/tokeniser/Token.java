@@ -1,5 +1,7 @@
 package adsen.tokeniser;
 
+import static adsen.tokeniser.TokenType.VARIABLE;
+
 public class Token {
     public String value = "";
     public TokenType type;
@@ -40,6 +42,26 @@ public class Token {
             case VARIABLE, IDENTIFIER, BOOL_LITERAL, INT_LITERAL, FLOAT_LITERAL, CHAR_LITERAL, STR_LITERAL -> true;
             default -> false;
         };
+    }
+
+    /**
+     * Can the token be part of an expression.
+     * Preparing for shunting yard.
+     * TODO make sure this is correct, cos I have a feeling it isn't
+     */
+    public boolean isValidExprToken(){
+        return switch (type) {
+            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN, WHILE, FOR, CONTINUE, VOID, BREAK, IMPORT ->
+                    false; //Simpler to go by exclusion, it seems
+            default -> true;
+        };
+    }
+
+    /**
+     * Can the token be part of an import string. Imports could contain keywords, including import
+     */
+    public boolean isValidImportToken() {
+        return type == VARIABLE || Keywords.tokeniserKeywords.containsKey(value);
     }
 
     public String toString() {
