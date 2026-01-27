@@ -2,7 +2,7 @@ package adsen.parser.statement;
 
 import adsen.tokeniser.Token;
 
-public class ContinueStatement implements Statement {
+public class ContinueStatement implements HeliumStatement {
     public final Token token;
     public ContinueStatement(Token token){
         this.token = token;
@@ -16,5 +16,10 @@ public class ContinueStatement implements Statement {
     @Override
     public String typeString() {
         return "continue";
+    }
+
+    @Override
+    public Token primaryToken() {
+        return token;
     }
 }

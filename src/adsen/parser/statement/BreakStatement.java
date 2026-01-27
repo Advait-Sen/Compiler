@@ -2,7 +2,7 @@ package adsen.parser.statement;
 
 import adsen.tokeniser.Token;
 
-public class BreakStatement implements Statement {
+public class BreakStatement implements HeliumStatement {
     public final Token token;
     public BreakStatement(Token token){
         this.token = token;
@@ -16,5 +16,10 @@ public class BreakStatement implements Statement {
     @Override
     public String typeString() {
         return "continue";
+    }
+
+    @Override
+    public Token primaryToken() {
+        return token;
     }
 }

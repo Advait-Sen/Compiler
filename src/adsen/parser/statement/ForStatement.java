@@ -1,47 +1,89 @@
 package adsen.parser.statement;
 
+import adsen.error.ExpressionError;
 import adsen.parser.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class ForStatement implements Statement {
+public class ForStatement implements HeliumStatement {
     public final Token token;
 
-    Statement assigner;
+    HeliumStatement assigner;
     NodeExpr loopCondition;
-    Statement incrementer;
-    Statement executionStatement;
+    HeliumStatement incrementer;
+    HeliumStatement executionStatement;
+    /**
+     * Ever since new parsing method, this is needed to keep track of the status of the for loop, since the assigner,
+     * incrementer and statement are added separately
+     */
+    ForCreationStatus status = ForCreationStatus.ASSIGNER;
 
-    public ForStatement(Token token, Statement assignment, Statement increment, NodeExpr condition, Statement statement) {
+    public ForStatement(Token token, HeliumStatement assignment, NodeExpr condition) {
         this.token = token;
         this.assigner = assignment;
-        this.incrementer = increment;
         this.loopCondition = condition;
-        this.executionStatement = statement;
     }
 
     public NodeExpr condition() {
         return loopCondition;
     }
 
-    public Statement getAssigner() {
+    public HeliumStatement getAssigner() {
         return assigner;
     }
 
-    public Statement getIncrementer() {
+    public HeliumStatement getIncrementer() {
         return incrementer;
     }
 
-    public Statement statement() {
+    public HeliumStatement statement() {
         return executionStatement;
     }
 
     @Override
     public String asString() {
-        return "for (" + assigner.asString() + "; " + loopCondition.asString() + "; " + incrementer.asString() + "):\n" + executionStatement.asString();
+        return switch (status) {
+            case COMPLETED ->
+                    "for (" + assigner.asString() + "; " + loopCondition.asString() + "; " + incrementer.asString() + "):\n" + executionStatement.asString();
+
+            case INCREMENTER ->
+                    "for (" + assigner.asString() + "; " + loopCondition.asString() + "; " + incrementer.asString() + "):\n null";
+
+            case ASSIGNER -> "for (" + assigner.asString() + "; " + loopCondition.asString() + "; null):\n null";
+        };
     }
 
     @Override
     public String typeString() {
         return "for";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
+
+    public void addIncrementer(HeliumStatement increment) {
+        if (status == ForCreationStatus.ASSIGNER) {
+            incrementer = increment;
+            status = ForCreationStatus.INCREMENTER;
+        } else {
+            throw new ExpressionError("Incorrect for loop formation, found incrementer in the wrong place", token);
+        }
+    }
+
+    public void addStatement(HeliumStatement statement) {
+        if (status == ForCreationStatus.INCREMENTER) {
+            executionStatement = statement;
+            status = ForCreationStatus.COMPLETED;
+        } else {
+            throw new ExpressionError("Incorrect for loop formation, found statement in the wrong place", token);
+        }
+    }
+
+}
+
+enum ForCreationStatus {
+    ASSIGNER,
+    INCREMENTER,
+    COMPLETED
 }

@@ -8,7 +8,7 @@ public class ExpressionError extends RuntimeException {
     Token token;
     int linepos;
     int colpos;
-
+    //TODO re-check every single error message to see if I can make use of new Statement.primaryToken()
     public ExpressionError(String message, Token token) {
         super(message);
         if (token != null) { //Token should not be null generally, this is for special cases

@@ -5,7 +5,8 @@ import adsen.tokeniser.Token;
 
 import java.util.List;
 
-public class FunctionCallStatement implements Statement {
+//TODO see what turning this into a record class means
+public class FunctionCallStatement implements HeliumStatement {
 
     public final Token name;
     public final List<NodeExpr> args;
@@ -33,5 +34,10 @@ public class FunctionCallStatement implements Statement {
     @Override
     public String typeString() {
         return "function_call";
+    }
+
+    @Override
+    public Token primaryToken() {
+        return name;
     }
 }

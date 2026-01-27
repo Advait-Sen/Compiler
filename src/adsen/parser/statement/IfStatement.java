@@ -1,47 +1,40 @@
 package adsen.parser.statement;
 
+import adsen.error.ExpressionError;
 import adsen.parser.expr.NodeExpr;
 import adsen.tokeniser.Token;
 
-public class IfStatement implements Statement {
+public class IfStatement implements HeliumStatement {
     public final Token token;
     NodeExpr condition;
-    Statement thenStatement;
+    HeliumStatement thenStatement;
 
-    public final Token elseToken;
-    Statement elseStatement;
+    Token elseToken = null;
+    HeliumStatement elseStatement = null;
+
+    IfCreationStatus status = IfCreationStatus.IF;
 
 
-    public IfStatement(Token token, NodeExpr condition, Statement statement) {
+    public IfStatement(Token token, NodeExpr condition, HeliumStatement statement) {
         this.token = token;
         this.condition = condition;
         this.thenStatement = statement;
-        this.elseToken = null;
-        this.elseStatement = null;
-    }
-
-    public IfStatement(Token token, NodeExpr condition, Statement statement, Token elseToken, Statement elseStatement) {
-        this.token = token;
-        this.condition = condition;
-        this.thenStatement = statement;
-        this.elseToken = elseToken;
-        this.elseStatement = elseStatement;
     }
 
     public NodeExpr getCondition() {
         return this.condition;
     }
 
-    public Statement thenStatement() {
+    public HeliumStatement thenStatement() {
         return this.thenStatement;
     }
 
-    public Statement elseStatement() {
+    public HeliumStatement elseStatement() {
         return this.elseStatement;
     }
 
     public boolean hasElse() {
-        return elseToken != null;
+        return status == IfCreationStatus.ELSE;
     }
 
     @Override
@@ -53,4 +46,24 @@ public class IfStatement implements Statement {
     public String typeString() {
         return "if";
     }
+
+    @Override
+    public Token primaryToken() {
+        return token;
+    }
+
+    public void addElse(Token elseToken, HeliumStatement elseStatement) {
+        if(status == IfCreationStatus.IF) {
+            this.elseToken = elseToken;
+            this.elseStatement = elseStatement;
+            this.status = IfCreationStatus.ELSE;
+        } else {
+            throw new ExpressionError("Already added an else to this if statement", elseToken);
+        }
+    }
+}
+
+enum IfCreationStatus {
+    IF,
+    ELSE
 }

@@ -6,21 +6,7 @@ import adsen.parser.expr.NodeExpr;
 import adsen.parser.expr.NodeIdentifier;
 import adsen.parser.expr.operator.Operator;
 import adsen.parser.expr.operator.OperatorType;
-import adsen.parser.statement.AssignStatement;
-import adsen.parser.statement.BreakStatement;
-import adsen.parser.statement.ContinueStatement;
-import adsen.parser.statement.DeclareStatement;
-import adsen.parser.statement.ExitStatement;
-import adsen.parser.statement.ForStatement;
-import adsen.parser.statement.FunctionCallStatement;
-import adsen.parser.statement.IfStatement;
-import adsen.parser.statement.IncrementStatement;
-import adsen.parser.statement.Statement;
-import adsen.parser.statement.ReturnStatement;
-import adsen.parser.statement.ScopeStatement;
-import adsen.parser.statement.StaticDeclareStatement;
-import adsen.parser.statement.WhileStatement;
-import adsen.tokeniser.Keywords;
+import adsen.parser.statement.*;
 import adsen.tokeniser.Token;
 import adsen.tokeniser.Tokeniser;
 
@@ -28,7 +14,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Stack;
+import java.util.function.Function;
 
+import static adsen.Main.VERBOSE_FLAGS;
 import static adsen.tokeniser.TokenType.*;
 
 /**
@@ -38,7 +27,7 @@ public class Parser {
 
     /**
      * The import handler for this program.
-     * Idk if this should go here, but can't think of any other place to put it, so this will do for now
+     * IDK if this should go here, but can't think of any other place to put it, so this will do for now
      */
     public static ImportHandler IMPORT_HANDLER;
 
@@ -60,6 +49,12 @@ public class Parser {
     public final HeliumProgram program;
 
     /**
+     * Experimental new way of storing statements in order to simplify and optimise scope creation.
+     * TODO add helper functions to access top of stack later on when code gets repetitive
+     */
+    private final Stack<ParserScope> parserScopes = new Stack<>();
+
+    /**
      * Current position within token list
      */
     private int pos = 0;
@@ -70,47 +65,40 @@ public class Parser {
         this.tokens = Collections.unmodifiableList(tokeniser.tokens());
     }
 
-    private Parser(HeliumProgram program, List<Token> tokens) {
-        this.program = program;
-        this.tokens = Collections.unmodifiableList(tokens);
+    NodeExpr parseExpr() {
+        return parseExpr(false);
     }
-
-    private Parser newFromTokenList(List<Token> tokens) {
-        return new Parser(program, tokens);
-    }
-
 
     /**
-     * Tries to read an expression from {@link Parser#tokens} list
+     * Gathers tokens for a possible expression, before sending them off to {@link ShuntingYard#parseExpr} to get
+     * evaluated into a {@link NodeExpr}
      *
-     * @param ignoreSemi Allows to ignore final semicolon if not required
-     * @param endPos     End index until which to read tokens
+     * @param inBrackets Whether the expression is enclosed in a pair of brackets (for an if or while statement)
      */
-    NodeExpr parseExpr(boolean ignoreSemi, int endPos) {
-        Token t;
-        int tokens = endPos - pos;
-
+    NodeExpr parseExpr(boolean inBrackets) {
         List<Token> exprTokens = new ArrayList<>();
 
-        if (tokens == -1) {
-            for (t = peek(); hasNext() && isValidExprToken(peek()); t = consume()) {
-                exprTokens.add(t);
-            }
-        } else {
-            t = peek();
-            for (int i = 0; (i < tokens) && isValidExprToken(peek()); t = consume()) {
-                exprTokens.add(t);
-                i++;
-            }
+        Token t = peek();
+        int depth = 0;
+
+        if (inBrackets) {
+            if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '('", t);
         }
 
-        if (!ignoreSemi) {
-            if (!hasNext())
-                throw new ExpressionError("Expected ';' after expression", exprTokens.getLast());
-
-            if (t.type != SEMICOLON)
-                throw new ExpressionError("Expected ';' after expression", t);
+        for (; hasNext() && peek().isValidExprToken() && !(inBrackets && depth == 1 && t.type == CLOSE_PAREN); t = consume()) {
+            if (t.type == OPEN_PAREN) depth++;
+            if (t.type == CLOSE_PAREN) depth--;
+            exprTokens.add(t);
         }
+
+        if (inBrackets) {
+            if (t.type != CLOSE_PAREN) throw new ExpressionError("Expected ')' after expression", t);
+
+            // Adding final closed bracket to the expression
+            // Not checking for depth not being 1, since we already know that parentheses are matched by this point
+            if (depth == 1) exprTokens.add(t);
+
+        } else if (t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", t);
 
         //This is only acceptable with an empty return statement, which is a case we handle before reaching this point
         if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse empty expression", t);
@@ -141,7 +129,7 @@ public class Parser {
 
                     for (Token next = consume(); next.type != SEMICOLON; next = consume()) {
 
-                        if (isValidImportToken(next)) {
+                        if (next.isValidImportToken()) {
                             importLocation.add(next);
                         } else {
                             throw new ExpressionError("Unexpected token in import", next);
@@ -191,7 +179,7 @@ public class Parser {
                                 if (t.type != COMMA) throw new ExpressionError("Expected ','", t);
 
                             } else throw new ExpressionError("Expected variable", t);
-
+                            //This might have to go, or maybe just change, once classes become a thing
                         } else throw new ExpressionError("Expected type", t);
 
                     }
@@ -201,8 +189,9 @@ public class Parser {
                     if (peek(1).type != C_OPEN_PAREN)
                         throw new ExpressionError("Expected '{' after function declaration", peek(1));
 
-                    function.andThen(((ScopeStatement) parseOneStatement(pos + 1)).statements);
-
+                    parserScopes.push(new ParserScope());
+                    function.andThen(parseFunction(pos + 1));
+                    parserScopes.pop();
                     program.addFunction(function);
                 }
                 default -> throw new ExpressionError("Unexpected token: " + t, t);
@@ -214,85 +203,61 @@ public class Parser {
         IMPORT_HANDLER.loadImportData();
     }
 
-    /**
-     * Old parse function which returns the {@link HeliumProgram} defining the entire program's AST.
-     */
-    public List<Statement> parseStatements() {
-        return parseStatements(0, tokens.size()); // Statement count will always be less than token list size
-    }
+    List<HeliumStatement> parseFunction(int startPos) {
 
-    /**
-     * Method which returns the next parsed statement, since it seems to be such a popular request
-     */
-    Statement parseOneStatement(int startPos) {
-        return parseStatements(startPos, 1).getFirst();
-    }
-
-    List<Statement> parseStatements(int startPos, int statementCount) {
-        return parseStatements(startPos, statementCount, tokens.size(), false); //By default, looking at all the tokens
-    }
-
-    List<Statement> parseStatements(int startPos, int statementCount, int tokenCount, boolean ignoreSemi) {
-        List<Statement> statements = new ArrayList<>();
-        int endPos = pos + tokenCount;
-        for (pos = startPos; hasNext() && pos < endPos && statements.size() < statementCount; pos++) {
+        //Empty case is to ensure we only grab one statement from a function (a scope statement whose contents we steal)
+        for (pos = startPos; hasNext() && parserScopes.firstElement().statements.isEmpty(); pos++) {
             Token t = peek();
-            Statement statement;
-            //If we don't need the semicolon at the end, then don't look for it (eg. in for statement)
-            boolean needSemi = !ignoreSemi; //used for if, else, while etc.
 
-            statement = switch (t.type) {
-                case EXIT -> { //Exit statement
-                    consume(); //Consume exit token
-                    yield new ExitStatement(t, parseExpr(ignoreSemi, endPos));
-                }
+            //If we don't need the semicolon at the end, then don't look for it (e.g. in for statement incrementer)
+            boolean needSemi = true; //used for if, else, while, etc.
+
+            // Consuming token to jump to the next one, since all statements need it
+            Token next = consume();
+
+            HeliumStatement statement = switch (t.type) {
+                case EXIT -> new ExitStatement(t, parseExpr());
+
                 case RETURN -> { //Return statement
-                    consume(); //Consume return token
                     if (peek().type == SEMICOLON)
                         yield new ReturnStatement(t, null);
 
-                    else yield new ReturnStatement(t, parseExpr(ignoreSemi, endPos));
+                    else yield new ReturnStatement(t, parseExpr());
                 }
 
-                case CONTINUE -> { //Continue statement
-                    consume();
-                    yield new ContinueStatement(t);
-                }
+                case CONTINUE -> new ContinueStatement(t);
 
-                case BREAK -> { //Break statement
-                    consume();
-                    yield new BreakStatement(t);
-                }
+                case BREAK -> new BreakStatement(t);
 
                 case PRIMITIVE_TYPE -> { //Static declaration
-                    Token identifier = consume(); //Consuming primitive name
+                    // 'next' holds the name of the identifier
 
-                    if (identifier.type != VARIABLE)
-                        throw new ExpressionError("Must have a variable name after '" + t.value + "'", identifier);
+                    if (next.type != VARIABLE)
+                        throw new ExpressionError("Must have a variable name after '" + t.value + "'", next);
 
                     Token declarer = consume(); //Consuming identifier
 
                     if (peek().type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after '" + identifier.value + "'", declarer);
+                        throw new ExpressionError("Expected a declaration after '" + next.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
-                    yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr(ignoreSemi, endPos));
+                    yield new StaticDeclareStatement(t, new NodeIdentifier(next), declarer, parseExpr());
                 }
                 case LET -> { // Normal declaration
-                    Token identifier = consume(); //Consuming 'let' keyword
+                    // 'next' holds the name of the identifier
 
-                    if (identifier.type != VARIABLE)
-                        throw new ExpressionError("Must have an identifier after 'let'", identifier);
+                    if (next.type != VARIABLE)
+                        throw new ExpressionError("Must have an identifier after 'let'", next);
 
                     Token declarer = consume(); //Consuming identifier
 
                     if (declarer.type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after '" + identifier.value + "'", declarer);
+                        throw new ExpressionError("Expected a declaration after '" + next.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
-                    yield new DeclareStatement(new NodeIdentifier(identifier), declarer, parseExpr(ignoreSemi, endPos));
+                    yield new DeclareStatement(new NodeIdentifier(next), declarer, parseExpr());
                 }
                 case UNARY_OPERATOR -> {
                     OperatorType opType = Operator.operatorType.get(t.value);
@@ -301,179 +266,163 @@ public class Parser {
                         throw new ExpressionError("Not a statement", t);
                     }
 
-                    Token ident = consume(); //Consuming incrementor
+                    // 'next' holds the name of the identifier
 
-                    if (ident.type != VARIABLE) {
-                        throw new ExpressionError("Expected an identifier after " + t.value, ident);
+                    if (next.type != VARIABLE) {
+                        throw new ExpressionError("Expected a variable after " + t.value, next);
                     }
                     consume(); //Consuming identifier
 
-                    yield new IncrementStatement(new NodeIdentifier(ident), t, true);
+                    yield new IncrementStatement(new NodeIdentifier(next), t, true);
                 }
                 case VARIABLE -> { // Variable assignment
-
-                    Token declarer = consume(); //Consuming identifier
+                    // 'next' holds the name of the declaration operation or incrementer
 
                     //Could be increment or decrement
                     //Checking that the next token is a semicolon (single statement) or closed parenthesis (for loop incrementer)
-                    if (declarer.type == UNARY_OPERATOR && (peek(1).type == SEMICOLON || peek(1).type == CLOSE_PAREN)) {
+                    if (next.type == UNARY_OPERATOR && (peek(1).type == SEMICOLON || peek(1).type == CLOSE_PAREN)) {
                         consume();//Consuming incrementor
-                        yield new IncrementStatement(new NodeIdentifier(t), declarer, false);
+                        yield new IncrementStatement(new NodeIdentifier(t), next, false);
                     }
 
-                    if (declarer.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
-                        throw new ExpressionError("Expected an assignment after '" + t.value + "'", declarer);
+                    if (next.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
+                        throw new ExpressionError("Expected an assignment after '" + t.value + "'", next);
 
                     consume(); //Consuming assigner operation
 
-                    yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr(ignoreSemi, endPos));
+                    yield new AssignStatement(new NodeIdentifier(t), next, parseExpr());
                 }
                 case C_OPEN_PAREN -> { //New scope
+                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     needSemi = false;
 
-                    if (peek(1).type == C_CLOSE_PAREN) { //Special case for empty scope
-                        consume();//consuming closed curly bracket
-                        yield new ScopeStatement(Collections.emptyList());
-                    }
+                    //From now on we will read statements into the new scope
+                    parserScopes.push(new ParserScope());
 
-                    List<Token> scopeTokens = new ArrayList<>();
-                    int c_bracket_counter = 1; //we have seen one open curly bracket
-
-                    /*
-                    TODO Use scope depth int variable to keep track of scopes, instead of reading through the entire scope's tokens first
-                    That would require major refactoring of this class, but it's the only way to scale this project and
-                    actually allow for large Helium files to exist
-                    The idea is that instead of tallying up the tokens in a scope and sending them off to a new Parser
-                    object to be processed, we simply increment a curly bracket counter here. Increment it each time we
-                    see an open curly bracket, close it each time we close one, etc.
-                    And we also store the statements by their layer, probably in a Stack, but idk exactly.
-                    So when we find a curly bracket, we can take all the preceding statements until the previous curly
-                    bracket, then enclose them into a scope, and stick that onto the statements list for the previous
-                    scope depth / open curly bracket.
-                    Scope depth would be initialised to 0 at the beginning of a function, and then checked to see if it's
-                    still 0 at the end. If it isn't then that'll be a fun headache, either for me or the programmer, idk.
-
-                    Maybe use a Stack<List<NodeStatement>>, where each time we push a new List onto the stack, then always
-                    add to the list at the top of the stack. Then we pop it off, insert it into a new ScopeStatement, and
-                    shove that onto the list that's now at the top of the stack.
-                    So instead of having an int declaring depth, we combine depth-checking with adding statements.
-                    I'm a genius!
-                    */
-                    for (t = consume(); c_bracket_counter != 0 || t.type != C_CLOSE_PAREN; t = consume()) {
-                        if (t.type == C_OPEN_PAREN) c_bracket_counter++;
-                        if (peek(1).type == C_CLOSE_PAREN) c_bracket_counter--;
-                        scopeTokens.add(t);
-                    }
-                    //todo check if this causes errors when creating error messages
-                    yield new ScopeStatement(newFromTokenList(scopeTokens).parseStatements(0, tokens.size()));
+                    yield null;
                 }
+
+                case C_CLOSE_PAREN -> {
+                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
+                    needSemi = false;
+                    ParserScope popped = parserScopes.pop();
+                    if (!popped.statementRequests.isEmpty()) {
+                        throw new ExpressionError("Still had statement requests in scope", t);
+                    }
+
+                    yield new ScopeStatement(popped.statements, t);
+                }
+
                 case IF -> {
                     Token ifT = t;
-                    t = consume();
-                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after if", t);
-                    List<Token> conditionTokens = new ArrayList<>();
-                    int bracket_counter = 1; //we have seen one open bracket
 
-                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t); t = consume()) {
-                        if (t.type == OPEN_PAREN) bracket_counter++;
-                        if (peek(1).type == CLOSE_PAREN) bracket_counter--;
-                        conditionTokens.add(t);
-                    }
-
-                    if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
-
-                    NodeExpr ifExpr = ShuntingYard.parseExpr(conditionTokens);
+                    NodeExpr ifExpr = parseExpr(true);
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Statement thenStatement = parseOneStatement(pos + 1);
+                    addRequest((thenStatement) -> new IfStatement(ifT, ifExpr, thenStatement));
 
-                    t = peek(1); //don't consume unless needed
-
-                    //Adding null check in case the if is the last thing in the function, meaning there's nothing else afterwards
-                    if (t != null && t.type == ELSE) { //Parsing else statement right here
-                        Statement elseStatement = parseOneStatement(pos + 2);
-
-                        yield new IfStatement(ifT, ifExpr, thenStatement, t, elseStatement);
-                    }
-
-                    yield new IfStatement(ifT, ifExpr, thenStatement);
+                    yield null;
                 }
+                case ELSE -> {
+                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
+                    if (scope().statements.getLast() instanceof IfStatement ifStmt) {
+                        scope().statements.removeLast();//todo allow to avoid removing and re-adding same element
+                        Token elseToken = t;
+                        addRequest((elseStatement) -> {
+                            ifStmt.addElse(elseToken, elseStatement);
+                            return ifStmt;
+                        });
+                        needSemi = false;
+                    } else {
+                        throw new ExpressionError("Must have an if preceding else statement", t);
+                    }
+                    yield null;
+                }
+
                 case WHILE -> {
                     Token whileT = t;
-                    t = consume();
-                    if (t.type != OPEN_PAREN) throw new ExpressionError("Must have condition after while", t);
-                    List<Token> conditionTokens = new ArrayList<>();
-                    int bracket_counter = 1; //we have seen one open bracket
 
-                    for (t = consume(); (bracket_counter != 0 || t.type != CLOSE_PAREN) && isValidExprToken(t); t = consume()) {
-                        if (t.type == OPEN_PAREN) bracket_counter++;
-                        if (peek(1).type == CLOSE_PAREN) bracket_counter--;
-                        conditionTokens.add(t);
-                    }
-
-                    if (!isValidExprToken(t)) throw new ExpressionError("Invalid token", t);
-
-                    NodeExpr whileCondition = ShuntingYard.parseExpr(conditionTokens);
+                    NodeExpr whileCondition = parseExpr(true);
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Statement executionStatement = parseOneStatement(pos + 1);
+                    addRequest((executionStatement) -> {
+                        if (executionStatement instanceof ScopeStatement scope) {
+                            scope.setLoop();
+                        }
 
-                    if (executionStatement instanceof ScopeStatement scope) {
-                        scope.setLoop();
-                    }
+                        return new WhileStatement(whileT, whileCondition, executionStatement);
+                    });
 
-                    yield new WhileStatement(whileT, whileCondition, executionStatement);
+                    yield null;
                 }
-                case FOR -> { //Todo add proper checks for assigner and incrementer being assignment statements
+
+                case FOR -> {
                     Token forT = t;
-                    t = consume();
+                    t = next;
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
 
-                    Statement assigner = parseOneStatement(pos + 1);
-                    if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
-                        throw new ExpressionError("Invalid assigner expression in for statement", t);
-                    }
+                    //Todo add proper checks for assigner and incrementer being assignment statements
+                    //LOL can't even remember what this to-do was about, but I'm afraid to remove it
 
-                    List<Token> conditionTokens = new ArrayList<>();
+                    StatementRequest assignerRequest = StatementRequest.get((assigner) -> {
+                        if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
+                            throw new ExpressionError("Invalid assigner expression in for statement", assigner.primaryToken());
+                        }
 
-                    for (t = consume(); isValidExprToken(t); t = consume()) {
-                        conditionTokens.add(t);
-                    }
+                        Token _t = peek();
+                        if (_t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", _t);
 
-                    if (t.type != SEMICOLON) throw new ExpressionError("Invalid token", t);
+                        consume(); //consuming semicolon
 
-                    NodeExpr forCondition = ShuntingYard.parseExpr(conditionTokens);
+                        NodeExpr forCondition = parseExpr();
 
-                    int closed_bracket_pos;
-                    int bracket_counter = 1; //we have seen one open bracket
+                        return new ForStatement(forT, assigner, forCondition);
+                    });
 
-                    for (closed_bracket_pos = 1; bracket_counter != 0; closed_bracket_pos++) {
-                        if (peek(closed_bracket_pos).type == OPEN_PAREN) bracket_counter++;
-                        if (peek(closed_bracket_pos + 1).type == CLOSE_PAREN) bracket_counter--;
-                        conditionTokens.add(t);
-                    }
+                    StatementRequest incrementerRequest = StatementRequest.withoutSemi((incrementer) -> {
+                        HeliumStatement stmt;
+                        if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
+                            scope().statements.removeLast();
+                            if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
+                                throw new ExpressionError("Invalid incrementer expression in for statement", stmt.primaryToken());
+                            }
+                            ((ForStatement) stmt).addIncrementer(incrementer);
 
-                    Statement incrementer = parseStatements(pos + 1, 1, closed_bracket_pos, true).getFirst();
+                            return stmt;
+                        } else {
+                            throw new ExpressionError("Expected for statement", stmt.primaryToken());
+                        }
+                    });
 
-                    if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
-                        throw new ExpressionError("Invalid incrementer expression in for statement", t);
-                    }
+                    StatementRequest executionStatementRequest = StatementRequest.get((execStatement) -> {
+                        HeliumStatement stmt;
+                        if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
+                            scope().statements.removeLast();
+                            if (execStatement instanceof ScopeStatement scope) {
+                                scope.setLoop();
+                            }
+                            ((ForStatement) stmt).addStatement(execStatement);
+                            return stmt;
+                        } else {
+                            throw new ExpressionError("Expected for statement", stmt.primaryToken());
+                        }
+                    });
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    Statement executionStatement = parseOneStatement(pos + 1);
+                    //Push them in reverse order, since top of the stack is read first
+                    addRequest(executionStatementRequest);
+                    addRequest(incrementerRequest);
+                    addRequest(assignerRequest);
 
-                    if (executionStatement instanceof ScopeStatement scope) {
-                        scope.setLoop();
-                    }
-
-                    yield new ForStatement(forT, assigner, incrementer, forCondition, executionStatement);
+                    yield null;
                 }
+
                 case FUNCTION -> { //Function call
                     Token fCallTok = t;
-                    t = consume();
+                    t = next;
 
                     if (t.type != OPEN_PAREN)
                         throw new ExpressionError("Expected '(' after '" + fCallTok.value + "'", t);
@@ -517,31 +466,52 @@ public class Parser {
                 default -> throw new ExpressionError("Unknown statement", t);
             };
 
-
-            if (needSemi && !(hasNext() && peek().type == SEMICOLON)) { // Must end statements with semicolon
+            // Must end statements with semicolon
+            if (needSemi && !(hasNext() && peek().type == SEMICOLON) && (!scope().statementRequests.isEmpty() && scope().statementRequests.peek().needSemi)) {
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
-            statements.add(statement);
+            if (statement != null) {
+                if (VERBOSE_FLAGS.contains("parser"))
+                    System.out.println("Formed a statement: " + statement.asString() + " at scope depth: " + parserScopes.size());
+
+                //If there are no if, while, etc. that want a statement
+                if (scope().statementRequests.isEmpty() && VERBOSE_FLAGS.contains("parser")) {
+                    System.out.println("That was directly added onto the statement stack\n");
+                } else {
+                    statement = scope().statementRequests.pop().apply(statement);
+                    if (VERBOSE_FLAGS.contains("parser"))
+                        System.out.println("That was consumed by a request, producing: " + statement.asString() + "\n");
+                }
+                scope().statements.add(statement);
+            }
         }
 
         pos--;  // decrementing to the last valid token
 
-        return statements;
-    }
+        //Finishing up the function
 
-    //Preparing for shunting yard
-    static boolean isValidExprToken(Token token) {
-        return switch (token.type) {
-            case LET, EXIT, IF, ELSE, SEMICOLON, C_OPEN_PAREN, C_CLOSE_PAREN, WHILE, FOR, CONTINUE ->
-                    false; //Simpler to go by exclusion, it seems
-            default -> true;
-        };
-    }
+        HeliumStatement funcScope;
+        ParserScope firstScope;
+        if (parserScopes.isEmpty()) {
+            throw new ExpressionError("Empty parser scope, how did we get here?", null);
+        } else if (parserScopes.size() > 1) {
 
-    //Since imports could contain keywords
-    static boolean isValidImportToken(Token token) {
-        return token.type == VARIABLE || Keywords.tokeniserKeywords.containsKey(token.value);
+            throw new ExpressionError("Didn't pop scopes correctly", scope().statements.getFirst().primaryToken());
+        } else if ((firstScope = scope()).statements.isEmpty()) {
+
+            throw new ExpressionError("Didn't close function properly", tokens.getLast());
+
+        } else if (firstScope.statements.size() > 1) {
+
+            throw new ExpressionError("Too many statements, impossible to reach this point", null);
+
+        } else if (!((funcScope = firstScope.statements.getFirst()) instanceof ScopeStatement)) {
+            throw new ExpressionError("Incorrect function declaration", funcScope.primaryToken());
+
+        } else {
+            return ((ScopeStatement) funcScope).statements;
+        }
     }
 
     boolean hasNext() {
@@ -564,5 +534,45 @@ public class Parser {
     Token consume() {
         pos++;
         return peek();
+    }
+
+    ParserScope scope() {
+        return parserScopes.peek();
+    }
+
+    void addRequest(StatementRequest request) {
+        scope().statementRequests.push(request);
+    }
+
+    void addRequest(Function<HeliumStatement, HeliumStatement> request) {
+        addRequest(StatementRequest.get(request));
+    }
+}
+
+class ParserScope {
+    public final List<HeliumStatement> statements = new ArrayList<>();
+    public final Stack<StatementRequest> statementRequests = new Stack<>();
+}
+
+
+class StatementRequest {
+    final Function<HeliumStatement, HeliumStatement> request;
+    final boolean needSemi;
+
+    private StatementRequest(boolean needSemi, Function<HeliumStatement, HeliumStatement> request) {
+        this.needSemi = needSemi;
+        this.request = request;
+    }
+
+    public static StatementRequest get(Function<HeliumStatement, HeliumStatement> request) {
+        return new StatementRequest(true, request);
+    }
+
+    public static StatementRequest withoutSemi(Function<HeliumStatement, HeliumStatement> request) {
+        return new StatementRequest(false, request);
+    }
+
+    HeliumStatement apply(HeliumStatement statement) {
+        return request.apply(statement);
     }
 }
