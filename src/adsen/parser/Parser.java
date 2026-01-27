@@ -217,31 +217,25 @@ public class Parser {
             //If we don't need the semicolon at the end, then don't look for it (eg. in for statement incrementer)
             boolean needSemi = true; //used for if, else, while etc.
 
+            // Consuming token to jump to the next one, since all statements need it
+            Token next = consume();
+
             HeliumStatement statement = switch (t.type) {
-                case EXIT -> { //Exit statement
-                    consume(); //Consume exit token
-                    yield new ExitStatement(t, parseExpr());
-                }
+                case EXIT -> new ExitStatement(t, parseExpr());
+
                 case RETURN -> { //Return statement
-                    consume(); //Consume return token
                     if (peek().type == SEMICOLON)
                         yield new ReturnStatement(t, null);
 
                     else yield new ReturnStatement(t, parseExpr());
                 }
 
-                case CONTINUE -> { //Continue statement
-                    consume();
-                    yield new ContinueStatement(t);
-                }
+                case CONTINUE -> new ContinueStatement(t);
 
-                case BREAK -> { //Break statement
-                    consume();
-                    yield new BreakStatement(t);
-                }
+                case BREAK -> new BreakStatement(t);
 
                 case PRIMITIVE_TYPE -> { //Static declaration
-                    Token identifier = consume(); //Consuming primitive name
+                    Token identifier = next;
 
                     if (identifier.type != VARIABLE)
                         throw new ExpressionError("Must have a variable name after '" + t.value + "'", identifier);
@@ -256,7 +250,7 @@ public class Parser {
                     yield new StaticDeclareStatement(t, new NodeIdentifier(identifier), declarer, parseExpr());
                 }
                 case LET -> { // Normal declaration
-                    Token identifier = consume(); //Consuming 'let' keyword
+                    Token identifier = next;
 
                     if (identifier.type != VARIABLE)
                         throw new ExpressionError("Must have an identifier after 'let'", identifier);
@@ -277,7 +271,7 @@ public class Parser {
                         throw new ExpressionError("Not a statement", t);
                     }
 
-                    Token identifier = consume(); //Consuming incrementor
+                    Token identifier = next;
 
                     if (identifier.type != VARIABLE) {
                         throw new ExpressionError("Expected a variable after " + t.value, identifier);
@@ -287,8 +281,7 @@ public class Parser {
                     yield new IncrementStatement(new NodeIdentifier(identifier), t, true);
                 }
                 case VARIABLE -> { // Variable assignment
-
-                    Token declarer = consume(); //Consuming identifier
+                    Token declarer = next; //Consuming identifier
 
                     //Could be increment or decrement
                     //Checking that the next token is a semicolon (single statement) or closed parenthesis (for loop incrementer)
@@ -305,6 +298,7 @@ public class Parser {
                     yield new AssignStatement(new NodeIdentifier(t), declarer, parseExpr());
                 }
                 case C_OPEN_PAREN -> { //New scope
+                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     needSemi = false;
 
                     /*
@@ -334,6 +328,7 @@ public class Parser {
                 }
 
                 case C_CLOSE_PAREN -> {
+                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     needSemi = false;
                     ParserScope popped = parserScopes.pop();
                     if (!popped.statementRequests.isEmpty()) {
@@ -346,7 +341,6 @@ public class Parser {
 
                 case IF -> {
                     Token ifT = t;
-                    consume(); //Consuming if token
 
                     NodeExpr ifExpr = parseExpr(true);
 
@@ -357,6 +351,7 @@ public class Parser {
                     yield null;
                 }
                 case ELSE -> {
+                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     if (scope().statements.getLast() instanceof IfStatement ifStmt) {
                         scope().statements.removeLast();//todo allow to avoid removing and re-adding same element
                         Token elseToken = t;
@@ -373,7 +368,6 @@ public class Parser {
 
                 case WHILE -> {
                     Token whileT = t;
-                    consume(); // Consuming while token
 
                     NodeExpr whileCondition = parseExpr(true);
 
@@ -392,7 +386,7 @@ public class Parser {
 
                 case FOR -> {
                     Token forT = t;
-                    t = consume();
+                    t = next;
                     if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
 
                     //Todo add proper checks for assigner and incrementer being assignment statements
@@ -454,7 +448,7 @@ public class Parser {
 
                 case FUNCTION -> { //Function call
                     Token fCallTok = t;
-                    t = consume();
+                    t = next;
 
                     if (t.type != OPEN_PAREN)
                         throw new ExpressionError("Expected '(' after '" + fCallTok.value + "'", t);
