@@ -1,9 +1,11 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.aggregate;
 
 import adsen.helium.parser.expr.NodeExpr;
+import adsen.helium.parser.statement.AggregateStatement;
+import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 
-public class WhileStatement implements HeliumStatement {
+public class WhileStatement extends AggregateStatement {
     public final Token token;
     NodeExpr loopCondition;
     HeliumStatement executionStatement;
@@ -35,5 +37,10 @@ public class WhileStatement implements HeliumStatement {
     @Override
     public Token primaryToken() {
         return token;
+    }
+
+    @Override
+    public int length() {
+        return 1 + executionStatement.length();
     }
 }

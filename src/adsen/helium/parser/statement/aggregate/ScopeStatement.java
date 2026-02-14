@@ -1,12 +1,14 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.aggregate;
 
+import adsen.helium.parser.statement.AggregateStatement;
+import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 import java.util.List;
 
 /**
  * A scope will be declared by curly brackets surrounding some statements
  */
-public class ScopeStatement implements HeliumStatement {
+public class ScopeStatement extends AggregateStatement {
     public final List<HeliumStatement> statements;
     private boolean isLoop = false;
     public final String name; //If applicable
@@ -52,5 +54,10 @@ public class ScopeStatement implements HeliumStatement {
     @Override
     public Token primaryToken() {
         return token;
+    }
+
+    @Override
+    public int length() {
+        return statements.size();
     }
 }

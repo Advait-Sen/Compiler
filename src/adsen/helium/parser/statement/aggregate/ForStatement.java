@@ -1,10 +1,12 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.aggregate;
 
 import adsen.helium.error.ExpressionError;
 import adsen.helium.parser.expr.NodeExpr;
+import adsen.helium.parser.statement.AggregateStatement;
+import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 
-public class ForStatement implements HeliumStatement {
+public class ForStatement extends AggregateStatement {
     public final Token token;
 
     HeliumStatement assigner;
@@ -78,6 +80,12 @@ public class ForStatement implements HeliumStatement {
         } else {
             throw new ExpressionError("Incorrect for loop formation, found statement in the wrong place", token);
         }
+    }
+
+    @Override
+    public int length() {
+        // Assignment and incrementer should be of length 1
+        return 3 + executionStatement.length();
     }
 
 }

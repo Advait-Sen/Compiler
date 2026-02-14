@@ -1,15 +1,16 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.atomic;
 
 import adsen.helium.parser.expr.NodeExpr;
 import adsen.helium.parser.expr.NodeIdentifier;
+import adsen.helium.parser.statement.AtomicStatement;
 import adsen.helium.tokeniser.Token;
 
-public class DeclareStatement implements HeliumStatement {
+public class AssignStatement extends AtomicStatement {
     NodeIdentifier identifier;
     Token declarer;
     NodeExpr expression;
 
-    public DeclareStatement(NodeIdentifier identifier, Token declarer, NodeExpr expr) {
+    public AssignStatement(NodeIdentifier identifier, Token declarer, NodeExpr expr) {
         this.identifier = identifier;
         this.declarer = declarer;
         this.expression = expr;
@@ -25,12 +26,12 @@ public class DeclareStatement implements HeliumStatement {
 
     @Override
     public String asString() {
-        return String.join(" ", "let", identifier.asString(), declarer.value, expression.asString());
+        return String.join(" ", identifier.asString(), declarer.value, expression.asString());
     }
 
     @Override
     public String typeString() {
-        return "declaration";
+        return "assignment";
     }
 
     @Override

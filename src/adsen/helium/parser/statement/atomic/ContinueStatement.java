@@ -1,8 +1,9 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.atomic;
 
+import adsen.helium.parser.statement.AtomicStatement;
 import adsen.helium.tokeniser.Token;
 
-public class ContinueStatement implements HeliumStatement {
+public class ContinueStatement extends AtomicStatement {
     public final Token token;
     public ContinueStatement(Token token){
         this.token = token;

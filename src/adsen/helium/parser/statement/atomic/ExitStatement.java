@@ -1,9 +1,10 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.atomic;
 
 import adsen.helium.parser.expr.NodeExpr;
+import adsen.helium.parser.statement.AtomicStatement;
 import adsen.helium.tokeniser.Token;
 
-public class ExitStatement implements HeliumStatement {
+public class ExitStatement extends AtomicStatement {
     public final Token token;
 
     public ExitStatement(Token exit, NodeExpr expr) {

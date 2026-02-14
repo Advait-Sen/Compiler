@@ -6,21 +6,20 @@ import adsen.helium.parser.expr.NodeExpr;
 import adsen.helium.parser.expr.NodeIdentifier;
 import adsen.helium.parser.expr.operator.Operator;
 import adsen.helium.parser.expr.operator.OperatorType;
-import adsen.helium.parser.statement.AssignStatement;
-import adsen.helium.parser.statement.BreakStatement;
-import adsen.helium.parser.statement.ContinueStatement;
-import adsen.helium.parser.statement.DeclareStatement;
-import adsen.helium.parser.statement.ExitStatement;
-import adsen.helium.parser.statement.ForStatement;
-import adsen.helium.parser.statement.FunctionCallStatement;
+import adsen.helium.parser.statement.atomic.AssignStatement;
+import adsen.helium.parser.statement.atomic.BreakStatement;
+import adsen.helium.parser.statement.atomic.ContinueStatement;
+import adsen.helium.parser.statement.atomic.DeclareStatement;
+import adsen.helium.parser.statement.atomic.ExitStatement;
+import adsen.helium.parser.statement.aggregate.ForStatement;
+import adsen.helium.parser.statement.atomic.FunctionCallStatement;
 import adsen.helium.parser.statement.HeliumStatement;
-import adsen.helium.parser.statement.IfStatement;
-import adsen.helium.parser.statement.IncrementStatement;
-import adsen.helium.parser.statement.ReturnStatement;
-import adsen.helium.parser.statement.ScopeStatement;
-import adsen.helium.parser.statement.StaticDeclareStatement;
-import adsen.helium.parser.statement.WhileStatement;
-import adsen.helium.parser.statement.*;
+import adsen.helium.parser.statement.aggregate.IfStatement;
+import adsen.helium.parser.statement.atomic.IncrementStatement;
+import adsen.helium.parser.statement.atomic.ReturnStatement;
+import adsen.helium.parser.statement.aggregate.ScopeStatement;
+import adsen.helium.parser.statement.atomic.StaticDeclareStatement;
+import adsen.helium.parser.statement.aggregate.WhileStatement;
 import adsen.helium.tokeniser.Token;
 import adsen.helium.tokeniser.Tokeniser;
 
@@ -378,7 +377,7 @@ public class Parser {
                     //Todo add proper checks for assigner and incrementer being assignment statements
                     //LOL can't even remember what this to-do was about, but I'm afraid to remove it
 
-                    StatementRequest assignerRequest = StatementRequest.get((assigner) -> {
+                    StatementRequest assignerRequest = StatementRequest.from((assigner) -> {
                         if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
                             throw new ExpressionError("Invalid assigner expression in for statement", assigner.primaryToken());
                         }
@@ -407,7 +406,7 @@ public class Parser {
                         }
                     });
 
-                    StatementRequest executionStatementRequest = StatementRequest.get((execStatement) -> {
+                    StatementRequest executionStatementRequest = StatementRequest.from((execStatement) -> {
                         HeliumStatement stmt;
                         if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
                             if (execStatement instanceof ScopeStatement scope) {
@@ -560,7 +559,7 @@ public class Parser {
     }
 
     void addRequest(Function<HeliumStatement, HeliumStatement> request) {
-        addRequest(StatementRequest.get(request));
+        addRequest(StatementRequest.from(request));
     }
 }
 
@@ -579,7 +578,7 @@ class StatementRequest {
         this.request = request;
     }
 
-    public static StatementRequest get(Function<HeliumStatement, HeliumStatement> request) {
+    public static StatementRequest from(Function<HeliumStatement, HeliumStatement> request) {
         return new StatementRequest(true, request);
     }
 

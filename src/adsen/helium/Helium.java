@@ -8,6 +8,7 @@ import adsen.helium.parser.HeliumProgram;
 import adsen.helium.parser.expr.primitives.IntPrimitive;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.exec.interpreter.Interpreter;
+import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 import adsen.helium.tokeniser.Tokeniser;
 
@@ -151,7 +152,10 @@ public class Helium {
             if (VERBOSE_FLAGS.contains("parser")) {
                 System.out.println("\nprogram.functions =");
                 program.getFunctions().forEach(f -> {
-                    System.out.println(f.asString());
+                    int fakeSize = f.getBody().size();
+                    int realSize = f.getBody().stream().mapToInt(HeliumStatement::length).sum();
+
+                    System.out.println(f.asString() + " (size: " + fakeSize + " -> " + realSize + ")");
                     f.getBody().forEach(s -> System.out.println("    " + s.asString()));
                 });
             }

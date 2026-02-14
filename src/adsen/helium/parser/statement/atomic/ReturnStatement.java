@@ -1,12 +1,13 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.atomic;
 
 import adsen.helium.parser.expr.NodeExpr;
+import adsen.helium.parser.statement.AtomicStatement;
 import adsen.helium.tokeniser.Token;
 
 /**
  * Structurally identical to a {@link ExitStatement}, but it should return a value when used within a function
  */
-public class ReturnStatement implements HeliumStatement {
+public class ReturnStatement extends AtomicStatement {
     public final Token token;
     public final boolean empty;
     NodeExpr expression;

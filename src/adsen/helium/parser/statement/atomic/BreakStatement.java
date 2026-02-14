@@ -1,8 +1,9 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.atomic;
 
+import adsen.helium.parser.statement.AtomicStatement;
 import adsen.helium.tokeniser.Token;
 
-public class BreakStatement implements HeliumStatement {
+public class BreakStatement extends AtomicStatement {
     public final Token token;
     public BreakStatement(Token token){
         this.token = token;

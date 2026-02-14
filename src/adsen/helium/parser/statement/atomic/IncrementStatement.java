@@ -1,4 +1,4 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.atomic;
 
 import adsen.helium.error.ExpressionError;
 import adsen.helium.parser.expr.NodeIdentifier;

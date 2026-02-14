@@ -1,12 +1,13 @@
-package adsen.helium.parser.statement;
+package adsen.helium.parser.statement.atomic;
 
 import adsen.helium.parser.expr.NodeExpr;
+import adsen.helium.parser.statement.AtomicStatement;
 import adsen.helium.tokeniser.Token;
 
 import java.util.List;
 
 //TODO see what turning this into a record class means
-public class FunctionCallStatement implements HeliumStatement {
+public class FunctionCallStatement extends AtomicStatement {
 
     public final Token name;
     public final List<NodeExpr> args;
