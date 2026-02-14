@@ -2,11 +2,10 @@ package adsen.helium.parser.statement.aggregate;
 
 import adsen.helium.error.ExpressionError;
 import adsen.helium.parser.expr.NodeExpr;
-import adsen.helium.parser.statement.AggregateStatement;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 
-public class IfStatement extends AggregateStatement {
+public class IfStatement extends HeliumStatement.AggregateStatement {
     public final Token token;
     NodeExpr condition;
     HeliumStatement thenStatement;

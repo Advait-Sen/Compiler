@@ -3,7 +3,7 @@ package adsen.helium.parser.statement;
 import adsen.helium.tokeniser.Token;
 
 //So apparently this was the Command pattern all along
-public sealed interface HeliumStatement permits AggregateStatement, AtomicStatement{
+public sealed interface HeliumStatement permits HeliumStatement.AggregateStatement, HeliumStatement.AtomicStatement {
     String asString();
 
     /**
@@ -20,4 +20,16 @@ public sealed interface HeliumStatement permits AggregateStatement, AtomicStatem
      * How many statements this object represents
      */
     int length();
+
+    abstract non-sealed class AtomicStatement implements HeliumStatement {
+        @Override
+        public int length(){
+            return 1;
+        }
+    }
+
+    /**
+     * Represents statements which have their own function, involving the calling of more statements contained within
+     */
+    abstract non-sealed class AggregateStatement implements HeliumStatement {}
 }

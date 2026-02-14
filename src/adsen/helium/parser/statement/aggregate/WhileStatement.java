@@ -1,11 +1,10 @@
 package adsen.helium.parser.statement.aggregate;
 
 import adsen.helium.parser.expr.NodeExpr;
-import adsen.helium.parser.statement.AggregateStatement;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 
-public class WhileStatement extends AggregateStatement {
+public class WhileStatement extends HeliumStatement.AggregateStatement {
     public final Token token;
     NodeExpr loopCondition;
     HeliumStatement executionStatement;

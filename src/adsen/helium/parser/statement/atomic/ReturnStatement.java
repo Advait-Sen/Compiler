@@ -1,7 +1,7 @@
 package adsen.helium.parser.statement.atomic;
 
 import adsen.helium.parser.expr.NodeExpr;
-import adsen.helium.parser.statement.AtomicStatement;
+import adsen.helium.parser.statement.HeliumStatement.AtomicStatement;
 import adsen.helium.tokeniser.Token;
 
 /**
