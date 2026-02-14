@@ -34,7 +34,7 @@ import static adsen.helium.Helium.VERBOSE_FLAGS;
 import static adsen.helium.tokeniser.TokenType.*;
 
 /**
- * Turns list of tokens into Abstract Syntax Tree (AST)
+ * Turns a {@link Tokeniser} from a file into a list of functions
  */
 public class Parser {
 
@@ -73,7 +73,7 @@ public class Parser {
 
     public Parser(HeliumProgram program, Tokeniser tokeniser) {
         this.program = program;
-        tokeniser.tokenise();
+        tokeniser.tokenise(); //In case we didn't do it already
         this.tokens = Collections.unmodifiableList(tokeniser.tokens());
     }
 
@@ -485,8 +485,9 @@ public class Parser {
                     System.out.println("Formed a statement: " + statement.asString() + " at scope depth: " + parserScopes.size());
 
                 //If there are no if, while, etc. that want a statement
-                if (scope().statementRequests.isEmpty() && VERBOSE_FLAGS.contains("parser")) {
-                    System.out.println("That was directly added onto the statement stack\n");
+                if (scope().statementRequests.isEmpty()) {
+                    if (VERBOSE_FLAGS.contains("parser"))
+                        System.out.println("That was directly added onto the statement stack\n");
                 } else {
                     statement = scope().statementRequests.pop().apply(statement);
 

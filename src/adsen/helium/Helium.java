@@ -87,7 +87,9 @@ public class Helium {
         if (INTERPRET && COMPILE)
             throw throwError("Invalid flags, cannot compile and interpret at the same time");
 
-        System.out.println("Reading from file: " + fileName);
+
+        if (!VERBOSE_FLAGS.isEmpty()) //If we have any verbose messages at all, then print out the file name
+            System.out.println("Reading from file: " + fileName);
 
         String input;
 
@@ -107,7 +109,9 @@ public class Helium {
             System.out.println(input + "\nEnd of File\n");
         }
 
-        System.out.println("Initialising Tokeniser");
+        if (VERBOSE_FLAGS.contains("tokeniser"))
+            System.out.println("Initialising Tokeniser");
+
         Tokeniser tokeniser = new Tokeniser(input);
 
         try {
@@ -136,8 +140,11 @@ public class Helium {
 
             HeliumProgram program = new HeliumProgram();
 
-            System.out.println("Initialising program Parser");
+            if (VERBOSE_FLAGS.contains("parser"))
+                System.out.println("Initialising program Parser");
+
             Parser parser = new Parser(program, tokeniser);
+
 
             try {
                 parser.parse();

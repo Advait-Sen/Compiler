@@ -14,6 +14,9 @@ import java.util.function.Supplier;
 
 import static adsen.helium.exec.Scope.MAIN_FUNCTION;
 
+/**
+ * Tbis class handles taking {@link Parser} objects, and extracting functions that can then be run or turned into generated code
+ */
 public class HeliumProgram {
 
     /**

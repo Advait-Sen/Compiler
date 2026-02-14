@@ -84,7 +84,7 @@ public class ForStatement extends HeliumStatement.AggregateStatement {
     @Override
     public int length() {
         // Assignment and incrementer should be of length 1
-        return 3 + executionStatement.length();
+        return 1 + assigner.length() + incrementer.length() + executionStatement.length();
     }
 
 }
