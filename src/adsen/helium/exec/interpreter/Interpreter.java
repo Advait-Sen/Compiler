@@ -56,12 +56,6 @@ import static adsen.helium.exec.Scope.MAIN_FUNCTION;
  * and writing an interpreter is good practice for writing a compiler (I think)
  */
 public class Interpreter {
-
-    /**
-     * The statements to run
-     */
-    List<HeliumStatement> statements;
-
     /**
      * The program to run
      */
