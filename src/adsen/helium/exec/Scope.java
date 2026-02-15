@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class Scope {
     /**
@@ -15,6 +16,44 @@ public class Scope {
      */
     public static final String MAIN_FUNCTION = "main";
 
+    // New scope code for the rewrite. I'll eventually any old info that was useful into new variables so I can understand everything
+    public boolean isFinished(){
+        return false;
+    }
+
+    public ScopeType scopeType;
+
+    public void endScope(ExitCause cause){
+        endScope(cause, Optional.empty());
+    }
+
+    public void endScope(ExitCause cause, Optional<NodePrimitive> value) {
+        //This should
+    }
+
+    private Optional<NodePrimitive> returnValue;
+
+    public enum ScopeType {
+        NESTED_SCOPE,
+        FUNCTION,
+        LOOP,
+    }
+
+    public enum ExitCause {
+        ERROR, //For when we eventually throw errors within code
+        RETURN,
+        EXIT,
+        LOOP_BREAK,
+        LOOP_CONTINUE
+    }
+
+
+
+
+
+
+
+    //Old code
     //TODO I'm using this as the name of the current function, but that doesn't work in a scope within the function
     //So I'll have a separate variable for the scope's function name, which will change from function to function
     public final String name;
