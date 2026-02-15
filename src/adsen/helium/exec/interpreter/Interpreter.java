@@ -14,19 +14,19 @@ import adsen.helium.parser.expr.primitives.CharPrimitive;
 import adsen.helium.parser.expr.primitives.FloatPrimitive;
 import adsen.helium.parser.expr.primitives.IntPrimitive;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
+import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.parser.statement.atomic.AssignStatement;
 import adsen.helium.parser.statement.atomic.BreakStatement;
 import adsen.helium.parser.statement.atomic.ContinueStatement;
 import adsen.helium.parser.statement.atomic.DeclareStatement;
 import adsen.helium.parser.statement.atomic.ExitStatement;
-import adsen.helium.parser.statement.aggregate.ForStatement;
 import adsen.helium.parser.statement.atomic.FunctionCallStatement;
-import adsen.helium.parser.statement.HeliumStatement;
-import adsen.helium.parser.statement.aggregate.IfStatement;
 import adsen.helium.parser.statement.atomic.IncrementStatement;
 import adsen.helium.parser.statement.atomic.ReturnStatement;
-import adsen.helium.parser.statement.aggregate.ScopeStatement;
 import adsen.helium.parser.statement.atomic.StaticDeclareStatement;
+import adsen.helium.parser.statement.aggregate.ForStatement;
+import adsen.helium.parser.statement.aggregate.IfStatement;
+import adsen.helium.parser.statement.aggregate.ScopeStatement;
 import adsen.helium.parser.statement.aggregate.WhileStatement;
 import adsen.helium.exec.Context;
 import adsen.helium.exec.Scope;
@@ -72,43 +72,9 @@ public class Interpreter {
      */
     public Stack<Scope> scopeStack;
 
-    /**
-     * This is an older way of running the Interpreter, and is only used for certain testing
-     */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Deprecated()
-    public Interpreter(List<HeliumStatement> program) {
-        this.statements = program;
-    }
 
     public Interpreter(HeliumProgram program) {
         this.program = program;
-    }
-
-
-    /**
-     * For when the Interpreter has been initialised with a {@link List}<{@link HeliumStatement}>
-     * instead of with {@link HeliumProgram}.
-     *
-     * @deprecated This is not to be used, use {@link Interpreter#run()} instead
-     */
-    @SuppressWarnings("DeprecatedIsStillUsed")
-    @Deprecated
-    public NodePrimitive runStatements() throws ExpressionError {
-        scopeStack = new Stack<>();
-
-        //It's not pretty, but this code doesn't need to be, since it's deprecated
-        scopeStack.push(Scope.empty(MAIN_FUNCTION, statements, "int"));
-
-        Optional<NodePrimitive> retVal = Optional.empty();
-
-        for (int i = 0; i < scopeStack.getFirst().getStatements().size() && retVal.isEmpty(); i++) {
-            retVal = executeStatement(i);
-        }
-
-        if (scopeStack.size() > 1) throw new RuntimeException("Did not pop scopes correctly");
-
-        return retVal.orElseGet(() -> IntPrimitive.of(0));
     }
 
     /**
