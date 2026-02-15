@@ -19,26 +19,19 @@ public class HeliumFunction {
      */
     final List<Token> signature;
     public final int args;
-    List<HeliumStatement> body = new ArrayList<>();
+    final List<HeliumStatement> body;
 
-    public HeliumFunction(Token returnType, Token nameToken, List<Token> signature) {
+    public HeliumFunction(Token returnType, Token nameToken, List<Token> signature, List<HeliumStatement> statements) {
         this.returnType = returnType;
         this.token = nameToken;
         this.name = nameToken.value;
+        this.body = statements;
 
         if (signature.size() % 2 != 0)
             throw new ExpressionError("Invalid function signature", nameToken);
 
         this.signature = signature;
         this.args = signature.size() / 2;
-    }
-
-    public void andThen(HeliumStatement statement) {
-        body.add(statement);
-    }
-
-    public void andThen(List<HeliumStatement> statements) {
-        body.addAll(statements);
     }
 
     public List<HeliumStatement> getBody() {

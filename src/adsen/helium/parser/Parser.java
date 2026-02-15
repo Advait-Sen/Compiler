@@ -196,14 +196,17 @@ public class Parser {
 
                     }
 
-                    HeliumFunction function = new HeliumFunction(returnType, functionName, signature);
 
                     if (peek(1).type != C_OPEN_PAREN)
                         throw new ExpressionError("Expected '{' after function declaration", peek(1));
 
                     parserScopes.push(new ParserScope());
-                    function.andThen(parseFunction(pos + 1));
+
+                    HeliumFunction function = new HeliumFunction(returnType, functionName, signature, parseFunction(pos + 1));
+
+                    // Popping the scope we just pushed on so the next function can parse
                     parserScopes.pop();
+
                     program.addFunction(function);
                 }
                 default -> throw new ExpressionError("Unexpected token: " + t, t);
@@ -392,7 +395,7 @@ public class Parser {
                         return new ForStatement(forT, assigner, forCondition);
                     });
 
-                    StatementRequest incrementerRequest = StatementRequest.withoutSemi((incrementer) -> {
+                    StatementRequest incrementerRequest = StatementRequest.withoutSemicolon((incrementer) -> {
                         HeliumStatement stmt;
                         if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
                             if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
@@ -476,7 +479,7 @@ public class Parser {
             };
 
             // Must end statements with semicolon
-            if (needSemi && !(hasNext() && peek().type == SEMICOLON) && (!scope().statementRequests.isEmpty() && scope().statementRequests.peek().needSemi)) {
+            if (needSemi && !(hasNext() && peek().type == SEMICOLON) && (!scope().statementRequests.isEmpty() && scope().statementRequests.peek().needSemicolon)) {
                 throw new ExpressionError("Must have ';' after statement", peek());
             }
 
@@ -502,11 +505,11 @@ public class Parser {
             }
         }
 
-        pos--;  // decrementing to the last valid token
+        pos--;  // decrementing to the token right after the }, since we overshoot by one
 
         //Finishing up the function
 
-        HeliumStatement funcScope;
+        HeliumStatement functionScope;
         ParserScope firstScope;
         if (parserScopes.isEmpty()) {
             throw new ExpressionError("Empty parser scope, how did we get here?", null);
@@ -521,11 +524,11 @@ public class Parser {
 
             throw new ExpressionError("Too many statements, impossible to reach this point", null);
 
-        } else if (!((funcScope = firstScope.statements.getFirst()) instanceof ScopeStatement)) {
-            throw new ExpressionError("Incorrect function declaration", funcScope.primaryToken());
+        } else if (!((functionScope = firstScope.statements.getFirst()) instanceof ScopeStatement)) {
+            throw new ExpressionError("Incorrect function declaration", functionScope.primaryToken());
 
         } else {
-            return ((ScopeStatement) funcScope).statements;
+            return ((ScopeStatement) functionScope).statements;
         }
     }
 
@@ -572,10 +575,10 @@ class ParserScope {
 
 class StatementRequest {
     final Function<HeliumStatement, HeliumStatement> request;
-    final boolean needSemi;
+    final boolean needSemicolon;
 
-    private StatementRequest(boolean needSemi, Function<HeliumStatement, HeliumStatement> request) {
-        this.needSemi = needSemi;
+    private StatementRequest(boolean needSemicolon, Function<HeliumStatement, HeliumStatement> request) {
+        this.needSemicolon = needSemicolon;
         this.request = request;
     }
 
@@ -583,7 +586,7 @@ class StatementRequest {
         return new StatementRequest(true, request);
     }
 
-    public static StatementRequest withoutSemi(Function<HeliumStatement, HeliumStatement> request) {
+    public static StatementRequest withoutSemicolon(Function<HeliumStatement, HeliumStatement> request) {
         return new StatementRequest(false, request);
     }
 
