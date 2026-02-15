@@ -57,6 +57,13 @@ public class Token {
         };
     }
 
+    public boolean isFunctionReturnToken(){
+        return switch (type){
+            case VOID, PRIMITIVE_TYPE, COMPOUND_TYPE, CLASS_TYPE -> true;
+            default -> false;
+        };
+    }
+
     /**
      * Can the token be part of an import string. Imports could contain keywords, including import
      */

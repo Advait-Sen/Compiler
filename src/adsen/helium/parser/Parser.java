@@ -57,7 +57,7 @@ public class Parser {
     public final List<Token> tokens;
 
     /**
-     * The program for which this is parsing
+     * The program for which this is parsing. TODO make Parser a component of HeliumProgram, not the other way around
      */
     public final HeliumProgram program;
 
@@ -69,7 +69,7 @@ public class Parser {
     /**
      * Current position within token list
      */
-    private int pos = 0;
+    private int tokenPos = 0;
 
     public Parser(HeliumProgram program, Tokeniser tokeniser) {
         this.program = program;
@@ -119,22 +119,19 @@ public class Parser {
     }
 
     public void parse() {
-        boolean hasImports = false;
+
+        boolean hasImports = tokens.getFirst().type == IMPORT;
+
         boolean importsFinished = false;
 
         List<List<Token>> imports = new ArrayList<>();
 
-        for (pos = 0; pos < tokens.size(); pos++) {
-            Token t = tokens.get(pos);
+        tokenPos = 0;
 
-            switch (t.type) {
-                case IMPORT -> {
-                    hasImports = true;
-                    // If we've seen imports after function declarations
-                    if (importsFinished) {
-                        throw new ExpressionError("Unexpected import, should have occurred earlier", t);
-                    }
-
+        if (hasImports) {
+            while (tokenPos < tokens.size() && !importsFinished) {
+                Token t = tokens.get(tokenPos);
+                if (t.type == IMPORT) {
                     List<Token> importLocation = new ArrayList<>();
 
                     importLocation.add(t);
@@ -158,59 +155,65 @@ public class Parser {
                     }
 
                     imports.add(importLocation);
-                }
-
-                // Anticipating complex types
-                case VOID, PRIMITIVE_TYPE, COMPOUND_TYPE, CLASS_TYPE -> {
-
-                    // We just finished the imports
-                    if (hasImports && !importsFinished) {
-                        IMPORT_HANDLER.acceptImports(imports);
-                    }
-
+                    tokenPos++;
+                } else {
                     importsFinished = true;
+                }
+            }
 
-                    Token returnType = t;
-                    Token functionName = consume();
-                    if (functionName.type != FUNCTION)
-                        throw new ExpressionError("Expected function declaration", functionName);
+            if (tokenPos >= tokens.size()) {
+                throw new ExpressionError("Reached end of file without reading any code", tokens.getLast());
+            }
+            IMPORT_HANDLER.acceptImports(imports);
+        }
 
-                    consume(); //This is the open parenthesis after the function name
-                    List<Token> signature = new ArrayList<>();
-                    for (t = consume(); t.type != CLOSE_PAREN; t = consume()) {
+        while (tokenPos < tokens.size()) {
+            Token t = tokens.get(tokenPos);
 
-                        if (t.type == PRIMITIVE_TYPE || t.type == COMPOUND_TYPE || t.type == CLASS_TYPE) {
+            if (t.isFunctionReturnToken()) {
+
+                Token returnType = t;
+                Token functionName = consume();
+                if (functionName.type != FUNCTION)
+                    throw new ExpressionError("Expected function declaration", functionName);
+
+                consume(); //This is the open parenthesis after the function name
+                List<Token> signature = new ArrayList<>();
+                for (t = consume(); t.type != CLOSE_PAREN; t = consume()) {
+
+                    if (t.type == PRIMITIVE_TYPE || t.type == COMPOUND_TYPE || t.type == CLASS_TYPE) {
+                        signature.add(t);
+                        t = consume();
+
+                        if (t.type == VARIABLE) {
                             signature.add(t);
                             t = consume();
 
-                            if (t.type == VARIABLE) {
-                                signature.add(t);
-                                t = consume();
+                            if (t.type == CLOSE_PAREN) break; //Reached the end of the signature
+                            if (t.type != COMMA) throw new ExpressionError("Expected ','", t);
 
-                                if (t.type == CLOSE_PAREN) break; //Reached the end of the signature
-                                if (t.type != COMMA) throw new ExpressionError("Expected ','", t);
+                        } else throw new ExpressionError("Expected variable", t);
+                        //This might have to go, or maybe just change, once classes become a thing
+                    } else throw new ExpressionError("Expected type", t);
 
-                            } else throw new ExpressionError("Expected variable", t);
-                            //This might have to go, or maybe just change, once classes become a thing
-                        } else throw new ExpressionError("Expected type", t);
-
-                    }
-
-
-                    if (peek(1).type != C_OPEN_PAREN)
-                        throw new ExpressionError("Expected '{' after function declaration", peek(1));
-
-                    parserScopes.push(new ParserScope());
-
-                    HeliumFunction function = new HeliumFunction(returnType, functionName, signature, parseFunction(pos + 1));
-
-                    // Popping the scope we just pushed on so the next function can parse
-                    parserScopes.pop();
-
-                    program.addFunction(function);
                 }
-                default -> throw new ExpressionError("Unexpected token: " + t, t);
-            }
+
+                Token open_curly = consume();
+
+                if (open_curly.type != C_OPEN_PAREN)
+                    throw new ExpressionError("Expected '{' after function declaration", open_curly);
+
+                parserScopes.push(new ParserScope());
+
+                HeliumFunction function = new HeliumFunction(returnType, functionName, signature, parseFunction(tokenPos));
+
+                // Popping the scope we just pushed on so the next function can parse
+                parserScopes.pop();
+
+                program.addFunction(function);
+            } else
+                throw new ExpressionError("Unexpected token: " + t, t);
+
         }
 
         //TODO figure out better place for these, possibly in HeliumProgram
@@ -221,7 +224,7 @@ public class Parser {
     List<HeliumStatement> parseFunction(int startPos) {
 
         //Empty case is to ensure we only grab one statement from a function (a scope statement whose contents we steal)
-        for (pos = startPos; hasNext() && parserScopes.firstElement().statements.isEmpty(); pos++) {
+        for (tokenPos = startPos; hasNext() && parserScopes.firstElement().statements.isEmpty(); tokenPos++) {
             Token t = peek();
 
             //If we don't need the semicolon at the end, then don't look for it (e.g. in for statement incrementer)
@@ -308,7 +311,7 @@ public class Parser {
                     yield new AssignStatement(new NodeIdentifier(t), next, parseExpr());
                 }
                 case C_OPEN_PAREN -> { //New scope
-                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
+                    tokenPos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     needSemi = false;
 
                     //From now on we will read statements into the new scope
@@ -318,7 +321,7 @@ public class Parser {
                 }
 
                 case C_CLOSE_PAREN -> {
-                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
+                    tokenPos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     needSemi = false;
                     ParserScope popped = parserScopes.pop();
                     if (!popped.statementRequests.isEmpty()) {
@@ -340,7 +343,7 @@ public class Parser {
                     yield null;
                 }
                 case ELSE -> {
-                    pos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
+                    tokenPos--; // Counteracting the consume() that we did right before the switch statement since we don't need it
                     if (scope().statements.getLast() instanceof IfStatement ifStmt) {
                         Token elseToken = t;
                         addRequest((elseStatement) -> {
@@ -424,7 +427,7 @@ public class Parser {
 
                     needSemi = false; //don't need semicolon after the expression
 
-                    //Push them in reverse order, since top of the stack is read first
+                    //Push them in reverse order, so assigner gets handled first
                     addRequest(executionStatementRequest);
                     addRequest(incrementerRequest);
                     addRequest(assignerRequest);
@@ -505,8 +508,6 @@ public class Parser {
             }
         }
 
-        pos--;  // decrementing to the token right after the }, since we overshoot by one
-
         //Finishing up the function
 
         HeliumStatement functionScope;
@@ -537,7 +538,7 @@ public class Parser {
     }
 
     boolean hasNext(int offset) {
-        return pos + offset < tokens.size();
+        return tokenPos + offset < tokens.size();
     }
 
     Token peek() {
@@ -546,11 +547,11 @@ public class Parser {
 
     Token peek(int offset) {
         if (!hasNext(offset)) return null;
-        return tokens.get(pos + offset);
+        return tokens.get(tokenPos + offset);
     }
 
     Token consume() {
-        pos++;
+        tokenPos++;
         return peek();
     }
 

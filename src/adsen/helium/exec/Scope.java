@@ -74,8 +74,8 @@ public class Scope {
      */
     public static Scope fromFunction(HeliumFunction func, Map<String, NodePrimitive> arguments) {
         //TODO Check this before we call this function, since that way we can call proper errors
-        if (arguments.size() != func.args)
-            throw new RuntimeException("Incorrect number of arguments, expected " + func.args + ", found " + arguments.size());
+        if (arguments.size() != func.argumentCount)
+            throw new RuntimeException("Incorrect number of arguments, expected " + func.argumentCount + ", found " + arguments.size());
 
         Scope newScope = Scope.empty(func.name, func.getBody(), func.returnType.value);
         newScope.variables.putAll(arguments);

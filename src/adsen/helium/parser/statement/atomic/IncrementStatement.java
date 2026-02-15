@@ -17,9 +17,9 @@ public class IncrementStatement extends AssignStatement {
     public final boolean isPre;
     public final OperatorType incrementor;
 
-    public IncrementStatement(NodeIdentifier identifier, Token declarer, boolean pre) {
+    public IncrementStatement(NodeIdentifier identifier, Token declarer, boolean before) {
         super(identifier, declarer, null);
-        this.isPre = pre;
+        this.isPre = before;
         incrementor = Operator.operatorType.get(declarer.value);
 
         if (incrementor != OperatorType.INCREMENT && incrementor != OperatorType.DECREMENT) {
