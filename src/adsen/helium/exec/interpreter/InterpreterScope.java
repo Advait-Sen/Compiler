@@ -1,5 +1,6 @@
 package adsen.helium.exec.interpreter;
 
+import adsen.helium.parser.HeliumFunction;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.parser.statement.aggregate.ScopeStatement;
@@ -27,8 +28,23 @@ public abstract class InterpreterScope {
         return endScope(cause, null);
     }
 
+    // CODE TO HANDLE STATEMENTS
+    List<HeliumStatement> scopeStatements;
+    int statementPosition = -1;
+
+    boolean hasMoreStatements() {
+        return statementPosition + 1 < scopeStatements.size();
+    }
+
+    HeliumStatement nextStatement() {
+        statementPosition++;
+        return scopeStatements.get(statementPosition);
+    }
+
 
     // CODE TO BE OVERWRITTEN BY NEW SCOPE TYPES
+
+    abstract List<HeliumStatement> getStatement();
 
     /**
      * Attempts to exit a scope. A value of true means the scope was exited successfully. A value of false means the
@@ -54,8 +70,8 @@ public abstract class InterpreterScope {
 
     // NEW SCOPE GENERATING CODE
 
-    static InterpreterScope fromFunction(FunctionCallStatement stmt, InterpreterScope parent) {
-        FunctionScope fScope = new FunctionScope(stmt);
+    static InterpreterScope fromFunction(FunctionCallStatement stmt, HeliumFunction function, InterpreterScope parent) {
+        FunctionScope fScope = new FunctionScope(stmt, function);
         fScope.parent = parent;
         return fScope;
     }
@@ -141,13 +157,17 @@ enum ExitCause {
 /**
  * New scope created from a function call statement. It overrides a lot of variable setting code, since it shouldn't
  * have access to variables from the scope in which the function was called, with the exception of global variables,
- * which are handled by the {@link InterpreterScopeStack} class, and not here
+ * which are handled by the {@link InterpreterScopeStack} class, and not here.
+ *
+ * TODO make main function scope, which won't have a parent or a FunctionCallStatement, just a HeliumFunction of the main function
  */
 class FunctionScope extends InterpreterScope {
 
+    final HeliumFunction function;
     final FunctionCallStatement functionCall;
 
-    FunctionScope(FunctionCallStatement stmt) {
+    FunctionScope(FunctionCallStatement stmt, HeliumFunction function) {
+        this.function = function;
         this.functionCall = stmt;
     }
 
@@ -159,6 +179,11 @@ class FunctionScope extends InterpreterScope {
     @Override
     public ScopeType scopeType() {
         return ScopeType.FUNCTION;
+    }
+
+    @Override
+    List<HeliumStatement> getStatement() {
+        return function.getBody();
     }
 
     @Override
@@ -196,7 +221,9 @@ class FunctionScope extends InterpreterScope {
         return variables.containsKey(variableName);
     }
 
-
+    //TODO eventually implement freeing variables, which (in the interpreter) will remove them from this map
+    //Otherwise they would eventually get garbage collected by Java when the scope ends.
+    //But since freeing will also be a thing in the code generator, it makes sense to have it as a functionality here
     @Override
     NodePrimitive getVariable(String variableName) {
         if (variables.containsKey(variableName)) {
@@ -227,7 +254,6 @@ class NestedScope extends InterpreterScope {
         this.statement = stmt;
     }
 
-
     @Override
     public HeliumStatement responsibleStatement() {
         return statement;
@@ -236,6 +262,11 @@ class NestedScope extends InterpreterScope {
     @Override
     public ScopeType scopeType() {
         return ScopeType.NESTED_SCOPE;
+    }
+
+    @Override
+    List<HeliumStatement> getStatement() {
+        return statement.statements;
     }
 
     @Override

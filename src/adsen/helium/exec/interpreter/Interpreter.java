@@ -277,6 +277,9 @@ public class Interpreter {
                     typeSignature.add(argValue);
                 }
 
+                //TODO split from this point into user defined HeliumFunction objects,
+                // and native functions which will just take parameters and execute, without worrying the scope stack
+
                 HeliumFunction func = program.getFunction(fCallStmt.name, typeSignature);
 
                 for (int i = 0; i < typeSignature.size(); i++) {
