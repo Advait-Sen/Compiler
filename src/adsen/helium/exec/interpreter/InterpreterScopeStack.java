@@ -1,7 +1,10 @@
 package adsen.helium.exec.interpreter;
 
+import adsen.helium.parser.HeliumFunction;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.parser.statement.HeliumStatement;
+import adsen.helium.parser.statement.aggregate.ScopeStatement;
+import adsen.helium.parser.statement.atomic.FunctionCallStatement;
 import java.util.Stack;
 
 import static adsen.helium.exec.interpreter.ExitCause.*;
@@ -31,28 +34,60 @@ public class InterpreterScopeStack {
         return currentScope().nextStatement();
     }
 
+    // SCOPE CREATION CODE
+    public void addMainScope(HeliumFunction function) {
+        scopeStack.push(InterpreterScope.function(null, function, null));
+    }
+
+    public void addFunctionScope(FunctionCallStatement fCallStmt, HeliumFunction function) {
+        scopeStack.push(InterpreterScope.function(fCallStmt, function, currentScope()));
+    }
+
+    public void addLoopScope(String name, ScopeStatement scope) {
+        scopeStack.push(InterpreterScope.loop(name, scope, currentScope()));
+    }
+
+    public void addNestedScope(String name, ScopeStatement scope) {
+        scopeStack.push(InterpreterScope.nested(name, scope, currentScope()));
+    }
+
 
     // SCOPE EXIT CODE
 
     public boolean functionReturn(NodePrimitive value) {
-        return currentScope().endScope(RETURN, value);
+        return endCurrentScope(RETURN, value);
     }
 
     public boolean functionExit(NodePrimitive value) {
-        return currentScope().endScope(EXIT, value);
+        return endCurrentScope(EXIT, value);
     }
 
     public boolean loopBreak() {
-        return currentScope().endScope(LOOP_BREAK);
+        return endCurrentScope(LOOP_BREAK);
     }
 
     public boolean loopContinue() {
-        return currentScope().endScope(LOOP_CONTINUE);
+        return endCurrentScope(LOOP_CONTINUE);
     }
 
-//    private boolean endCurrentScope() {
-//        return false;
-//    }
+    private boolean endCurrentScope(ExitCause cause) {
+        return endCurrentScope(cause, null);
+    }
+
+    private boolean endCurrentScope(ExitCause cause, NodePrimitive value) {
+        boolean result = currentScope().endScope(cause, value);
+
+        if (!result) {
+            return false; //TODO see who handles errors here
+        }
+
+        //Removing all scopes which have finished
+        while (!scopeStack.isEmpty() && currentScope().finished) {
+            scopeStack.pop();
+        }
+
+        return true;
+    }
 
     // VARIABLE HANDLING CODE
 

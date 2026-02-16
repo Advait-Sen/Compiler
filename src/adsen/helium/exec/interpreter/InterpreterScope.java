@@ -9,9 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * A new way of handling scopes, exclusive to the interpreter. That way it doesn't need to be as general
- */
+import static adsen.helium.parser.HeliumProgram.MAIN_FUNCTION;
+
+
 public abstract class InterpreterScope {
 
     NodePrimitive returnValue = null;
@@ -23,11 +23,6 @@ public abstract class InterpreterScope {
     boolean finished = false;
 
     InterpreterScope parent;
-
-    //Don't want anyone accidentally overriding this
-    final boolean endScope(ExitCause cause) {
-        return endScope(cause, null);
-    }
 
     // CODE TO HANDLE STATEMENTS
     List<HeliumStatement> scopeStatements = getStatements();
@@ -61,7 +56,7 @@ public abstract class InterpreterScope {
     public abstract String name();
 
     /**
-     * Statement responsible for creating this scope
+     * Statement responsible for creating this scope, todo maybe use this for errors
      */
     public abstract HeliumStatement responsibleStatement();
 
@@ -69,7 +64,7 @@ public abstract class InterpreterScope {
     public abstract ScopeType scopeType();
 
 
-    // NEW SCOPE GENERATING CODE
+    // FUNCTIONS TO GENERATE NEW SCOPES; TO BE EXTRACTED EVENTUALLY
 
     static InterpreterScope function(FunctionCallStatement stmt, HeliumFunction function, InterpreterScope parent) {
         FunctionScope fScope = new FunctionScope(stmt, function);
@@ -94,9 +89,8 @@ public abstract class InterpreterScope {
 
     Map<String, NodePrimitive> variables = new HashMap<>();
 
-
     /**
-     * Returns whether or not a variable of this name is accessible here, either from this scope or parent scopes
+     * Returns whether a variable of this name is accessible here, either from this scope or parent scopes
      */
     boolean hasVariable(String variableName) {
         return variables.containsKey(variableName) || (parent != null && parent.hasVariable(variableName));
@@ -163,8 +157,8 @@ enum ExitCause {
 
 /**
  * New scope created from a function call statement. It overrides a lot of variable setting code, since it shouldn't
- * have access to variables from the scope in which the function was called, with the exception of global variables,
- * which are handled by the {@link InterpreterScopeStack} class, and not here.
+ * have access to variables from the scope in which the function was called, except global variables, which will be
+ * handled by the {@link InterpreterScopeStack} class, and not here.
  * <p>
  * TODO make main function scope, which won't have a parent or a FunctionCallStatement, just a HeliumFunction of the main function
  */
@@ -219,7 +213,7 @@ class FunctionScope extends InterpreterScope {
 
     @Override
     public String name() {
-        return functionCall.asString();
+        return functionCall == null ? MAIN_FUNCTION : functionCall.asString();
     }
 
 
