@@ -11,13 +11,6 @@ import java.util.Optional;
  * A new way of handling scopes, exclusive to the interpreter. That way it doesn't need to be as general
  */
 public abstract class InterpreterScope {
-    /**
-     * Statement responsible for creating this scope
-     */
-    public abstract HeliumStatement responsibleStatement();
-
-    //Might not be necessary idk
-    public abstract ScopeType scopeType();
 
     Optional<NodePrimitive> returnValue = Optional.empty();
 
@@ -33,6 +26,9 @@ public abstract class InterpreterScope {
         return endScope(cause, null);
     }
 
+
+    // CODE TO BE OVERWRITTEN BY NEW SCOPE TYPES
+
     /**
      * Attempts to exit a scope. A value of true means the scope was exited successfully. A value of false means the
      * {@link ExitCause} was unable to propagate to the right parent scope, causing an error.
@@ -44,13 +40,18 @@ public abstract class InterpreterScope {
         return parent.endScope(cause, value);
     }
 
-    public enum ScopeType {
-        NESTED_SCOPE,
-        FUNCTION,
-        LOOP,
-    }
-
     public abstract String name();
+
+    /**
+     * Statement responsible for creating this scope
+     */
+    public abstract HeliumStatement responsibleStatement();
+
+    //Might not be necessary idk
+    public abstract ScopeType scopeType();
+
+
+    // NEW SCOPE GENERATING CODE
 
     static InterpreterScope fromFunction(FunctionCallStatement stmt, InterpreterScope parent) {
         FunctionScope fScope = new FunctionScope(stmt);
@@ -63,6 +64,9 @@ public abstract class InterpreterScope {
         scope.parent = parent;
         return scope;
     }
+
+
+    // VARIABLE HANDLING CODE
 
     Map<String, NodePrimitive> variables = new HashMap<>();
 
@@ -117,6 +121,12 @@ public abstract class InterpreterScope {
 
         return false;
     }
+}
+
+enum ScopeType {
+    NESTED_SCOPE,
+    FUNCTION,
+    LOOP,
 }
 
 enum ExitCause {
