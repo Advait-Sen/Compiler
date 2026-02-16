@@ -6,15 +6,15 @@ import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.parser.statement.aggregate.ScopeStatement;
 import adsen.helium.parser.statement.atomic.FunctionCallStatement;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * A new way of handling scopes, exclusive to the interpreter. That way it doesn't need to be as general
  */
 public abstract class InterpreterScope {
 
-    Optional<NodePrimitive> returnValue = Optional.empty();
+    NodePrimitive returnValue = null;
 
     /**
      * Represents if this scope is ended. It's set either when {@link InterpreterScope#endScope(ExitCause, NodePrimitive)}
@@ -24,12 +24,13 @@ public abstract class InterpreterScope {
 
     InterpreterScope parent;
 
-    boolean endScope(ExitCause cause) {
+    //Don't want anyone accidentally overriding this
+    final boolean endScope(ExitCause cause) {
         return endScope(cause, null);
     }
 
     // CODE TO HANDLE STATEMENTS
-    List<HeliumStatement> scopeStatements;
+    List<HeliumStatement> scopeStatements = getStatements();
     int statementPosition = -1;
 
     boolean hasMoreStatements() {
@@ -44,7 +45,7 @@ public abstract class InterpreterScope {
 
     // CODE TO BE OVERWRITTEN BY NEW SCOPE TYPES
 
-    abstract List<HeliumStatement> getStatement();
+    abstract List<HeliumStatement> getStatements();
 
     /**
      * Attempts to exit a scope. A value of true means the scope was exited successfully. A value of false means the
@@ -70,7 +71,7 @@ public abstract class InterpreterScope {
 
     // NEW SCOPE GENERATING CODE
 
-    static InterpreterScope fromFunction(FunctionCallStatement stmt, HeliumFunction function, InterpreterScope parent) {
+    static InterpreterScope function(FunctionCallStatement stmt, HeliumFunction function, InterpreterScope parent) {
         FunctionScope fScope = new FunctionScope(stmt, function);
         fScope.parent = parent;
         return fScope;
@@ -78,6 +79,12 @@ public abstract class InterpreterScope {
 
     static InterpreterScope nested(String name, ScopeStatement stmt, InterpreterScope parent) {
         NestedScope scope = new NestedScope(name, stmt);
+        scope.parent = parent;
+        return scope;
+    }
+
+    static InterpreterScope loop(String name, ScopeStatement stmt, InterpreterScope parent) {
+        LoopScope scope = new LoopScope(name, stmt);
         scope.parent = parent;
         return scope;
     }
@@ -158,7 +165,7 @@ enum ExitCause {
  * New scope created from a function call statement. It overrides a lot of variable setting code, since it shouldn't
  * have access to variables from the scope in which the function was called, with the exception of global variables,
  * which are handled by the {@link InterpreterScopeStack} class, and not here.
- *
+ * <p>
  * TODO make main function scope, which won't have a parent or a FunctionCallStatement, just a HeliumFunction of the main function
  */
 class FunctionScope extends InterpreterScope {
@@ -182,7 +189,7 @@ class FunctionScope extends InterpreterScope {
     }
 
     @Override
-    List<HeliumStatement> getStatement() {
+    List<HeliumStatement> getStatements() {
         return function.getBody();
     }
 
@@ -202,7 +209,7 @@ class FunctionScope extends InterpreterScope {
 
             //Type checking is handled prior to this, so they get essentially the same code
             case RETURN -> {
-                returnValue = Optional.of(value);
+                returnValue = value;
                 yield true;
             }
 
@@ -265,12 +272,47 @@ class NestedScope extends InterpreterScope {
     }
 
     @Override
-    List<HeliumStatement> getStatement() {
+    List<HeliumStatement> getStatements() {
         return statement.statements;
     }
 
     @Override
     public String name() {
         return name;
+    }
+}
+
+/**
+ * This is functionally identical to a {@link NestedScope}, except it can handle loop exits
+ */
+class LoopScope extends NestedScope {
+
+    LoopScope(String name, ScopeStatement stmt) {
+        super(name, stmt);
+    }
+
+    @Override
+    public ScopeType scopeType() {
+        return ScopeType.LOOP;
+    }
+
+    @Override
+    public boolean endScope(ExitCause cause, NodePrimitive value) {
+        finished = true;
+
+        // Handles loop stuff, sends the rest off to its parent
+        return switch (cause) {
+            case LOOP_BREAK -> true;
+
+            //Continue just resets the position back to -1, since we're re-doing all the statements in the loop
+            //TODO see if this jank-ass solution works
+            case LOOP_CONTINUE -> {
+                finished = false;
+                statementPosition = -1;
+                yield true;
+            }
+
+            default -> parent.endScope(cause, value);
+        };
     }
 }
