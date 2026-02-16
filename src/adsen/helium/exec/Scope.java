@@ -12,40 +12,10 @@ import java.util.Optional;
 
 public class Scope {
     /**
-     * Name of the main function in the program
+     * Name of the main function in the program. TODO move this elsewhere
      */
     public static final String MAIN_FUNCTION = "main";
 
-    // New scope code for the rewrite. I'll eventually any old info that was useful into new variables so I can understand everything
-    public boolean isFinished(){
-        return false;
-    }
-
-    public ScopeType scopeType;
-
-    public void endScope(ExitCause cause){
-        endScope(cause, Optional.empty());
-    }
-
-    public void endScope(ExitCause cause, Optional<NodePrimitive> value) {
-        //This should
-    }
-
-    private Optional<NodePrimitive> returnValue;
-
-    public enum ScopeType {
-        NESTED_SCOPE,
-        FUNCTION,
-        LOOP,
-    }
-
-    public enum ExitCause {
-        ERROR, //For when we eventually throw errors within code
-        RETURN,
-        EXIT,
-        LOOP_BREAK,
-        LOOP_CONTINUE
-    }
 
 
 
