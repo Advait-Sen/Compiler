@@ -1,6 +1,6 @@
 package adsen.helium.parser;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.FuncCallExpr;
 import adsen.helium.parser.expr.NodeExpr;
 import adsen.helium.parser.expr.NodeIdentifier;
@@ -46,7 +46,7 @@ public class ShuntingYard {
                 //case STR_LITERAL -> new String Object Type; gonna implement this as built-in complex type
                 case VARIABLE -> new NodeIdentifier(t);
 
-                default -> throw new ExpressionError("Unexpected token in expression", t);
+                default -> throw new ParsingError("Unexpected token in expression", t);
             };
         }
 
@@ -67,11 +67,11 @@ public class ShuntingYard {
             Token opTok = operatorStack.pop();
 
             if (opTok.type == FUNCTION)
-                throw new ExpressionError("Found a function token in the operator stack, it should have been dealt with already", opTok);
+                throw new ParsingError("Found a function token in the operator stack, it should have been dealt with already", opTok);
 
             OperatorType opType = Operator.operatorType.get(opTok.value);
             if (astStack.size() < opType.args)
-                throw new ExpressionError("Too few arguments for operator '" + opTok.value + "'", opTok);
+                throw new ParsingError("Too few arguments for operator '" + opTok.value + "'", opTok);
             //todo handle not leftToRight operators
             if (opType.type == UNARY_OPERATOR) {
                 NodeExpr arg = astStack.pop();
@@ -83,7 +83,7 @@ public class ShuntingYard {
 
                 lastOp = new BinaryOperator(leftArg, opType, rightArg);
             } else
-                throw new ExpressionError("Don't know how we got here, found unknown operator type", opTok);
+                throw new ParsingError("Don't know how we got here, found unknown operator type", opTok);
 
             //postfix.add(lastOp);
             astStack.push(lastOp);
@@ -169,7 +169,7 @@ public class ShuntingYard {
                 }
 
             } else if (exprToken.type == CLOSE_PAREN) {
-                if (operatorStack.empty()) throw new ExpressionError("Mismatched parentheses, but how?", exprToken);
+                if (operatorStack.empty()) throw new ParsingError("Mismatched parentheses, but how?", exprToken);
 
                 while (operatorStack.peek().type != OPEN_PAREN) {
                     processOperator.run();
@@ -207,7 +207,7 @@ public class ShuntingYard {
         */
 
         if (astStack.size() > 1) //todo error messages which allow to get the whole expression code block
-            throw new ExpressionError("Invalid expression", exprTokens.getFirst());
+            throw new ParsingError("Invalid expression", exprTokens.getFirst());
 
         expr = astStack.firstElement();
 

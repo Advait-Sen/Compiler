@@ -1,7 +1,6 @@
 package adsen.helium.exec.interpreter;
 
 import adsen.helium.parser.expr.primitives.NodePrimitive;
-import java.util.Optional;
 import java.util.Stack;
 
 import static adsen.helium.exec.interpreter.ExitCause.*;

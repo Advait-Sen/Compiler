@@ -1,6 +1,6 @@
 package adsen.helium.parser.statement.atomic;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.NodeIdentifier;
 import adsen.helium.parser.expr.operator.Operator;
 import adsen.helium.parser.expr.operator.OperatorType;
@@ -23,7 +23,7 @@ public class IncrementStatement extends AssignStatement {
         incrementor = Operator.operatorType.get(declarer.value);
 
         if (incrementor != OperatorType.INCREMENT && incrementor != OperatorType.DECREMENT) {
-            throw new ExpressionError("Must increment with ++ or decrement with --", declarer);
+            throw new ParsingError("Must increment with ++ or decrement with --", declarer);
         }
     }
 

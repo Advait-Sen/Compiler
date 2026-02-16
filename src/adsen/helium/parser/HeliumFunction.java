@@ -1,6 +1,6 @@
 package adsen.helium.parser;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 
@@ -29,7 +29,7 @@ public class HeliumFunction {
         this.body = Collections.unmodifiableList(statements);
 
         if (signature.size() % 2 != 0)
-            throw new ExpressionError("Invalid function signature", nameToken);
+            throw new ParsingError("Invalid function signature", nameToken);
 
         this.signature = Collections.unmodifiableList(signature);
         this.argumentCount = signature.size() / 2;

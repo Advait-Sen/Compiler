@@ -1,6 +1,6 @@
 package adsen.helium.parser;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.tokeniser.Token;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ public class HeliumProgram {
 
     private HeliumFunction getFunction(String name, Supplier<List<String>> typeSignatureSupplier, Token token) {
         if (lacksFunction(name))
-            throw new ExpressionError("No such function '" + name + "'", token);
+            throw new ParsingError("No such function '" + name + "'", token);
 
         //If the function exists and isn't overloaded
         if (functions.get(name) != null) return functions.get(name);
@@ -43,7 +43,7 @@ public class HeliumProgram {
 
         if (!signatureFunctions.containsKey(typeSignature)) {
             typeSignature.removeFirst();
-            throw new ExpressionError("No such function '" + name + typeSignature + "'", token);
+            throw new ParsingError("No such function '" + name + typeSignature + "'", token);
         }
 
         return signatureFunctions.get(typeSignature);
@@ -83,7 +83,7 @@ public class HeliumProgram {
             List<String> otherTypeSig = other.getTypeSignature();
 
             if (funcTypeSig.equals(otherTypeSig))
-                throw new ExpressionError("Cannot have multiple functions with the same signature", function.token);
+                throw new ParsingError("Cannot have multiple functions with the same signature", function.token);
 
             //We have confirmed that they have different signatures, so we complete the signatures
             funcTypeSig.addFirst(name);
@@ -103,7 +103,7 @@ public class HeliumProgram {
         funcTypeSig.addFirst(name);
 
         if (signatureFunctions.containsKey(funcTypeSig))
-            throw new ExpressionError("Cannot have multiple functions with the same signature", function.token);
+            throw new ParsingError("Cannot have multiple functions with the same signature", function.token);
 
         signatureFunctions.put(funcTypeSig, function);
     }

@@ -1,6 +1,6 @@
 package adsen.helium.tokeniser;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.operator.Operator;
 import adsen.helium.parser.expr.operator.OperatorType;
 
@@ -128,7 +128,7 @@ public class Tokeniser {
                             case '\'' -> '\''; //And same deal with "\'" in strings
                             default -> {
                                 token.append("\\" + c);
-                                throw new ExpressionError("Invalid escape 'character '\\" + c + "'", token);
+                                throw new ParsingError("Invalid escape 'character '\\" + c + "'", token);
                             }
                         });
 
@@ -140,13 +140,13 @@ public class Tokeniser {
                 if (!isStr) { //Checking if char is too short or too long
                     if (token.value.isEmpty()) { //Copied error messages from Java
                         token.append("''");
-                        throw new ExpressionError("Empty character literal", token);
+                        throw new ParsingError("Empty character literal", token);
                     } else if (token.value.length() != 1) {
-                        throw new ExpressionError("Too many characters in character literal", token);
+                        throw new ParsingError("Too many characters in character literal", token);
                     }
                 }
                 if (!hasNext())
-                    throw new ExpressionError("Did not terminate " + (isStr ? "string" : "char"), token);
+                    throw new ParsingError("Did not terminate " + (isStr ? "string" : "char"), token);
 
             } else if (Character.isLetter(c) || c == '_') {//Identifiers, Bools, Keywords, basically any word
 
@@ -187,7 +187,7 @@ public class Tokeniser {
 
                     } while (hasNext(1) && !commentFinished);
 
-                    if (!commentFinished) throw new ExpressionError("Unclosed block comment", token);
+                    if (!commentFinished) throw new ParsingError("Unclosed block comment", token);
 
                     consume(); //Consume the / at the end of the block comment
                 }
@@ -214,19 +214,19 @@ public class Tokeniser {
                 token.type = CLOSE_PAREN;
                 token.append(c);
                 if (parens.empty() || parens.pop().type != OPEN_PAREN) {
-                    throw new ExpressionError("Mismatched parentheses", token);
+                    throw new ParsingError("Mismatched parentheses", token);
                 }
             } else if (c == ']') {
                 token.type = SQ_CLOSE_PAREN;
                 token.append(c);
                 if (parens.empty() || parens.pop().type != SQ_OPEN_PAREN) {
-                    throw new ExpressionError("Mismatched parentheses", token);
+                    throw new ParsingError("Mismatched parentheses", token);
                 }
             } else if (c == '}') {
                 token.type = C_CLOSE_PAREN;
                 token.append(c);
                 if (parens.empty() || parens.pop().type != C_OPEN_PAREN) {
-                    throw new ExpressionError("Mismatched parentheses", token);
+                    throw new ParsingError("Mismatched parentheses", token);
                 }
             } else { //Grabbing operators and maybe syntactic sugar later on
 
@@ -241,7 +241,7 @@ public class Tokeniser {
                 if (operatorTokens.containsKey(token.value)) {
                     token.type = operatorTokens.get(token.value);
                 } else if (!token.value.isEmpty()) { //In case we ran into a comment or something that leaves an incomplete token
-                    throw new ExpressionError("Unknown symbol", token);
+                    throw new ParsingError("Unknown symbol", token);
                 }
             }
 
@@ -252,7 +252,7 @@ public class Tokeniser {
         }
 
         if (!parens.empty())
-            throw new ExpressionError("Mismatched parentheses", parens.getFirst());
+            throw new ParsingError("Mismatched parentheses", parens.getFirst());
 
         postProcessTokens();
     }

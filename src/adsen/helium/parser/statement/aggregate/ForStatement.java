@@ -1,6 +1,6 @@
 package adsen.helium.parser.statement.aggregate;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.NodeExpr;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
@@ -68,7 +68,7 @@ public class ForStatement extends HeliumStatement.AggregateStatement {
             incrementer = increment;
             status = ForCreationStatus.INCREMENTER;
         } else {
-            throw new ExpressionError("Incorrect for loop formation, found incrementer in the wrong place", token);
+            throw new ParsingError("Incorrect for loop formation, found incrementer in the wrong place", token);
         }
     }
 
@@ -77,7 +77,7 @@ public class ForStatement extends HeliumStatement.AggregateStatement {
             executionStatement = statement;
             status = ForCreationStatus.COMPLETED;
         } else {
-            throw new ExpressionError("Incorrect for loop formation, found statement in the wrong place", token);
+            throw new ParsingError("Incorrect for loop formation, found statement in the wrong place", token);
         }
     }
 

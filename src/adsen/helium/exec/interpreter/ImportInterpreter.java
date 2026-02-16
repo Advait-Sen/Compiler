@@ -1,6 +1,6 @@
 package adsen.helium.exec.interpreter;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.exec.imports.ImportData;
 import adsen.helium.exec.imports.ImportPath;
 import adsen.helium.exec.imports.ImportHandler;
@@ -64,7 +64,7 @@ public class ImportInterpreter implements ImportHandler {
                 } else throw new IOException("Could not find file " + importPath.file);
 
             } catch (IOException ioException) {
-                throw new ExpressionError("Could not import " + importPath.file + " from " + pathString + " due to: " + ioException.getMessage(), importPath.token);
+                throw new ParsingError("Could not import " + importPath.file + " from " + pathString + " due to: " + ioException.getMessage(), importPath.token);
             }
 
             externalImportData.add(importData);
