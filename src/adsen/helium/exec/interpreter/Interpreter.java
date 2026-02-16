@@ -66,6 +66,7 @@ public class Interpreter {
      */
     public Stack<Scope> scopeStack;
 
+    public static InterpreterScopeStack newScopeStack;
 
     public Interpreter(HeliumProgram program) {
         this.program = program;
@@ -79,6 +80,8 @@ public class Interpreter {
             throw new RuntimeException("Program does not contain main function");
 
         HeliumFunction mainFunction = program.mainFunction();
+
+        newScopeStack = new InterpreterScopeStack();
 
         scopeStack = new Stack<>();
         scopeStack.push(Scope.fromFunction(mainFunction));

@@ -8,16 +8,16 @@ import static adsen.helium.exec.interpreter.ExitCause.*;
 /**
  * This is the object that will be used to track scopes when interpreting
  */
-public class InterpreterScopeStack extends Stack<InterpreterScope> {
+public class InterpreterScopeStack {
 
-
+    Stack<InterpreterScope> scopeStack = new Stack<>();
 
     public InterpreterScopeStack() {
         // Add a new function scope for main function
     }
 
     public InterpreterScope currentScope() {
-        return peek();
+        return scopeStack.peek();
     }
 
     public boolean functionReturn(NodePrimitive value) {

@@ -2,6 +2,7 @@ package adsen.helium.exec.interpreter;
 
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.parser.statement.HeliumStatement;
+import adsen.helium.parser.statement.aggregate.ScopeStatement;
 import adsen.helium.parser.statement.atomic.FunctionCallStatement;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +60,7 @@ public abstract class InterpreterScope {
         return fScope;
     }
 
-    static InterpreterScope nested(String name, HeliumStatement stmt, InterpreterScope parent) {
+    static InterpreterScope nested(String name, ScopeStatement stmt, InterpreterScope parent) {
         NestedScope scope = new NestedScope(name, stmt);
         scope.parent = parent;
         return scope;
@@ -218,10 +219,10 @@ class FunctionScope extends InterpreterScope {
 
 class NestedScope extends InterpreterScope {
 
-    final HeliumStatement statement;
+    final ScopeStatement statement;
     final String name;
 
-    NestedScope(String name, HeliumStatement stmt) {
+    NestedScope(String name, ScopeStatement stmt) {
         this.name = name;
         this.statement = stmt;
     }
