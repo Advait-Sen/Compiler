@@ -26,7 +26,7 @@ public class InterpreterScopeStack {
 
     // STATEMENT CODE
 
-    public boolean scopeStatementsExhausted() {
+    public boolean scopeHasStatements() {
         return currentScope().hasMoreStatements();
     }
 
