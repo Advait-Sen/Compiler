@@ -307,7 +307,7 @@ class LoopScope extends NestedScope {
             //Continue just resets the position back to -1, since we're re-doing all the statements in the loop
             //TODO see if this jank-ass solution works
             case LOOP_CONTINUE -> {
-                finished = false;
+                finished = false; // We'd still be in the same scope
                 statementPosition = -1;
                 yield true;
             }
