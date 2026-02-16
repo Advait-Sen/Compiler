@@ -12,12 +12,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import static adsen.helium.exec.Scope.MAIN_FUNCTION;
-
 /**
  * Tbis class handles taking {@link Parser} objects, and extracting functions that can then be run or turned into generated code
+ * TODO move this and HeliumFunction from helium.parser to just helium package
  */
 public class HeliumProgram {
+    /**
+     * Name of the main function in the program. TODO see if this is the best place for this
+     */
+    public static final String MAIN_FUNCTION = "main";
 
     /**
      * Stores functions which are overloaded, which require the signature to be distinguished in order to identify them.

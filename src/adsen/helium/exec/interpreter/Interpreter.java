@@ -47,7 +47,7 @@ import java.util.function.LongBinaryOperator;
 import java.util.function.Supplier;
 
 import static adsen.helium.exec.Context.*;
-import static adsen.helium.exec.Scope.MAIN_FUNCTION;
+import static adsen.helium.parser.HeliumProgram.MAIN_FUNCTION;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling.
@@ -72,7 +72,7 @@ public class Interpreter {
     }
 
     /**
-     * For when the Interpreter has been initialised with a {@link HeliumProgram}
+     * Executes a {@link HeliumProgram}
      */
     public NodePrimitive run() {
         if (program.lacksFunction(MAIN_FUNCTION))

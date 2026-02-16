@@ -10,18 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Deprecated
 public class Scope {
-    /**
-     * Name of the main function in the program. TODO move this elsewhere
-     */
-    public static final String MAIN_FUNCTION = "main";
-
-
-
-
-
-
-
 
     //Old code
     //TODO I'm using this as the name of the current function, but that doesn't work in a scope within the function
