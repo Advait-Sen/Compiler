@@ -99,15 +99,14 @@ public class Interpreter {
                         throw new ParsingError("Expected '" + scopeStack.returnType().value + "' return type from function '" + scopeStack.currentScopeName() + "', got '" + VOID.name().toLowerCase() + "' instead", retStmt.token);
                     }
                     scopeStack.functionReturn(null);
-                    break;
+                } else {
+                    NodePrimitive retValue = evaluateExpr(retStmt.expr());
+
+                    if (!retValue.getTypeString().equals(scopeStack.returnType().value))
+                        throw new ParsingError("Expected '" + scopeStack.returnType().value + "' return type from function '" + scopeStack.currentScopeName() + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
+
+                    scopeStack.functionReturn(retValue);
                 }
-
-                NodePrimitive retValue = evaluateExpr(retStmt.expr());
-
-                if (!retValue.getTypeString().equals(scopeStack.returnType().value))
-                    throw new ParsingError("Expected '" + scopeStack.returnType().value + "' return type from function '" + scopeStack.currentScopeName() + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
-
-                scopeStack.functionReturn(retValue);
             }
 
 
@@ -120,29 +119,24 @@ public class Interpreter {
 
                 HeliumFunction func = program.getFunction(fCallStmt.name, typeSignature);
 
-                //Checking type for function return
+                //Checking type for function return, even though we're discarding the value
                 Consumer<NodePrimitive> returnHandler = (retValue) -> {
                     Token errorToken;
+                    String obtainedType;
 
-                    //TODO this is where the distinction between an exit statement and return statement should be. But currently, no such distinction exists, beyond exit statements being plainly dysfunctional
                     if (retValue != null) {
                         errorToken = retValue.getToken();
-
-
-                        if (!retValue.getTypeString().equals(func.returnType.value))
-                            throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + retValue.getTypeString() + "' instead",
-                                    errorToken);
-
+                        obtainedType = retValue.getTypeString();
                     } else {
-                        errorToken = func.token;
                         //Did we return nothing from a function that was expecting something?
                         //The return value would have been discarded anyway, but it is still a type error
-
-                        if (!func.returnType.type.equals(VOID))
-                            throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + VOID.name().toLowerCase() + "' instead",
-                                    errorToken
-                            );
+                        errorToken = func.token;
+                        obtainedType = VOID.name().toLowerCase();
                     }
+
+                    if (!obtainedType.equals(func.returnType.value))
+                        throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '"+
+                                func.name + "', got '" + obtainedType + "' instead", errorToken);
                 };
 
                 scopeStack.addNewFunctionScope(func, fCallStmt, typeSignature, returnHandler);
