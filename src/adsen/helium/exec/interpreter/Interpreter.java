@@ -29,7 +29,6 @@ import adsen.helium.parser.statement.aggregate.IfStatement;
 import adsen.helium.parser.statement.aggregate.ScopeStatement;
 import adsen.helium.parser.statement.aggregate.WhileStatement;
 import adsen.helium.exec.Context;
-import adsen.helium.exec.Scope;
 import adsen.helium.tokeniser.Token;
 
 import java.util.ArrayList;
@@ -62,11 +61,6 @@ public class Interpreter {
      */
     HeliumProgram program;
 
-    /**
-     * Stack used to keep track of scopes
-     */
-    public Stack<Scope> scopeStack;
-
     public static InterpreterFunctionScopeStack newScopeStack;
 
     public Interpreter(HeliumProgram program) {
@@ -90,7 +84,7 @@ public class Interpreter {
 
         final NodePrimitive[] newReturnVal = new NodePrimitive[1];
 
-        newScopeStack = new InterpreterFunctionScopeStack(mainFunction, (mainRet)-> {
+        newScopeStack = new InterpreterFunctionScopeStack(mainFunction, (mainRet) -> {
             newReturnVal[0] = mainRet;
         });
 
@@ -103,17 +97,7 @@ public class Interpreter {
         if (NEW_EXECUTION) return retVal.orElse(IntPrimitive.of(0));
 
 
-        scopeStack = new Stack<>();
-        scopeStack.push(Scope.fromFunction(mainFunction));
-
-
-        for (int i = 0; i < scopeStack.getFirst().getStatements().size() && retVal.isEmpty(); i++) {
-            retVal = executeStatement(i);
-        }
-
-        if (scopeStack.size() > 1) throw new RuntimeException("Did not pop scopes correctly");
-
-        return retVal.orElse(IntPrimitive.of(0));
+        return newReturnVal[0] == null ? IntPrimitive.of(0) : newReturnVal[0];
     }
 
     void newExecuteStatement(HeliumStatement statement) {
@@ -184,18 +168,9 @@ public class Interpreter {
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
         }
     }
+    /*
 
-
-    /**
-     * Executes a particular statement in the scope
-     */
-    Optional<NodePrimitive> executeStatement(int i) {
-        return executeStatement(scope().getStatement(i));
-    }
-
-    /**
-     * Executes a generic statement
-     */
+    Executes a generic statement
     Optional<NodePrimitive> executeStatement(HeliumStatement statement) {
         int pos = scope().getPos(); //Completely unused, not even sure if it's accurate, but eh it does no harm to keep it jic
 
@@ -284,7 +259,7 @@ public class Interpreter {
                         break;
                     }
                 }
-                /* For printing out scopes as debug feature
+                 For printing out scopes as debug feature
                 for (Scope stackScope : scopeStack) {
                     System.out.println("Printing scope " + stackScope.name);
                     stackScope.getVariables().forEach((s, np) -> {
@@ -292,7 +267,7 @@ public class Interpreter {
                     });
                     System.out.println("End of scope\n");
                 }
-                */
+
                 newScope = scopeStack.pop();
 
 
@@ -444,27 +419,8 @@ public class Interpreter {
 
         return returnValue;
     }
+    */
 
-    private Scope scope() {
-        return scopeStack.peek();
-    }
-
-    private void handleContinueStatement(ContinueStatement continueStmt) {
-        if (scope().isLoop()) {
-            if (!scope().continueLoop())
-                throw new ParsingError("Unexpected 'continue', loop might already have been continued or broken", continueStmt.token);
-
-        } else throw new ParsingError("Unexpected 'continue' outside of loop", continueStmt.token);
-    }
-
-    private void handleBreakStatement(BreakStatement breakStmt) {
-        //This will eventually handle switch statements ig, though if it's too much of a mess I'll just use a different keyword or smth
-        if (scope().isLoop()) {
-            if (!scope().breakLoop())
-                throw new ParsingError("Unexpected 'break', loop might already have been continued or broken", breakStmt.token);
-
-        } else throw new ParsingError("Unexpected 'break' outside of loop", breakStmt.token);
-    }
 
     NodePrimitive evaluateExpr(NodeExpr expr) {
         return evaluateExpr(expr, NONE);
@@ -714,13 +670,5 @@ public class Interpreter {
             default ->
                     throw new ParsingError("Don't know how we got here, found unknown evaluation context", retVal.getToken());
         }).copy(); //todo check later if this copy breaks things with classes
-    }
-
-
-    /**
-     * Currently only used for verbose messages, but might in future be more useful.
-     */
-    public Map<String, NodePrimitive> variables() {
-        return scope().getVariables();
     }
 }
