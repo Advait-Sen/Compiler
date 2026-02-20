@@ -4,18 +4,12 @@ import adsen.helium.parser.HeliumFunction;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.parser.statement.aggregate.ScopeStatement;
-import adsen.helium.parser.statement.atomic.FunctionCallStatement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static adsen.helium.parser.HeliumProgram.MAIN_FUNCTION;
-
 
 public abstract class InterpreterScope {
-
-    NodePrimitive returnValue = null;
-
     /**
      * Represents if this scope is ended. It's set either when {@link InterpreterScope#endScope(ExitCause, NodePrimitive)}
      * is called in this scope, or in a child scope that propagated the call up to this one.
@@ -60,9 +54,13 @@ public abstract class InterpreterScope {
      */
     public abstract HeliumStatement responsibleStatement();
 
-    //Might not be necessary idk
-    public abstract ScopeType scopeType();
-
+    /**
+     * This returns true if this object is not an instance of {@link FunctionScope}. In which case, it should have a
+     * parent. Name is inverted since it effectively functions as a null check for {@link InterpreterScope#parent} variable
+     */
+    boolean isNotFunction() {
+        return true;
+    }
 
     // FUNCTIONS TO GENERATE NEW SCOPES; TO BE EXTRACTED EVENTUALLY
 
@@ -87,7 +85,7 @@ public abstract class InterpreterScope {
      * Returns whether a variable of this name is accessible here, either from this scope or parent scopes
      */
     boolean hasVariable(String variableName) {
-        return variables.containsKey(variableName) || (parent != null && parent.hasVariable(variableName));
+        return variables.containsKey(variableName) || (isNotFunction() && parent.hasVariable(variableName));
     }
 
     /**
@@ -98,7 +96,7 @@ public abstract class InterpreterScope {
         if (variables.containsKey(variableName)) {
             return variables.get(variableName);
 
-        } else if (parent != null) {
+        } else if (isNotFunction()) {
             return parent.getVariable(variableName);
 
         }
@@ -127,18 +125,25 @@ public abstract class InterpreterScope {
         if (variables.containsKey(variableName)) {
             variables.put(variableName, newValue);
             return true;
-        } else if (parent != null) {
+        } else if (isNotFunction()) {
             return parent.setVariable(variableName, newValue);
         }
 
         return false;
     }
-}
 
-enum ScopeType {
-    NESTED_SCOPE,
-    FUNCTION,
-    LOOP,
+    /**
+     * Attempts to remove a variable with this name. If the variable doesn't exist in this scope, checks in parent scopes.
+     * If it is not found, returns null, to be handled by the caller
+     */
+    NodePrimitive removeVariable(String variableName) {
+        if (variables.containsKey(variableName)) {
+            return variables.remove(variableName);
+        } else if (isNotFunction()) {
+            return parent.removeVariable(variableName);
+        }
+        return null;
+    }
 }
 
 enum ExitCause {
@@ -148,6 +153,44 @@ enum ExitCause {
     LOOP_BREAK,
     LOOP_CONTINUE
 }
+
+class FunctionScope extends InterpreterScope {
+    final HeliumFunction function;
+    final HeliumStatement functionCall;
+
+    FunctionScope(InterpreterFunctionScope functionScope) {
+        this.function = functionScope.getFunction();
+        this.functionCall = functionScope.getFunctionCall();
+    }
+
+    @Override
+    boolean isNotFunction() {
+        return false;
+    }
+
+    @Override
+    List<HeliumStatement> getStatements() {
+        return function.getBody();
+    }
+
+    @Override
+    public String name() {
+        return function.name;
+    }
+
+    @Override
+    public HeliumStatement responsibleStatement() {
+        return functionCall;
+    }
+
+    @Override
+    public boolean endScope(ExitCause cause, NodePrimitive value) {
+        finished = true;
+
+        return cause == ExitCause.RETURN || cause == ExitCause.EXIT;
+    }
+}
+
 
 class NestedScope extends InterpreterScope {
 
@@ -162,11 +205,6 @@ class NestedScope extends InterpreterScope {
     @Override
     public HeliumStatement responsibleStatement() {
         return statement;
-    }
-
-    @Override
-    public ScopeType scopeType() {
-        return ScopeType.NESTED_SCOPE;
     }
 
     @Override
@@ -187,11 +225,6 @@ class LoopScope extends NestedScope {
 
     LoopScope(String name, ScopeStatement stmt) {
         super(name, stmt);
-    }
-
-    @Override
-    public ScopeType scopeType() {
-        return ScopeType.LOOP;
     }
 
     @Override

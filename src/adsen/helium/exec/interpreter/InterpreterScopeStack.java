@@ -5,6 +5,7 @@ import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.parser.statement.aggregate.ScopeStatement;
 import adsen.helium.parser.statement.atomic.FunctionCallStatement;
+import java.util.List;
 import java.util.Stack;
 
 import static adsen.helium.exec.interpreter.ExitCause.*;
@@ -18,6 +19,13 @@ public class InterpreterScopeStack {
 
     public InterpreterScope currentScope() {
         return scopeStack.peek();
+    }
+
+    final InterpreterFunctionScope functionScope;
+
+    public InterpreterScopeStack(InterpreterFunctionScope functionScope) {
+        this.functionScope = functionScope;
+        scopeStack.push(new FunctionScope(functionScope));
     }
 
     // STATEMENT CODE
@@ -42,8 +50,8 @@ public class InterpreterScopeStack {
 
     // SCOPE EXIT CODE
 
-    public boolean functionReturn(NodePrimitive value) {
-        return endCurrentScope(RETURN, value);
+    public void functionReturn(NodePrimitive value) {
+        endCurrentScope(RETURN, value);
     }
 
     public boolean functionExit(NodePrimitive value) {
@@ -108,5 +116,9 @@ public class InterpreterScopeStack {
      */
     boolean setVariable(String variableName, NodePrimitive newValue) {
         return currentScope().setVariable(variableName, newValue);
+    }
+
+    NodePrimitive removeVariable(String variableName) {
+        return currentScope().removeVariable(variableName);
     }
 }

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.DoubleBinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
@@ -87,15 +88,19 @@ public class Interpreter {
 
         Optional<NodePrimitive> retVal = Optional.empty();
 
-        newScopeStack = new InterpreterFunctionScopeStack();
+        final NodePrimitive[] newReturnVal = new NodePrimitive[1];
+
+        newScopeStack = new InterpreterFunctionScopeStack(mainFunction, (mainRet)-> {
+            newReturnVal[0] = mainRet;
+        });
 
         //newScopeStack.addMainScope(mainFunction);
 
-        while(newScopeStack.scopeHasStatements()){
-            retVal = newExecuteStatement(newScopeStack.nextStatement());
+        while (newScopeStack.scopeHasStatements()) {
+            newExecuteStatement(newScopeStack.nextStatement());
         }
 
-        if(NEW_EXECUTION) return retVal.orElse(IntPrimitive.of(0));
+        if (NEW_EXECUTION) return retVal.orElse(IntPrimitive.of(0));
 
 
         scopeStack = new Stack<>();
@@ -111,9 +116,31 @@ public class Interpreter {
         return retVal.orElse(IntPrimitive.of(0));
     }
 
-    Optional<NodePrimitive> newExecuteStatement(HeliumStatement statement) {
-        //Optional<NodePrimitive> returnValue = Optional.empty();
+    void newExecuteStatement(HeliumStatement statement) {
         switch (statement) {
+
+            case ReturnStatement retStmt -> {
+
+                System.out.println("Returning from " + newScopeStack.currentScopeName());
+
+                //If the return statement is empty, we don't expect a result
+                if (retStmt.empty) {
+                    if (!newScopeStack.returnType().value.equalsIgnoreCase(VOID.name())) {
+                        // We were expecting something from this function, not void
+                        throw new ParsingError("Expected '" + newScopeStack.returnType().value + "' return type from function '" + newScopeStack.currentScopeName() + "', got '" + VOID.name().toLowerCase() + "' instead", retStmt.token);
+                    }
+                    newScopeStack.functionReturn(null);
+                    break;
+                }
+
+                NodePrimitive retValue = evaluateExpr(retStmt.expr());
+
+                if (!retValue.getTypeString().equals(newScopeStack.returnType().value))
+                    throw new ParsingError("Expected '" + newScopeStack.returnType().value + "' return type from function '" + newScopeStack.currentScopeName() + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
+
+                newScopeStack.functionReturn(retValue);
+            }
+
 
             case FunctionCallStatement fCallStmt -> {
 
@@ -124,15 +151,38 @@ public class Interpreter {
 
                 HeliumFunction func = program.getFunction(fCallStmt.name, typeSignature);
 
-                newScopeStack.addNewFunctionScope(func, fCallStmt, typeSignature);
+                //Checking type for function return
+                Consumer<NodePrimitive> returnHandler = (retValue) -> {
+                    Token errorToken;
+
+                    //TODO this is where the distinction between an exit statement and return statement should be. But currently, no such distinction exists, beyond exit statements being plainly dysfunctional
+                    if (retValue != null) {
+                        errorToken = retValue.getToken();
+
+
+                        if (!retValue.getTypeString().equals(func.returnType.value))
+                            throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + retValue.getTypeString() + "' instead",
+                                    errorToken);
+
+                    } else {
+                        errorToken = func.token;
+                        //Did we return nothing from a function that was expecting something?
+                        //The return value would have been discarded anyway, but it is still a type error
+
+                        if (!func.returnType.type.equals(VOID))
+                            throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + VOID.name().toLowerCase() + "' instead",
+                                    errorToken
+                            );
+                    }
+                };
+
+                newScopeStack.addNewFunctionScope(func, fCallStmt, typeSignature, returnHandler);
             }
 
 
             default -> //Might throw an error here at some point later on
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
         }
-
-        return Optional.empty();
     }
 
 
@@ -501,8 +551,7 @@ public class Interpreter {
                                     throw new ParsingError("Expected numeric value, not 'bool'", errorTok);
                         };
                     }
-                    default ->
-                            throw new ParsingError("Don't know how we got here, unknown unary operator", errorTok);
+                    default -> throw new ParsingError("Don't know how we got here, unknown unary operator", errorTok);
                 };
 
             }
@@ -593,8 +642,7 @@ public class Interpreter {
                         throw errorCreator.get();
                     }
                     //case OR -> boolBiOp.apply(Boolean::logicalOr);
-                    default ->
-                            throw new ParsingError("Don't know how we got here, unknown binary operator", errorTok);
+                    default -> throw new ParsingError("Don't know how we got here, unknown binary operator", errorTok);
                 };
             }
 
