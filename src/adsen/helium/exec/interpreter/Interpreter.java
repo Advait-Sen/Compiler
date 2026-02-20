@@ -7,7 +7,6 @@ import adsen.helium.parser.HeliumFunction;
 import adsen.helium.parser.HeliumProgram;
 import adsen.helium.parser.expr.NodeIdentifier;
 import adsen.helium.parser.expr.operator.BinaryOperator;
-import adsen.helium.parser.expr.operator.OperatorType;
 import adsen.helium.parser.expr.operator.UnaryOperator;
 import adsen.helium.parser.expr.primitives.BoolPrimitive;
 import adsen.helium.parser.expr.primitives.CharPrimitive;
@@ -15,19 +14,8 @@ import adsen.helium.parser.expr.primitives.FloatPrimitive;
 import adsen.helium.parser.expr.primitives.IntPrimitive;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.parser.statement.HeliumStatement;
-import adsen.helium.parser.statement.atomic.AssignStatement;
-import adsen.helium.parser.statement.atomic.BreakStatement;
-import adsen.helium.parser.statement.atomic.ContinueStatement;
-import adsen.helium.parser.statement.atomic.DeclareStatement;
-import adsen.helium.parser.statement.atomic.ExitStatement;
 import adsen.helium.parser.statement.atomic.FunctionCallStatement;
-import adsen.helium.parser.statement.atomic.IncrementStatement;
 import adsen.helium.parser.statement.atomic.ReturnStatement;
-import adsen.helium.parser.statement.atomic.StaticDeclareStatement;
-import adsen.helium.parser.statement.aggregate.ForStatement;
-import adsen.helium.parser.statement.aggregate.IfStatement;
-import adsen.helium.parser.statement.aggregate.ScopeStatement;
-import adsen.helium.parser.statement.aggregate.WhileStatement;
 import adsen.helium.exec.Context;
 import adsen.helium.tokeniser.Token;
 
@@ -36,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.DoubleBinaryOperator;
@@ -61,7 +48,7 @@ public class Interpreter {
      */
     HeliumProgram program;
 
-    public static InterpreterFunctionScopeStack newScopeStack;
+    public static InterpreterFunctionScopeStack scopeStack;
 
     public Interpreter(HeliumProgram program) {
         this.program = program;
@@ -82,47 +69,45 @@ public class Interpreter {
 
         Optional<NodePrimitive> retVal = Optional.empty();
 
-        final NodePrimitive[] newReturnVal = new NodePrimitive[1];
+        final NodePrimitive[] returnValue = new NodePrimitive[1];
 
-        newScopeStack = new InterpreterFunctionScopeStack(mainFunction, (mainRet) -> {
-            newReturnVal[0] = mainRet;
+        scopeStack = new InterpreterFunctionScopeStack(mainFunction, (mainRet) -> {
+            returnValue[0] = mainRet;
         });
 
-        //newScopeStack.addMainScope(mainFunction);
-
-        while (newScopeStack.scopeHasStatements()) {
-            newExecuteStatement(newScopeStack.nextStatement());
+        while (scopeStack.scopeHasStatements()) {
+            executeStatement(scopeStack.nextStatement());
         }
 
         if (NEW_EXECUTION) return retVal.orElse(IntPrimitive.of(0));
 
 
-        return newReturnVal[0] == null ? IntPrimitive.of(0) : newReturnVal[0];
+        return returnValue[0] == null ? IntPrimitive.of(0) : returnValue[0];
     }
 
-    void newExecuteStatement(HeliumStatement statement) {
+    void executeStatement(HeliumStatement statement) {
         switch (statement) {
 
             case ReturnStatement retStmt -> {
 
-                System.out.println("Returning from " + newScopeStack.currentScopeName());
+                System.out.println("Returning from " + scopeStack.currentScopeName());
 
                 //If the return statement is empty, we don't expect a result
                 if (retStmt.empty) {
-                    if (!newScopeStack.returnType().value.equalsIgnoreCase(VOID.name())) {
+                    if (!scopeStack.returnType().value.equalsIgnoreCase(VOID.name())) {
                         // We were expecting something from this function, not void
-                        throw new ParsingError("Expected '" + newScopeStack.returnType().value + "' return type from function '" + newScopeStack.currentScopeName() + "', got '" + VOID.name().toLowerCase() + "' instead", retStmt.token);
+                        throw new ParsingError("Expected '" + scopeStack.returnType().value + "' return type from function '" + scopeStack.currentScopeName() + "', got '" + VOID.name().toLowerCase() + "' instead", retStmt.token);
                     }
-                    newScopeStack.functionReturn(null);
+                    scopeStack.functionReturn(null);
                     break;
                 }
 
                 NodePrimitive retValue = evaluateExpr(retStmt.expr());
 
-                if (!retValue.getTypeString().equals(newScopeStack.returnType().value))
-                    throw new ParsingError("Expected '" + newScopeStack.returnType().value + "' return type from function '" + newScopeStack.currentScopeName() + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
+                if (!retValue.getTypeString().equals(scopeStack.returnType().value))
+                    throw new ParsingError("Expected '" + scopeStack.returnType().value + "' return type from function '" + scopeStack.currentScopeName() + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
 
-                newScopeStack.functionReturn(retValue);
+                scopeStack.functionReturn(retValue);
             }
 
 
@@ -160,7 +145,7 @@ public class Interpreter {
                     }
                 };
 
-                newScopeStack.addNewFunctionScope(func, fCallStmt, typeSignature, returnHandler);
+                scopeStack.addNewFunctionScope(func, fCallStmt, typeSignature, returnHandler);
             }
 
 
@@ -168,8 +153,8 @@ public class Interpreter {
                     System.out.println("Reached an unhandled statement type: " + statement.typeString());
         }
     }
-    /*
 
+    /*
     Executes a generic statement
     Optional<NodePrimitive> executeStatement(HeliumStatement statement) {
         int pos = scope().getPos(); //Completely unused, not even sure if it's accurate, but eh it does no harm to keep it jic
