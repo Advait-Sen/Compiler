@@ -16,10 +16,6 @@ public class InterpreterScopeStack {
 
     Stack<InterpreterScope> scopeStack = new Stack<>();
 
-    public InterpreterScopeStack() {
-        // Add a new function scope for main function
-    }
-
     public InterpreterScope currentScope() {
         return scopeStack.peek();
     }
@@ -35,14 +31,6 @@ public class InterpreterScopeStack {
     }
 
     // SCOPE CREATION CODE
-    public void addMainScope(HeliumFunction function) {
-        scopeStack.push(InterpreterScope.function(null, function, null));
-    }
-
-    public void addFunctionScope(FunctionCallStatement fCallStmt, HeliumFunction function) {
-        scopeStack.push(InterpreterScope.function(fCallStmt, function, currentScope()));
-    }
-
     public void addLoopScope(String name, ScopeStatement scope) {
         scopeStack.push(InterpreterScope.loop(name, scope, currentScope()));
     }

@@ -32,7 +32,6 @@ import adsen.helium.exec.Context;
 import adsen.helium.exec.Scope;
 import adsen.helium.tokeniser.Token;
 
-import adsen.helium.tokeniser.TokenType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +47,7 @@ import java.util.function.Supplier;
 
 import static adsen.helium.exec.Context.*;
 import static adsen.helium.parser.HeliumProgram.MAIN_FUNCTION;
+import static adsen.helium.tokeniser.TokenType.VOID;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling.
@@ -66,27 +66,41 @@ public class Interpreter {
      */
     public Stack<Scope> scopeStack;
 
-    public static InterpreterScopeStack newScopeStack;
+    public static InterpreterFunctionScopeStack newScopeStack;
 
     public Interpreter(HeliumProgram program) {
         this.program = program;
     }
 
+    public static final boolean NEW_EXECUTION = true;
+
+
     /**
      * Executes a {@link HeliumProgram}
      */
     public NodePrimitive run() {
+
         if (program.lacksFunction(MAIN_FUNCTION))
             throw new RuntimeException("Program does not contain main function");
 
         HeliumFunction mainFunction = program.mainFunction();
 
-        newScopeStack = new InterpreterScopeStack();
+        Optional<NodePrimitive> retVal = Optional.empty();
+
+        newScopeStack = new InterpreterFunctionScopeStack();
+
+        //newScopeStack.addMainScope(mainFunction);
+
+        while(newScopeStack.scopeHasStatements()){
+            retVal = newExecuteStatement(newScopeStack.nextStatement());
+        }
+
+        if(NEW_EXECUTION) return retVal.orElse(IntPrimitive.of(0));
+
 
         scopeStack = new Stack<>();
         scopeStack.push(Scope.fromFunction(mainFunction));
 
-        Optional<NodePrimitive> retVal = Optional.empty();
 
         for (int i = 0; i < scopeStack.getFirst().getStatements().size() && retVal.isEmpty(); i++) {
             retVal = executeStatement(i);
@@ -94,8 +108,33 @@ public class Interpreter {
 
         if (scopeStack.size() > 1) throw new RuntimeException("Did not pop scopes correctly");
 
-        return retVal.orElseGet(() -> IntPrimitive.of(0));
+        return retVal.orElse(IntPrimitive.of(0));
     }
+
+    Optional<NodePrimitive> newExecuteStatement(HeliumStatement statement) {
+        //Optional<NodePrimitive> returnValue = Optional.empty();
+        switch (statement) {
+
+            case FunctionCallStatement fCallStmt -> {
+
+                List<NodePrimitive> typeSignature = fCallStmt.args.stream().map(this::evaluateExpr).toList();
+
+                //TODO split from this point into user defined HeliumFunction objects,
+                // and native functions which will just take parameters and execute, without worrying the scope stack
+
+                HeliumFunction func = program.getFunction(fCallStmt.name, typeSignature);
+
+                newScopeStack.addNewFunctionScope(func, fCallStmt, typeSignature);
+            }
+
+
+            default -> //Might throw an error here at some point later on
+                    System.out.println("Reached an unhandled statement type: " + statement.typeString());
+        }
+
+        return Optional.empty();
+    }
+
 
     /**
      * Executes a particular statement in the scope
@@ -315,8 +354,8 @@ public class Interpreter {
                     //Did we return nothing from a function that was expecting something?
                     //The return value would have been discarded anyway, but it is still a type error
 
-                    if (!func.returnType.type.equals(TokenType.VOID))
-                        throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + TokenType.VOID.name().toLowerCase() + "' instead",
+                    if (!func.returnType.type.equals(VOID))
+                        throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + VOID.name().toLowerCase() + "' instead",
                                 errorToken
                         );
                 }
@@ -330,9 +369,9 @@ public class Interpreter {
 
                 //If the return statement is empty, we don't expect a result
                 if (retStmt.empty) {
-                    if (!scope.getReturnType().equalsIgnoreCase(TokenType.VOID.name())) {
+                    if (!scope.getReturnType().equalsIgnoreCase(VOID.name())) {
                         // We were expecting something from this function, not void
-                        throw new ParsingError("Expected '" + scope.getReturnType() + "' return type from function '" + scope().name + "', got '" + TokenType.VOID.name().toLowerCase() + "' instead", retStmt.token);
+                        throw new ParsingError("Expected '" + scope.getReturnType() + "' return type from function '" + scope().name + "', got '" + VOID.name().toLowerCase() + "' instead", retStmt.token);
                     }
                     returnValue = Optional.empty();
                     break;
@@ -377,7 +416,7 @@ public class Interpreter {
         } else throw new ParsingError("Unexpected 'break' outside of loop", breakStmt.token);
     }
 
-    private NodePrimitive evaluateExpr(NodeExpr expr) {
+    NodePrimitive evaluateExpr(NodeExpr expr) {
         return evaluateExpr(expr, NONE);
     }
 
@@ -571,7 +610,7 @@ public class Interpreter {
 
                 HeliumFunction func = program.getFunction(fCall.token, typeSignature);
 
-                if (func.returnType.type == TokenType.VOID)
+                if (func.returnType.type == VOID)
                     throw new ParsingError("Tried to use void function in an expression", fCall.token);
 
                 for (int i = 0; i < typeSignature.size(); i++) {

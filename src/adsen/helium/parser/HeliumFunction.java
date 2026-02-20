@@ -43,12 +43,7 @@ public class HeliumFunction {
      * Intended to be used for storing functions in {@link HeliumProgram}
      */
     public List<String> getTypeSignature() {
-        List<String> typeSignature = new ArrayList<>();
-
-        for (int i = 0; i < signature.size(); i += 2) {
-            typeSignature.add(signature.get(i).value);
-        }
-        return typeSignature;
+        return signature.stream().map(t->t.value).toList();
     }
 
     public List<Token> getSignature() {

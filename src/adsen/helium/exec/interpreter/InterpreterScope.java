@@ -66,12 +66,6 @@ public abstract class InterpreterScope {
 
     // FUNCTIONS TO GENERATE NEW SCOPES; TO BE EXTRACTED EVENTUALLY
 
-    static InterpreterScope function(FunctionCallStatement stmt, HeliumFunction function, InterpreterScope parent) {
-        FunctionScope fScope = new FunctionScope(stmt, function);
-        fScope.parent = parent;
-        return fScope;
-    }
-
     static InterpreterScope nested(String name, ScopeStatement stmt, InterpreterScope parent) {
         NestedScope scope = new NestedScope(name, stmt);
         scope.parent = parent;
@@ -153,96 +147,6 @@ enum ExitCause {
     EXIT,
     LOOP_BREAK,
     LOOP_CONTINUE
-}
-
-/**
- * New scope created from a function call statement. It overrides a lot of variable setting code, since it shouldn't
- * have access to variables from the scope in which the function was called, except global variables, which will be
- * handled by the {@link InterpreterScopeStack} class, and not here.
- * <p>
- * TODO make main function scope, which won't have a parent or a FunctionCallStatement, just a HeliumFunction of the main function
- */
-class FunctionScope extends InterpreterScope {
-
-    final HeliumFunction function;
-    final FunctionCallStatement functionCall;
-
-    FunctionScope(FunctionCallStatement stmt, HeliumFunction function) {
-        this.function = function;
-        this.functionCall = stmt;
-    }
-
-    @Override
-    public HeliumStatement responsibleStatement() {
-        return functionCall;
-    }
-
-    @Override
-    public ScopeType scopeType() {
-        return ScopeType.FUNCTION;
-    }
-
-    @Override
-    List<HeliumStatement> getStatements() {
-        return function.getBody();
-    }
-
-    @Override
-    public boolean endScope(ExitCause cause, NodePrimitive value) {
-        finished = true;
-
-        // Handles exits and returns. Doesn't handle loop stuff
-        return switch (cause) {
-            case EXIT -> {
-                if (parent == null) { // we are in main scope
-                    yield true;
-                }
-                //This propagates the value up to the parent scope, ending all scopes along the way
-                yield parent.endScope(cause, value);
-            }
-
-            //Type checking is handled prior to this, so they get essentially the same code
-            case RETURN -> {
-                returnValue = value;
-                yield true;
-            }
-
-            default -> false;
-        };
-    }
-
-    @Override
-    public String name() {
-        return functionCall == null ? MAIN_FUNCTION : functionCall.asString();
-    }
-
-
-    @Override
-    boolean hasVariable(String variableName) {
-        return variables.containsKey(variableName);
-    }
-
-    //TODO eventually implement freeing variables, which (in the interpreter) will remove them from this map
-    //Otherwise they would eventually get garbage collected by Java when the scope ends.
-    //But since freeing will also be a thing in the code generator, it makes sense to have it as a functionality here
-    @Override
-    NodePrimitive getVariable(String variableName) {
-        if (variables.containsKey(variableName)) {
-            return variables.get(variableName);
-        }
-        return null;
-    }
-
-
-    @Override
-    boolean setVariable(String variableName, NodePrimitive newValue) {
-        if (variables.containsKey(variableName)) {
-            variables.put(variableName, newValue);
-            return true;
-        }
-
-        return false;
-    }
 }
 
 class NestedScope extends InterpreterScope {
