@@ -1,6 +1,6 @@
 package adsen.helium.parser;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.exec.imports.ImportHandler;
 import adsen.helium.parser.expr.NodeExpr;
 import adsen.helium.parser.expr.NodeIdentifier;
@@ -94,7 +94,7 @@ public class Parser {
         int depth = 0;
 
         if (inBrackets) {
-            if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '('", t);
+            if (t.type != OPEN_PAREN) throw new ParsingError("Expected '('", t);
         }
 
         for (; hasNext() && peek().isValidExprToken() && !(inBrackets && depth == 1 && t.type == CLOSE_PAREN); t = consume()) {
@@ -104,16 +104,16 @@ public class Parser {
         }
 
         if (inBrackets) {
-            if (t.type != CLOSE_PAREN) throw new ExpressionError("Expected ')' after expression", t);
+            if (t.type != CLOSE_PAREN) throw new ParsingError("Expected ')' after expression", t);
 
             // Adding final closed bracket to the expression
             // Not checking for depth not being 1, since we already know that parentheses are matched by this point
             if (depth == 1) exprTokens.add(t);
 
-        } else if (t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", t);
+        } else if (t.type != SEMICOLON) throw new ParsingError("Expected ';' after expression", t);
 
         //This is only acceptable with an empty return statement, which is a case we handle before reaching this point
-        if (exprTokens.isEmpty()) throw new ExpressionError("Tried to parse empty expression", t);
+        if (exprTokens.isEmpty()) throw new ParsingError("Tried to parse empty expression", t);
 
         return ShuntingYard.parseExpr(exprTokens);
     }
@@ -141,7 +141,7 @@ public class Parser {
                         if (next.isValidImportToken()) {
                             importLocation.add(next);
                         } else {
-                            throw new ExpressionError("Unexpected token in import", next);
+                            throw new ParsingError("Unexpected token in import", next);
                         }
 
                         next = consume();
@@ -150,7 +150,7 @@ public class Parser {
                         if (next.type == SEMICOLON) break;
 
                         if (next.type != BINARY_OPERATOR || !next.value.equals("/")) {
-                            throw new ExpressionError("Improper import format, expected '/' here ", next);
+                            throw new ParsingError("Improper import format, expected '/' here ", next);
                         }
                     }
 
@@ -162,7 +162,7 @@ public class Parser {
             }
 
             if (tokenPos >= tokens.size()) {
-                throw new ExpressionError("Reached end of file without reading any code", tokens.getLast());
+                throw new ParsingError("Reached end of file without reading any code", tokens.getLast());
             }
             IMPORT_HANDLER.acceptImports(imports);
         }
@@ -175,7 +175,7 @@ public class Parser {
                 Token returnType = t;
                 Token functionName = consume();
                 if (functionName.type != FUNCTION)
-                    throw new ExpressionError("Expected function declaration", functionName);
+                    throw new ParsingError("Expected function declaration", functionName);
 
                 consume(); //This is the open parenthesis after the function name
                 List<Token> signature = new ArrayList<>();
@@ -190,18 +190,18 @@ public class Parser {
                             t = consume();
 
                             if (t.type == CLOSE_PAREN) break; //Reached the end of the signature
-                            if (t.type != COMMA) throw new ExpressionError("Expected ','", t);
+                            if (t.type != COMMA) throw new ParsingError("Expected ','", t);
 
-                        } else throw new ExpressionError("Expected variable", t);
+                        } else throw new ParsingError("Expected variable", t);
                         //This might have to go, or maybe just change, once classes become a thing
-                    } else throw new ExpressionError("Expected type", t);
+                    } else throw new ParsingError("Expected type", t);
 
                 }
 
                 Token open_curly = consume();
 
                 if (open_curly.type != C_OPEN_PAREN)
-                    throw new ExpressionError("Expected '{' after function declaration", open_curly);
+                    throw new ParsingError("Expected '{' after function declaration", open_curly);
 
                 parserScopes.push(new ParserScope());
 
@@ -212,7 +212,7 @@ public class Parser {
 
                 program.addFunction(function);
             } else
-                throw new ExpressionError("Unexpected token: " + t, t);
+                throw new ParsingError("Unexpected token: " + t, t);
 
         }
 
@@ -251,12 +251,12 @@ public class Parser {
                     // 'next' holds the name of the identifier
 
                     if (next.type != VARIABLE)
-                        throw new ExpressionError("Must have a variable name after '" + t.value + "'", next);
+                        throw new ParsingError("Must have a variable name after '" + t.value + "'", next);
 
                     Token declarer = consume(); //Consuming identifier
 
                     if (peek().type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after '" + next.value + "'", declarer);
+                        throw new ParsingError("Expected a declaration after '" + next.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
@@ -266,12 +266,12 @@ public class Parser {
                     // 'next' holds the name of the identifier
 
                     if (next.type != VARIABLE)
-                        throw new ExpressionError("Must have an identifier after 'let'", next);
+                        throw new ParsingError("Must have an identifier after 'let'", next);
 
                     Token declarer = consume(); //Consuming identifier
 
                     if (declarer.type != DECLARATION_OPERATION)
-                        throw new ExpressionError("Expected a declaration after '" + next.value + "'", declarer);
+                        throw new ParsingError("Expected a declaration after '" + next.value + "'", declarer);
 
                     consume(); //Consuming declarer operation
 
@@ -281,13 +281,13 @@ public class Parser {
                     OperatorType opType = Operator.operatorType.get(t.value);
 
                     if (opType != OperatorType.INCREMENT && opType != OperatorType.DECREMENT) {
-                        throw new ExpressionError("Not a statement", t);
+                        throw new ParsingError("Not a statement", t);
                     }
 
                     // 'next' holds the name of the identifier
 
                     if (next.type != VARIABLE) {
-                        throw new ExpressionError("Expected a variable after " + t.value, next);
+                        throw new ParsingError("Expected a variable after " + t.value, next);
                     }
                     consume(); //Consuming identifier
 
@@ -304,7 +304,7 @@ public class Parser {
                     }
 
                     if (next.type != DECLARATION_OPERATION) //Gonna add option for +=, -=, here eventually
-                        throw new ExpressionError("Expected an assignment after '" + t.value + "'", next);
+                        throw new ParsingError("Expected an assignment after '" + t.value + "'", next);
 
                     consume(); //Consuming assigner operation
 
@@ -325,7 +325,7 @@ public class Parser {
                     needSemi = false;
                     ParserScope popped = parserScopes.pop();
                     if (!popped.statementRequests.isEmpty()) {
-                        throw new ExpressionError("Still had statement requests in scope", t);
+                        throw new ParsingError("Still had statement requests in scope", t);
                     }
 
                     yield new ScopeStatement(popped.statements, t);
@@ -352,7 +352,7 @@ public class Parser {
                         });
                         needSemi = false;
                     } else {
-                        throw new ExpressionError("Must have an if preceding else statement", t);
+                        throw new ParsingError("Must have an if preceding else statement", t);
                     }
                     yield null;
                 }
@@ -378,18 +378,18 @@ public class Parser {
                 case FOR -> {
                     Token forT = t;
                     t = next;
-                    if (t.type != OPEN_PAREN) throw new ExpressionError("Expected '(' after for", t);
+                    if (t.type != OPEN_PAREN) throw new ParsingError("Expected '(' after for", t);
 
                     //Todo add proper checks for assigner and incrementer being assignment statements
                     //LOL can't even remember what this to-do was about, but I'm afraid to remove it
 
                     StatementRequest assignerRequest = StatementRequest.from((assigner) -> {
                         if (!(assigner instanceof AssignStatement || assigner instanceof FunctionCallStatement || assigner instanceof DeclareStatement)) {
-                            throw new ExpressionError("Invalid assigner expression in for statement", assigner.primaryToken());
+                            throw new ParsingError("Invalid assigner expression in for statement", assigner.primaryToken());
                         }
 
                         Token _t = peek();
-                        if (_t.type != SEMICOLON) throw new ExpressionError("Expected ';' after expression", _t);
+                        if (_t.type != SEMICOLON) throw new ParsingError("Expected ';' after expression", _t);
 
                         consume(); //consuming semicolon
 
@@ -402,13 +402,13 @@ public class Parser {
                         HeliumStatement stmt;
                         if ((stmt = scope().statements.getLast()) instanceof ForStatement) {
                             if (!(incrementer instanceof AssignStatement || incrementer instanceof FunctionCallStatement || incrementer instanceof DeclareStatement)) {
-                                throw new ExpressionError("Invalid incrementer expression in for statement", stmt.primaryToken());
+                                throw new ParsingError("Invalid incrementer expression in for statement", stmt.primaryToken());
                             }
                             ((ForStatement) stmt).addIncrementer(incrementer);
 
                             return null;
                         } else {
-                            throw new ExpressionError("Expected for statement", stmt.primaryToken());
+                            throw new ParsingError("Expected for statement", stmt.primaryToken());
                         }
                     });
 
@@ -421,7 +421,7 @@ public class Parser {
                             ((ForStatement) stmt).addStatement(execStatement);
                             return null;
                         } else {
-                            throw new ExpressionError("Expected for statement", stmt.primaryToken());
+                            throw new ParsingError("Expected for statement", stmt.primaryToken());
                         }
                     });
 
@@ -440,7 +440,7 @@ public class Parser {
                     t = next;
 
                     if (t.type != OPEN_PAREN)
-                        throw new ExpressionError("Expected '(' after '" + fCallTok.value + "'", t);
+                        throw new ParsingError("Expected '(' after '" + fCallTok.value + "'", t);
 
                     int parens = 1;
                     List<Token> tempExpr = new ArrayList<>();
@@ -456,7 +456,7 @@ public class Parser {
                             if (t.type == OPEN_PAREN) parens++;
                             if (t.type == CLOSE_PAREN) parens--;
 
-                            if (parens == 0) throw new ExpressionError("Unexpected ')'", t);
+                            if (parens == 0) throw new ParsingError("Unexpected ')'", t);
 
                             tempExpr.add(t);
                             t = consume();
@@ -467,7 +467,7 @@ public class Parser {
                             if (args.isEmpty() && t.type == CLOSE_PAREN) { //Function with 0 args
                                 break;
                             } else {
-                                throw new ExpressionError("Expected function argument", t);
+                                throw new ParsingError("Expected function argument", t);
                             }
                         }
                         args.add(ShuntingYard.parseExpr(tempExpr));
@@ -478,12 +478,12 @@ public class Parser {
 
                     yield new FunctionCallStatement(fCallTok, args);
                 }
-                default -> throw new ExpressionError("Unknown statement", t);
+                default -> throw new ParsingError("Unknown statement", t);
             };
 
             // Must end statements with semicolon
             if (needSemi && !(hasNext() && peek().type == SEMICOLON) && (!scope().statementRequests.isEmpty() && scope().statementRequests.peek().needSemicolon)) {
-                throw new ExpressionError("Must have ';' after statement", peek());
+                throw new ParsingError("Must have ';' after statement", peek());
             }
 
             if (statement != null) {
@@ -513,20 +513,20 @@ public class Parser {
         HeliumStatement functionScope;
         ParserScope firstScope;
         if (parserScopes.isEmpty()) {
-            throw new ExpressionError("Empty parser scope, how did we get here?", null);
+            throw new ParsingError("Empty parser scope, how did we get here?", null);
         } else if (parserScopes.size() > 1) {
 
-            throw new ExpressionError("Didn't pop scopes correctly", scope().statements.getFirst().primaryToken());
+            throw new ParsingError("Didn't pop scopes correctly", scope().statements.getFirst().primaryToken());
         } else if ((firstScope = scope()).statements.isEmpty()) {
 
-            throw new ExpressionError("Didn't close function properly", tokens.getLast());
+            throw new ParsingError("Didn't close function properly", tokens.getLast());
 
         } else if (firstScope.statements.size() > 1) {
 
-            throw new ExpressionError("Too many statements, impossible to reach this point", null);
+            throw new ParsingError("Too many statements, impossible to reach this point", null);
 
         } else if (!((functionScope = firstScope.statements.getFirst()) instanceof ScopeStatement)) {
-            throw new ExpressionError("Incorrect function declaration", functionScope.primaryToken());
+            throw new ParsingError("Incorrect function declaration", functionScope.primaryToken());
 
         } else {
             return ((ScopeStatement) functionScope).statements;

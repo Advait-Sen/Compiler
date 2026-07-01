@@ -1,13 +1,12 @@
 package adsen.helium.exec.interpreter;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.FuncCallExpr;
 import adsen.helium.parser.expr.NodeExpr;
 import adsen.helium.parser.HeliumFunction;
 import adsen.helium.parser.HeliumProgram;
 import adsen.helium.parser.expr.NodeIdentifier;
 import adsen.helium.parser.expr.operator.BinaryOperator;
-import adsen.helium.parser.expr.operator.OperatorType;
 import adsen.helium.parser.expr.operator.UnaryOperator;
 import adsen.helium.parser.expr.primitives.BoolPrimitive;
 import adsen.helium.parser.expr.primitives.CharPrimitive;
@@ -15,31 +14,18 @@ import adsen.helium.parser.expr.primitives.FloatPrimitive;
 import adsen.helium.parser.expr.primitives.IntPrimitive;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.parser.statement.HeliumStatement;
-import adsen.helium.parser.statement.atomic.AssignStatement;
-import adsen.helium.parser.statement.atomic.BreakStatement;
-import adsen.helium.parser.statement.atomic.ContinueStatement;
-import adsen.helium.parser.statement.atomic.DeclareStatement;
-import adsen.helium.parser.statement.atomic.ExitStatement;
 import adsen.helium.parser.statement.atomic.FunctionCallStatement;
-import adsen.helium.parser.statement.atomic.IncrementStatement;
 import adsen.helium.parser.statement.atomic.ReturnStatement;
-import adsen.helium.parser.statement.atomic.StaticDeclareStatement;
-import adsen.helium.parser.statement.aggregate.ForStatement;
-import adsen.helium.parser.statement.aggregate.IfStatement;
-import adsen.helium.parser.statement.aggregate.ScopeStatement;
-import adsen.helium.parser.statement.aggregate.WhileStatement;
 import adsen.helium.exec.Context;
-import adsen.helium.exec.Scope;
 import adsen.helium.tokeniser.Token;
 
-import adsen.helium.tokeniser.TokenType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.DoubleBinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
@@ -47,7 +33,8 @@ import java.util.function.LongBinaryOperator;
 import java.util.function.Supplier;
 
 import static adsen.helium.exec.Context.*;
-import static adsen.helium.exec.Scope.MAIN_FUNCTION;
+import static adsen.helium.parser.HeliumProgram.MAIN_FUNCTION;
+import static adsen.helium.tokeniser.TokenType.VOID;
 
 /**
  * A class which will interpret Helium programming language, instead of compiling.
@@ -56,60 +43,113 @@ import static adsen.helium.exec.Scope.MAIN_FUNCTION;
  * and writing an interpreter is good practice for writing a compiler (I think)
  */
 public class Interpreter {
-
-    /**
-     * The statements to run
-     */
-    List<HeliumStatement> statements;
-
     /**
      * The program to run
      */
     HeliumProgram program;
 
-    /**
-     * Stack used to keep track of scopes
-     */
-    public Stack<Scope> scopeStack;
-
+    public static InterpreterFunctionScopeStack scopeStack;
 
     public Interpreter(HeliumProgram program) {
         this.program = program;
     }
 
+    public static final boolean NEW_EXECUTION = true;
+
+
     /**
-     * For when the Interpreter has been initialised with a {@link HeliumProgram}
+     * Executes a {@link HeliumProgram}
      */
     public NodePrimitive run() {
+
         if (program.lacksFunction(MAIN_FUNCTION))
             throw new RuntimeException("Program does not contain main function");
 
         HeliumFunction mainFunction = program.mainFunction();
 
-        scopeStack = new Stack<>();
-        scopeStack.push(Scope.fromFunction(mainFunction));
-
         Optional<NodePrimitive> retVal = Optional.empty();
 
-        for (int i = 0; i < scopeStack.getFirst().getStatements().size() && retVal.isEmpty(); i++) {
-            retVal = executeStatement(i);
+        final NodePrimitive[] returnValue = new NodePrimitive[1];
+
+        scopeStack = new InterpreterFunctionScopeStack(mainFunction, (mainRet) -> {
+            returnValue[0] = mainRet;
+        });
+
+        while (scopeStack.scopeHasStatements()) {
+            executeStatement(scopeStack.nextStatement());
         }
 
-        if (scopeStack.size() > 1) throw new RuntimeException("Did not pop scopes correctly");
+        if (NEW_EXECUTION) return retVal.orElse(IntPrimitive.of(0));
 
-        return retVal.orElseGet(() -> IntPrimitive.of(0));
+
+        return returnValue[0] == null ? IntPrimitive.of(0) : returnValue[0];
     }
 
-    /**
-     * Executes a particular statement in the scope
-     */
-    Optional<NodePrimitive> executeStatement(int i) {
-        return executeStatement(scope().getStatement(i));
+    void executeStatement(HeliumStatement statement) {
+        switch (statement) {
+
+            case ReturnStatement retStmt -> {
+
+                System.out.println("Returning from " + scopeStack.currentScopeName());
+
+                //If the return statement is empty, we don't expect a result
+                if (retStmt.empty) {
+                    if (!scopeStack.returnType().value.equalsIgnoreCase(VOID.name())) {
+                        // We were expecting something from this function, not void
+                        throw new ParsingError("Expected '" + scopeStack.returnType().value + "' return type from function '" + scopeStack.currentScopeName() + "', got '" + VOID.name().toLowerCase() + "' instead", retStmt.token);
+                    }
+                    scopeStack.functionReturn(null);
+                } else {
+                    NodePrimitive retValue = evaluateExpr(retStmt.expr());
+
+                    if (!retValue.getTypeString().equals(scopeStack.returnType().value))
+                        throw new ParsingError("Expected '" + scopeStack.returnType().value + "' return type from function '" + scopeStack.currentScopeName() + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
+
+                    scopeStack.functionReturn(retValue);
+                }
+            }
+
+
+            case FunctionCallStatement fCallStmt -> {
+
+                List<NodePrimitive> typeSignature = fCallStmt.args.stream().map(this::evaluateExpr).toList();
+
+                //TODO split from this point into user defined HeliumFunction objects,
+                // and native functions which will just take parameters and execute, without worrying the scope stack
+
+                HeliumFunction func = program.getFunction(fCallStmt.name, typeSignature);
+
+                //Checking type for function return, even though we're discarding the value
+                Consumer<NodePrimitive> returnHandler = (retValue) -> {
+                    Token errorToken;
+                    String obtainedType;
+
+                    if (retValue != null) {
+                        errorToken = retValue.getToken();
+                        obtainedType = retValue.getTypeString();
+                    } else {
+                        //Did we return nothing from a function that was expecting something?
+                        //The return value would have been discarded anyway, but it is still a type error
+                        errorToken = func.token;
+                        obtainedType = VOID.name().toLowerCase();
+                    }
+
+                    if (!obtainedType.equals(func.returnType.value))
+                        throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '"+
+                                func.name + "', got '" + obtainedType + "' instead", errorToken);
+                };
+
+                scopeStack.addNewFunctionScope(func, fCallStmt, typeSignature, returnHandler);
+            }
+
+
+            default -> //Might throw an error here at some point later on
+                    System.out.println("Reached an unhandled statement type: " + statement.typeString());
+        }
     }
 
-    /**
-     * Executes a generic statement
-     */
+    /*
+    Executes a generic statement
     Optional<NodePrimitive> executeStatement(HeliumStatement statement) {
         int pos = scope().getPos(); //Completely unused, not even sure if it's accurate, but eh it does no harm to keep it jic
 
@@ -125,7 +165,7 @@ public class Interpreter {
 
                 if (scope().hasVariable(identifier.asString())) {
                     //Copy of Java error message
-                    throw new ExpressionError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
+                    throw new ParsingError("Variable '" + identifier.asString() + "' is already defined in the scope", identifier.token);
                 }
 
                 NodePrimitive value = evaluateExpr(declare.expr());
@@ -135,7 +175,7 @@ public class Interpreter {
                     String providedType = value.getTypeString();
 
                     if (!requiredType.equals(providedType)) {
-                        throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", identifier.token);
+                        throw new ParsingError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", identifier.token);
                     }
                 }
 
@@ -145,13 +185,13 @@ public class Interpreter {
                 String variableName = assign.identifier().asString();
 
                 if (!scope().hasVariable(variableName)) {
-                    throw new ExpressionError("Unknown variable '" + variableName + "'", assign.identifier().token);
+                    throw new ParsingError("Unknown variable '" + variableName + "'", assign.identifier().token);
                 }
 
                 if (assign instanceof IncrementStatement inc) {
                     String providedType = scope().getVariable(variableName).getTypeString();
                     if (!providedType.equals(IntPrimitive.TYPE_STRING)) {
-                        throw new ExpressionError("Cannot increment '" + providedType + "', only '" + IntPrimitive.TYPE_STRING + "' type", assign.identifier().token);
+                        throw new ParsingError("Cannot increment '" + providedType + "', only '" + IntPrimitive.TYPE_STRING + "' type", assign.identifier().token);
                     }
                     IntPrimitive value = ((IntPrimitive) scope().getVariable(variableName));
                     scope().setVariable(variableName, value.setValue(value.getValue() + (inc.incrementor == OperatorType.INCREMENT ? 1 : -1)));
@@ -164,7 +204,7 @@ public class Interpreter {
                 String providedType = value.getTypeString();
 
                 if (!requiredType.equals(providedType)) {
-                    throw new ExpressionError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
+                    throw new ParsingError("Cannot assign '" + providedType + "' to '" + requiredType + "' type", assign.identifier().token);
                 }
 
                 scope().setVariable(variableName, value);
@@ -198,7 +238,7 @@ public class Interpreter {
                         break;
                     }
                 }
-                /* For printing out scopes as debug feature
+                 For printing out scopes as debug feature
                 for (Scope stackScope : scopeStack) {
                     System.out.println("Printing scope " + stackScope.name);
                     stackScope.getVariables().forEach((s, np) -> {
@@ -206,7 +246,7 @@ public class Interpreter {
                     });
                     System.out.println("End of scope\n");
                 }
-                */
+
                 newScope = scopeStack.pop();
 
 
@@ -280,6 +320,9 @@ public class Interpreter {
                     typeSignature.add(argValue);
                 }
 
+                //TODO split from this point into user defined HeliumFunction objects,
+                // and native functions which will just take parameters and execute, without worrying the scope stack
+
                 HeliumFunction func = program.getFunction(fCallStmt.name, typeSignature);
 
                 for (int i = 0; i < typeSignature.size(); i++) {
@@ -307,7 +350,7 @@ public class Interpreter {
                     NodePrimitive value = returnValue.get();
 
                     if (!value.getTypeString().equals(func.returnType.value))
-                        throw new ExpressionError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + value.getTypeString() + "' instead",
+                        throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + value.getTypeString() + "' instead",
                                 errorToken);
 
                     returnValue = Optional.empty(); //Discarding the return value, since it shouldn't matter
@@ -315,8 +358,8 @@ public class Interpreter {
                     //Did we return nothing from a function that was expecting something?
                     //The return value would have been discarded anyway, but it is still a type error
 
-                    if (!func.returnType.type.equals(TokenType.VOID))
-                        throw new ExpressionError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + TokenType.VOID.name().toLowerCase() + "' instead",
+                    if (!func.returnType.type.equals(VOID))
+                        throw new ParsingError("Expected '" + func.returnType.value + "' return type in function '" + func.name + "', got '" + VOID.name().toLowerCase() + "' instead",
                                 errorToken
                         );
                 }
@@ -330,9 +373,9 @@ public class Interpreter {
 
                 //If the return statement is empty, we don't expect a result
                 if (retStmt.empty) {
-                    if (!scope.getReturnType().equalsIgnoreCase(TokenType.VOID.name())) {
+                    if (!scope.getReturnType().equalsIgnoreCase(VOID.name())) {
                         // We were expecting something from this function, not void
-                        throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope().name + "', got '" + TokenType.VOID.name().toLowerCase() + "' instead", retStmt.token);
+                        throw new ParsingError("Expected '" + scope.getReturnType() + "' return type from function '" + scope().name + "', got '" + VOID.name().toLowerCase() + "' instead", retStmt.token);
                     }
                     returnValue = Optional.empty();
                     break;
@@ -341,7 +384,7 @@ public class Interpreter {
                 NodePrimitive retValue = evaluateExpr(retStmt.expr());
 
                 if (!retValue.getTypeString().equals(scope.getReturnType()))
-                    throw new ExpressionError("Expected '" + scope.getReturnType() + "' return type from function '" + scope.name + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
+                    throw new ParsingError("Expected '" + scope.getReturnType() + "' return type from function '" + scope.name + "', got '" + retValue.getTypeString() + "' instead", retStmt.token);
 
                 returnValue = Optional.of(retValue);
             }
@@ -355,29 +398,10 @@ public class Interpreter {
 
         return returnValue;
     }
+    */
 
-    private Scope scope() {
-        return scopeStack.peek();
-    }
 
-    private void handleContinueStatement(ContinueStatement continueStmt) {
-        if (scope().isLoop()) {
-            if (!scope().continueLoop())
-                throw new ExpressionError("Unexpected 'continue', loop might already have been continued or broken", continueStmt.token);
-
-        } else throw new ExpressionError("Unexpected 'continue' outside of loop", continueStmt.token);
-    }
-
-    private void handleBreakStatement(BreakStatement breakStmt) {
-        //This will eventually handle switch statements ig, though if it's too much of a mess I'll just use a different keyword or smth
-        if (scope().isLoop()) {
-            if (!scope().breakLoop())
-                throw new ExpressionError("Unexpected 'break', loop might already have been continued or broken", breakStmt.token);
-
-        } else throw new ExpressionError("Unexpected 'break' outside of loop", breakStmt.token);
-    }
-
-    private NodePrimitive evaluateExpr(NodeExpr expr) {
+    NodePrimitive evaluateExpr(NodeExpr expr) {
         return evaluateExpr(expr, NONE);
     }
 
@@ -411,7 +435,7 @@ public class Interpreter {
 
             case NodeIdentifier ident -> {
                 if (!scope().hasVariable(ident.asString()))
-                    throw new ExpressionError("Unknown variable '" + ident.asString() + "'", ident.token);
+                    throw new ParsingError("Unknown variable '" + ident.asString() + "'", ident.token);
 
                 yield scope().getVariable(ident.asString());
             }
@@ -445,7 +469,7 @@ public class Interpreter {
 
                         //Much simpler to go by exclusion
                         if (operand instanceof BoolPrimitive) {
-                            throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                            throw new ParsingError("Expected numeric value, not 'bool'", errorTok);
                         }
 
                         yield operand;
@@ -459,11 +483,10 @@ public class Interpreter {
                             case CharPrimitive charP -> CharPrimitive.of((char) -charP.getValue());
                             //Use ! to negate bool, not unary -
                             case BoolPrimitive _ ->
-                                    throw new ExpressionError("Expected numeric value, not 'bool'", errorTok);
+                                    throw new ParsingError("Expected numeric value, not 'bool'", errorTok);
                         };
                     }
-                    default ->
-                            throw new ExpressionError("Don't know how we got here, unknown unary operator", errorTok);
+                    default -> throw new ParsingError("Don't know how we got here, unknown unary operator", errorTok);
                 };
 
             }
@@ -474,7 +497,7 @@ public class Interpreter {
 
                 //Don't keep the error as a variable since it causes expressions to be evaluated that we might not want evaluated
                 //Although this way might cause some stuff to get evaluated twice, which is also bad
-                Supplier<ExpressionError> errorCreator = () -> new ExpressionError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, evaluateExpr(binOp.left()).getTypeString(), evaluateExpr(binOp.right()).getTypeString()), errorTok);
+                Supplier<ParsingError> errorCreator = () -> new ParsingError("Undefined '%s' operator for '%s' and '%s'".formatted(binOp.type().value, evaluateExpr(binOp.left()).getTypeString(), evaluateExpr(binOp.right()).getTypeString()), errorTok);
 
 
                 BiFunction<DoubleBinaryOperator, LongBinaryOperator, NodePrimitive> mathematicalBinOp = (dbop, lbop) -> {
@@ -554,8 +577,7 @@ public class Interpreter {
                         throw errorCreator.get();
                     }
                     //case OR -> boolBiOp.apply(Boolean::logicalOr);
-                    default ->
-                            throw new ExpressionError("Don't know how we got here, unknown binary operator", errorTok);
+                    default -> throw new ParsingError("Don't know how we got here, unknown binary operator", errorTok);
                 };
             }
 
@@ -571,8 +593,8 @@ public class Interpreter {
 
                 HeliumFunction func = program.getFunction(fCall.token, typeSignature);
 
-                if (func.returnType.type == TokenType.VOID)
-                    throw new ExpressionError("Tried to use void function in an expression", fCall.token);
+                if (func.returnType.type == VOID)
+                    throw new ParsingError("Tried to use void function in an expression", fCall.token);
 
                 for (int i = 0; i < typeSignature.size(); i++) {
                     arguments.put(func.getSignature().get(i * 2 + 1).value, typeSignature.get(i));
@@ -591,7 +613,7 @@ public class Interpreter {
                 scopeStack.pop();
 
                 if (returnValue.isEmpty())
-                    throw new ExpressionError("Did not return a value from function '" + fCall.name + "'", fCall.token);
+                    throw new ParsingError("Did not return a value from function '" + fCall.name + "'", fCall.token);
 
                 yield returnValue.get();
             }
@@ -606,34 +628,26 @@ public class Interpreter {
             case BOOL -> {
                 if (retVal instanceof BoolPrimitive) yield retVal;
 
-                throw new ExpressionError("Expected bool value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+                throw new ParsingError("Expected bool value, not '" + retVal.getTypeString() + "'", retVal.getToken());
             }
             case INTEGER -> {
                 if (retVal instanceof IntPrimitive) yield retVal;
 
-                throw new ExpressionError("Expected int value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+                throw new ParsingError("Expected int value, not '" + retVal.getTypeString() + "'", retVal.getToken());
             }
             case FLOAT -> {
                 if (retVal instanceof FloatPrimitive) yield retVal;
 
-                throw new ExpressionError("Expected float value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+                throw new ParsingError("Expected float value, not '" + retVal.getTypeString() + "'", retVal.getToken());
             }
             case CHAR -> {
                 if (retVal instanceof CharPrimitive) yield retVal;
 
-                throw new ExpressionError("Expected char value, not '" + retVal.getTypeString() + "'", retVal.getToken());
+                throw new ParsingError("Expected char value, not '" + retVal.getTypeString() + "'", retVal.getToken());
             }
             //noinspection UnnecessaryDefault since it might be necessary in the future
             default ->
-                    throw new ExpressionError("Don't know how we got here, found unknown evaluation context", retVal.getToken());
+                    throw new ParsingError("Don't know how we got here, found unknown evaluation context", retVal.getToken());
         }).copy(); //todo check later if this copy breaks things with classes
-    }
-
-
-    /**
-     * Currently only used for verbose messages, but might in future be more useful.
-     */
-    public Map<String, NodePrimitive> variables() {
-        return scope().getVariables();
     }
 }

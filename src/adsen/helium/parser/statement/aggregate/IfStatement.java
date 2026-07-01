@@ -1,6 +1,6 @@
 package adsen.helium.parser.statement.aggregate;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.NodeExpr;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
@@ -59,7 +59,7 @@ public class IfStatement extends HeliumStatement.AggregateStatement {
             this.elseStatement = elseStatement;
             this.status = IfCreationStatus.ELSE;
         } else {
-            throw new ExpressionError("Already added an else to this if statement", elseToken);
+            throw new ParsingError("Already added an else to this if statement", elseToken);
         }
     }
 

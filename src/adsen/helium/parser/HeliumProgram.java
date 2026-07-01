@@ -1,6 +1,6 @@
 package adsen.helium.parser;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.expr.primitives.NodePrimitive;
 import adsen.helium.tokeniser.Token;
 import java.util.ArrayList;
@@ -12,12 +12,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import static adsen.helium.exec.Scope.MAIN_FUNCTION;
-
 /**
  * Tbis class handles taking {@link Parser} objects, and extracting functions that can then be run or turned into generated code
+ * TODO move this and HeliumFunction from helium.parser to just helium package
  */
 public class HeliumProgram {
+    /**
+     * Name of the main function in the program. TODO see if this is the best place for this
+     */
+    public static final String MAIN_FUNCTION = "main";
 
     /**
      * Stores functions which are overloaded, which require the signature to be distinguished in order to identify them.
@@ -33,7 +36,7 @@ public class HeliumProgram {
 
     private HeliumFunction getFunction(String name, Supplier<List<String>> typeSignatureSupplier, Token token) {
         if (lacksFunction(name))
-            throw new ExpressionError("No such function '" + name + "'", token);
+            throw new ParsingError("No such function '" + name + "'", token);
 
         //If the function exists and isn't overloaded
         if (functions.get(name) != null) return functions.get(name);
@@ -43,7 +46,7 @@ public class HeliumProgram {
 
         if (!signatureFunctions.containsKey(typeSignature)) {
             typeSignature.removeFirst();
-            throw new ExpressionError("No such function '" + name + typeSignature + "'", token);
+            throw new ParsingError("No such function '" + name + typeSignature + "'", token);
         }
 
         return signatureFunctions.get(typeSignature);
@@ -83,7 +86,7 @@ public class HeliumProgram {
             List<String> otherTypeSig = other.getTypeSignature();
 
             if (funcTypeSig.equals(otherTypeSig))
-                throw new ExpressionError("Cannot have multiple functions with the same signature", function.token);
+                throw new ParsingError("Cannot have multiple functions with the same signature", function.token);
 
             //We have confirmed that they have different signatures, so we complete the signatures
             funcTypeSig.addFirst(name);
@@ -103,7 +106,7 @@ public class HeliumProgram {
         funcTypeSig.addFirst(name);
 
         if (signatureFunctions.containsKey(funcTypeSig))
-            throw new ExpressionError("Cannot have multiple functions with the same signature", function.token);
+            throw new ParsingError("Cannot have multiple functions with the same signature", function.token);
 
         signatureFunctions.put(funcTypeSig, function);
     }

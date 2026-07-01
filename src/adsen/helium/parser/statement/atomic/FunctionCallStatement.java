@@ -6,7 +6,6 @@ import adsen.helium.tokeniser.Token;
 
 import java.util.List;
 
-//TODO see what turning this into a record class means
 public class FunctionCallStatement extends AtomicStatement {
 
     public final Token name;

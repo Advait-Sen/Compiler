@@ -1,6 +1,6 @@
 package adsen.helium;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.exec.imports.FileType;
 import adsen.helium.exec.interpreter.ImportInterpreter;
 import adsen.helium.parser.Parser;
@@ -116,10 +116,10 @@ public class Helium {
 
         try {
             tokeniser.tokenise();
-        } catch (ExpressionError expressionError) {
+        } catch (ParsingError parsingError) {
             //Not using throwError here, since it's the programmer's fault, not compiler's fault
             System.out.println("Error in tokenisation:");
-            System.out.println(expressionError.getMessage());
+            System.out.println(parsingError.getMessage());
             System.exit(-1);
             return;
         }
@@ -148,10 +148,10 @@ public class Helium {
 
             try {
                 parser.parse();
-            } catch (ExpressionError expressionError) {
+            } catch (ParsingError parsingError) {
                 //Not using throwError here, since it's the programmer's fault, not compiler's fault
                 System.out.println("\nError in parsing:");
-                System.out.println(expressionError.getMessage());
+                System.out.println(parsingError.getMessage());
                 System.exit(-1);
                 return;
             }
@@ -174,7 +174,7 @@ public class Helium {
 
                 try {
                     exitValue = interpreter.run();
-                } catch (ExpressionError error) {
+                } catch (ParsingError error) {
                     System.out.println(error.getMessage());
                     exitValue = IntPrimitive.of(-1);
                 }

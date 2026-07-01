@@ -1,6 +1,6 @@
 package adsen.helium.parser;
 
-import adsen.helium.error.ExpressionError;
+import adsen.helium.error.ParsingError;
 import adsen.helium.parser.statement.HeliumStatement;
 import adsen.helium.tokeniser.Token;
 
@@ -29,7 +29,7 @@ public class HeliumFunction {
         this.body = Collections.unmodifiableList(statements);
 
         if (signature.size() % 2 != 0)
-            throw new ExpressionError("Invalid function signature", nameToken);
+            throw new ParsingError("Invalid function signature", nameToken);
 
         this.signature = Collections.unmodifiableList(signature);
         this.argumentCount = signature.size() / 2;
@@ -43,12 +43,7 @@ public class HeliumFunction {
      * Intended to be used for storing functions in {@link HeliumProgram}
      */
     public List<String> getTypeSignature() {
-        List<String> typeSignature = new ArrayList<>();
-
-        for (int i = 0; i < signature.size(); i += 2) {
-            typeSignature.add(signature.get(i).value);
-        }
-        return typeSignature;
+        return signature.stream().map(t->t.value).toList();
     }
 
     public List<Token> getSignature() {
