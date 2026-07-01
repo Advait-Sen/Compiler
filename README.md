@@ -7,7 +7,7 @@ This means that the structure of the code had to evolve over time, with hacks an
 This, combined with a 4-month-hiatus due to uni work, during which I learned a lot more about how both
 Java and programming languages work, has made me want to redo this project from scratch.
 
-[This is the new repo]()
+The new project is at: [Advait-Sen/Helium-language](https://github.com/Advait-Sen/Helium-language)
 
 ## Compiler
 
