@@ -1,4 +1,15 @@
-# Helium Compiler
+# Helium Compiler - Discontinued
+
+This project has been discontinued in favour of reimplementing this programming language, but better.
+This is because the original idea was to compile a generic language, which didn't develop into Helium until later.
+This means that the structure of the code had to evolve over time, with hacks and fixes along the way.
+
+This, combined with a 4-month-hiatus due to uni work, during which I learned a lot more about how both
+Java and programming languages work, has made me want to redo this project from scratch.
+
+[This is the new repo]()
+
+## Compiler
 
 A compiler that compiles Helium, a Java-like programming language.
 
